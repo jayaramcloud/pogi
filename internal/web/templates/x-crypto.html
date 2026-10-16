@@ -1,0 +1,14 @@
+{{define "content"}}{{with .Data}}<div class="x" id="xtab">{{template "xcss"}}
+<p class="dim">Encrypt text with a key, or decrypt what it made. AWS KMS and Cloud KMS ciphertext is base64; Key Vault's is the JSON that encrypt returns (the value, plus iv and tag for AES keys).</p>
+<form method="post" action="/_pogi/crypto" class="stack" hx-post="/_pogi/crypto" hx-target="#xtab" hx-swap="outerHTML">
+  <div class="row">
+    <label class="wide">Key <select name="key">{{$k := .Key}}{{range .Keys}}<option value="{{.Value}}" {{if eq .Value $k}}selected{{end}}>{{.Label}}</option>{{else}}<option value="">(no encryption keys yet)</option>{{end}}</select></label>
+    <label>Mode <select name="mode"><option value="encrypt" {{if eq .Mode "encrypt"}}selected{{end}}>Encrypt</option><option value="decrypt" {{if eq .Mode "decrypt"}}selected{{end}}>Decrypt</option></select></label>
+    <label>Algorithm (Key Vault) <input name="alg" value="{{.Alg}}" placeholder="RSA-OAEP-256"></label>
+  </div>
+  <label>Input <textarea name="input" rows="4">{{.In}}</textarea></label>
+  <div><button class="btn primary">Run</button></div>
+</form>
+{{if .Err}}<div class="flash" role="alert">{{.Err}}</div>{{end}}
+{{if .Out}}<h2>Result</h2><pre id="out">{{.Out}}</pre>{{end}}
+</div>{{end}}{{end}}

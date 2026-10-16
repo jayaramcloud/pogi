@@ -1,0 +1,41 @@
+{{define "content"}}{{with .Data}}<div class="x" id="xtab">{{template "xcss"}}
+{{$v := .V}}{{$d := .}}
+<form method="get" action="/_pogi/query/{{.Kind}}" class="stack" hx-get="/_pogi/query/{{.Kind}}" hx-target="#xtab" hx-swap="outerHTML">
+  <input type="hidden" name="run" value="1">
+  <div class="row">
+    <label class="wide">{{if eq .Kind "dynamodb"}}Table{{else if eq .Kind "cosmos"}}Container{{else}}Collection{{end}}
+      <select name="target">{{$t := $v.Get "target"}}{{range .Targets}}<option value="{{.Value}}" {{if eq .Value $t}}selected{{end}}>{{.Label}}</option>{{else}}<option value="">(none yet)</option>{{end}}</select></label>
+  </div>
+  {{if eq .Kind "dynamodb"}}{{$m := $v.Get "mode"}}
+  <div class="row">
+    <label>Mode <select name="mode"><option value="scan" {{if eq $m "scan"}}selected{{end}}>Scan</option><option value="query" {{if eq $m "query"}}selected{{end}}>Query</option><option value="partiql" {{if eq $m "partiql"}}selected{{end}}>PartiQL SELECT</option></select></label>
+    <label class="wide">Key condition (Query) <input name="key" value="{{$v.Get "key"}}" placeholder="pk = :pk AND begins_with(sk, :p)"></label>
+    <label class="wide">Filter <input name="filter" value="{{$v.Get "filter"}}" placeholder="price > :min"></label>
+  </div>
+  <div class="row">
+    <label class="wide">Values (plain JSON, or typed like {"S": "x"}) <input name="values" value="{{$v.Get "values"}}" placeholder='{":pk": "user#1", ":min": 10}'></label>
+    <label>Names <input name="names" value="{{$v.Get "names"}}" placeholder='{"#n": "name"}'></label>
+    <label>Index <input name="index" value="{{$v.Get "index"}}"></label>
+    <label>Limit <input name="limit" type="number" min="1" value="{{$v.Get "limit"}}" style="max-width:90px"></label>
+    <label>Order <select name="desc"><option value="">ascending</option><option value="1" {{if $v.Get "desc"}}selected{{end}}>descending</option></select></label>
+  </div>
+  <label>PartiQL (mode PartiQL) <textarea name="stmt" rows="2" placeholder='SELECT * FROM "Orders" WHERE total > 10'>{{$v.Get "stmt"}}</textarea></label>
+  {{else if eq .Kind "cosmos"}}
+  <label>SQL <textarea name="sql" rows="4" placeholder="SELECT * FROM c WHERE c.price > 10 ORDER BY c.price">{{$v.Get "sql"}}</textarea></label>
+  {{else}}
+  {{range $n := .Idx}}<div class="row">
+    <label>Field <input name="f{{$n}}" value="{{$v.Get (printf "f%s" $n)}}" placeholder="age"></label>
+    <label>Operator <select name="op{{$n}}">{{$o := $v.Get (printf "op%s" $n)}}{{range $d.Ops}}<option {{if eq . $o}}selected{{end}}>{{.}}</option>{{end}}</select></label>
+    <label class="wide">Value (JSON or text) <input name="v{{$n}}" value="{{$v.Get (printf "v%s" $n)}}" placeholder="30"></label></div>{{end}}
+  <div class="row">
+    <label>Order by <input name="order" value="{{$v.Get "order"}}"></label>
+    <label>Direction <select name="dir"><option value="asc">ascending</option><option value="desc" {{if eq ($v.Get "dir") "desc"}}selected{{end}}>descending</option></select></label>
+    <label>Limit <input name="limit" type="number" min="1" value="{{$v.Get "limit"}}"></label>
+  </div>
+  {{end}}
+  <div><button class="btn primary">{{icon "play"}}Run</button></div>
+</form>
+{{if .Err}}<div class="flash" role="alert">{{.Err}}</div>{{end}}
+{{template "xresult" .Res}}
+{{if .Next}}<p><a href="{{.Next}}" hx-get="/_pogi/query/{{.Kind}}{{.Next}}" hx-target="#xtab" hx-swap="outerHTML">Next page</a></p>{{end}}
+</div>{{end}}{{end}}

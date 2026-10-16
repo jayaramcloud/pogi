@@ -1,0 +1,63 @@
+# The hand-written AWS services, each with the botocore directories whose models check its input limits.
+# One line per service: <pogi service name> <botocore dir> [<botocore dir>...]. `go generate` fetches them.
+# Left out: s3 and ec2 (they answer limits with their own codes). Dirs in services.txt already have a full model.
+sqs sqs
+sns sns
+mq mq
+sts sts
+lambda lambda
+kinesis kinesis
+firehose firehose
+events events
+scheduler scheduler
+pipes pipes
+dynamodb dynamodb dynamodbstreams
+iam iam
+kms kms
+secretsmanager secretsmanager
+ssm ssm
+logs logs
+stepfunctions stepfunctions
+apigateway apigateway apigatewayv2
+cloudformation cloudformation
+cognito-idp cognito-idp
+ses ses sesv2
+cloudwatch cloudwatch
+acm acm
+ecr ecr
+ecs ecs
+route53 route53
+autoscaling autoscaling
+application-autoscaling application-autoscaling
+resourcegroupstaggingapi resourcegroupstaggingapi
+rds rds
+rds-data rds-data
+elasticache elasticache
+redshift redshift
+redshift-data redshift-data
+redshift-serverless redshift-serverless
+opensearch opensearch
+memorydb memorydb
+timestream-influxdb timestream-influxdb
+elbv2 elbv2
+eks eks
+batch batch
+codebuild codebuild
+kafka kafka
+glue glue
+athena athena
+organizations organizations
+verifiedpermissions verifiedpermissions
+resource-explorer-2 resource-explorer-2
+appconfig appconfig
+cloudfront cloudfront
+s3vectors s3vectors
+appsync appsync
+cloudtrail cloudtrail
+fis fis
+codedeploy codedeploy
+codepipeline codepipeline
+cognito-identity cognito-identity
+iot iot
+iotdata iot-data
+servicediscovery servicediscovery

@@ -1,0 +1,78 @@
+# botocore service directories to embed (one per line). `go generate ./internal/aws/generic` fetches them.
+# Add a name here, run go generate, and the service exists (see doc.go).
+codeartifact
+swf
+elb
+servicecatalog
+route53resolver
+efs
+backup
+dlm
+globalaccelerator
+guardduty
+service-quotas
+# rest-xml: shadowed by the hand-written route53 in pogi.go; it proves the rest-xml adapter in this package's tests
+route53
+# phase 15: security and governance
+sso-admin
+sso
+sso-oidc
+identitystore
+ram
+accessanalyzer
+account
+wafv2
+securityhub
+detective
+inspector2
+macie2
+cloudhsmv2
+network-firewall
+controltower
+controlcatalog
+# phase 15: operations and storage
+config
+rum
+amp
+oam
+transfer
+datasync
+s3tables
+# phase 15: compute, network and analytics
+elasticbeanstalk
+lightsail
+lambda-microvms
+dms
+lakeformation
+emr
+emr-serverless
+mwaa
+kinesisanalyticsv2
+connect
+appintegrations
+cloudcontrol
+codeguru-reviewer
+# phase 15: AI
+bedrock
+bedrock-runtime
+bedrock-agent
+bedrock-agent-runtime
+bedrock-agentcore
+bedrock-agentcore-control
+sagemaker
+sagemaker-runtime
+textract
+transcribe
+comprehend
+rekognition
+translate
+# phase 15: cost
+ce
+pricing
+budgets
+cur
+bcm-data-exports
+bcm-pricing-calculator
+marketplace-catalog
+meteringmarketplace
+marketplace-entitlement

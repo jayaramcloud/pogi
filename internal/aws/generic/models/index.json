@@ -1,0 +1,625 @@
+{
+ "accessanalyzer": {
+  "apiVersion": "2019-11-01",
+  "endpointPrefix": "access-analyzer",
+  "protocol": "rest-json",
+  "serviceId": "AccessAnalyzer",
+  "signingName": "access-analyzer",
+  "title": "Access Analyzer"
+ },
+ "account": {
+  "apiVersion": "2021-02-01",
+  "endpointPrefix": "account",
+  "protocol": "rest-json",
+  "serviceId": "Account",
+  "signingName": "account",
+  "title": "AWS Account"
+ },
+ "amp": {
+  "apiVersion": "2020-08-01",
+  "endpointPrefix": "aps",
+  "protocol": "rest-json",
+  "serviceId": "amp",
+  "signingName": "aps",
+  "title": "Amazon Prometheus Service"
+ },
+ "appintegrations": {
+  "apiVersion": "2020-07-29",
+  "endpointPrefix": "app-integrations",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "AppIntegrations",
+  "signingName": "app-integrations",
+  "title": "Amazon AppIntegrations Service"
+ },
+ "backup": {
+  "apiVersion": "2018-11-15",
+  "endpointPrefix": "backup",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "Backup",
+  "title": "AWS Backup"
+ },
+ "bcm-data-exports": {
+  "apiVersion": "2023-11-26",
+  "endpointPrefix": "bcm-data-exports",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "BCM Data Exports",
+  "signingName": "bcm-data-exports",
+  "targetPrefix": "AWSBillingAndCostManagementDataExports",
+  "title": "AWS Billing and Cost Management Data Exports"
+ },
+ "bcm-pricing-calculator": {
+  "apiVersion": "2024-06-19",
+  "endpointPrefix": "bcm-pricing-calculator",
+  "jsonVersion": "1.0",
+  "protocol": "json",
+  "serviceId": "BCM Pricing Calculator",
+  "signingName": "bcm-pricing-calculator",
+  "targetPrefix": "AWSBCMPricingCalculator",
+  "title": "AWS Billing and Cost Management Pricing Calculator"
+ },
+ "bedrock": {
+  "apiVersion": "2023-04-20",
+  "endpointPrefix": "bedrock",
+  "protocol": "rest-json",
+  "serviceId": "Bedrock",
+  "signingName": "bedrock",
+  "title": "Amazon Bedrock"
+ },
+ "bedrock-agent": {
+  "apiVersion": "2023-06-05",
+  "endpointPrefix": "bedrock-agent",
+  "protocol": "rest-json",
+  "serviceId": "Bedrock Agent",
+  "signingName": "bedrock",
+  "title": "Agents for Amazon Bedrock"
+ },
+ "bedrock-agent-runtime": {
+  "apiVersion": "2023-07-26",
+  "endpointPrefix": "bedrock-agent-runtime",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "Bedrock Agent Runtime",
+  "signingName": "bedrock",
+  "title": "Agents for Amazon Bedrock Runtime"
+ },
+ "bedrock-agentcore": {
+  "apiVersion": "2024-02-28",
+  "endpointPrefix": "bedrock-agentcore",
+  "protocol": "rest-json",
+  "serviceId": "Bedrock AgentCore",
+  "signingName": "bedrock-agentcore",
+  "title": "Amazon Bedrock AgentCore"
+ },
+ "bedrock-agentcore-control": {
+  "apiVersion": "2023-06-05",
+  "endpointPrefix": "bedrock-agentcore-control",
+  "protocol": "rest-json",
+  "serviceId": "Bedrock AgentCore Control",
+  "signingName": "bedrock-agentcore",
+  "title": "Amazon Bedrock AgentCore Control"
+ },
+ "bedrock-runtime": {
+  "apiVersion": "2023-09-30",
+  "endpointPrefix": "bedrock-runtime",
+  "protocol": "rest-json",
+  "serviceId": "Bedrock Runtime",
+  "signingName": "bedrock",
+  "title": "Amazon Bedrock Runtime"
+ },
+ "budgets": {
+  "apiVersion": "2016-10-20",
+  "endpointPrefix": "budgets",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Budgets",
+  "targetPrefix": "AWSBudgetServiceGateway",
+  "title": "AWS Budgets"
+ },
+ "ce": {
+  "apiVersion": "2017-10-25",
+  "endpointPrefix": "ce",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Cost Explorer",
+  "signingName": "ce",
+  "targetPrefix": "AWSInsightsIndexService",
+  "title": "AWS Cost Explorer Service"
+ },
+ "cloudcontrol": {
+  "apiVersion": "2021-09-30",
+  "endpointPrefix": "cloudcontrolapi",
+  "jsonVersion": "1.0",
+  "protocol": "json",
+  "serviceId": "CloudControl",
+  "signingName": "cloudcontrolapi",
+  "targetPrefix": "CloudApiService",
+  "title": "AWS Cloud Control API"
+ },
+ "cloudhsmv2": {
+  "apiVersion": "2017-04-28",
+  "endpointPrefix": "cloudhsmv2",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "CloudHSM V2",
+  "signingName": "cloudhsm",
+  "targetPrefix": "BaldrApiService",
+  "title": "AWS CloudHSM V2"
+ },
+ "codeartifact": {
+  "apiVersion": "2018-09-22",
+  "endpointPrefix": "codeartifact",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "codeartifact",
+  "signingName": "codeartifact",
+  "title": "CodeArtifact"
+ },
+ "codeguru-reviewer": {
+  "apiVersion": "2019-09-19",
+  "endpointPrefix": "codeguru-reviewer",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "CodeGuru Reviewer",
+  "signingName": "codeguru-reviewer",
+  "title": "Amazon CodeGuru Reviewer"
+ },
+ "comprehend": {
+  "apiVersion": "2017-11-27",
+  "endpointPrefix": "comprehend",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Comprehend",
+  "signingName": "comprehend",
+  "targetPrefix": "Comprehend_20171127",
+  "title": "Amazon Comprehend"
+ },
+ "config": {
+  "apiVersion": "2014-11-12",
+  "endpointPrefix": "config",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Config Service",
+  "targetPrefix": "StarlingDoveService",
+  "title": "AWS Config"
+ },
+ "connect": {
+  "apiVersion": "2017-08-08",
+  "endpointPrefix": "connect",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "Connect",
+  "signingName": "connect",
+  "title": "Amazon Connect Service"
+ },
+ "controlcatalog": {
+  "apiVersion": "2018-05-10",
+  "endpointPrefix": "controlcatalog",
+  "protocol": "rest-json",
+  "serviceId": "ControlCatalog",
+  "signingName": "controlcatalog",
+  "title": "AWS Control Catalog"
+ },
+ "controltower": {
+  "apiVersion": "2018-05-10",
+  "endpointPrefix": "controltower",
+  "protocol": "rest-json",
+  "serviceId": "ControlTower",
+  "signingName": "controltower",
+  "title": "AWS Control Tower"
+ },
+ "cur": {
+  "apiVersion": "2017-01-06",
+  "endpointPrefix": "cur",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Cost and Usage Report Service",
+  "signingName": "cur",
+  "targetPrefix": "AWSOrigamiServiceGatewayService",
+  "title": "AWS Cost and Usage Report Service"
+ },
+ "datasync": {
+  "apiVersion": "2018-11-09",
+  "endpointPrefix": "datasync",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "DataSync",
+  "signingName": "datasync",
+  "targetPrefix": "FmrsService",
+  "title": "AWS DataSync"
+ },
+ "detective": {
+  "apiVersion": "2018-10-26",
+  "endpointPrefix": "api.detective",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "Detective",
+  "signingName": "detective",
+  "title": "Amazon Detective"
+ },
+ "dlm": {
+  "apiVersion": "2018-01-12",
+  "endpointPrefix": "dlm",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "DLM",
+  "signingName": "dlm",
+  "title": "Amazon Data Lifecycle Manager"
+ },
+ "dms": {
+  "apiVersion": "2016-01-01",
+  "endpointPrefix": "dms",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Database Migration Service",
+  "targetPrefix": "AmazonDMSv20160101",
+  "title": "AWS Database Migration Service"
+ },
+ "efs": {
+  "apiVersion": "2015-02-01",
+  "endpointPrefix": "elasticfilesystem",
+  "protocol": "rest-json",
+  "serviceId": "EFS",
+  "title": "Amazon Elastic File System"
+ },
+ "elasticbeanstalk": {
+  "apiVersion": "2010-12-01",
+  "endpointPrefix": "elasticbeanstalk",
+  "protocol": "query",
+  "serviceId": "Elastic Beanstalk",
+  "title": "AWS Elastic Beanstalk"
+ },
+ "elb": {
+  "apiVersion": "2012-06-01",
+  "endpointPrefix": "elasticloadbalancing",
+  "protocol": "query",
+  "serviceId": "Elastic Load Balancing",
+  "title": "Elastic Load Balancing"
+ },
+ "emr": {
+  "apiVersion": "2009-03-31",
+  "endpointPrefix": "elasticmapreduce",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "EMR",
+  "targetPrefix": "ElasticMapReduce",
+  "title": "Amazon EMR"
+ },
+ "emr-serverless": {
+  "apiVersion": "2021-07-13",
+  "endpointPrefix": "emr-serverless",
+  "protocol": "rest-json",
+  "serviceId": "EMR Serverless",
+  "signingName": "emr-serverless",
+  "title": "EMR Serverless"
+ },
+ "globalaccelerator": {
+  "apiVersion": "2018-08-08",
+  "endpointPrefix": "globalaccelerator",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Global Accelerator",
+  "signingName": "globalaccelerator",
+  "targetPrefix": "GlobalAccelerator_V20180706",
+  "title": "AWS Global Accelerator"
+ },
+ "guardduty": {
+  "apiVersion": "2017-11-28",
+  "endpointPrefix": "guardduty",
+  "protocol": "rest-json",
+  "serviceId": "GuardDuty",
+  "signingName": "guardduty",
+  "title": "Amazon GuardDuty"
+ },
+ "identitystore": {
+  "apiVersion": "2020-06-15",
+  "endpointPrefix": "identitystore",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "identitystore",
+  "signingName": "identitystore",
+  "targetPrefix": "AWSIdentityStore",
+  "title": "AWS SSO Identity Store"
+ },
+ "inspector2": {
+  "apiVersion": "2020-06-08",
+  "endpointPrefix": "inspector2",
+  "protocol": "rest-json",
+  "serviceId": "Inspector2",
+  "signingName": "inspector2",
+  "title": "Inspector2"
+ },
+ "kinesisanalyticsv2": {
+  "apiVersion": "2018-05-23",
+  "endpointPrefix": "kinesisanalytics",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Kinesis Analytics V2",
+  "signingName": "kinesisanalytics",
+  "targetPrefix": "KinesisAnalytics_20180523",
+  "title": "Amazon Kinesis Analytics"
+ },
+ "lakeformation": {
+  "apiVersion": "2017-03-31",
+  "endpointPrefix": "lakeformation",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "LakeFormation",
+  "signingName": "lakeformation",
+  "title": "AWS Lake Formation"
+ },
+ "lambda-microvms": {
+  "apiVersion": "2025-09-09",
+  "endpointPrefix": "lambda",
+  "protocol": "rest-json",
+  "serviceId": "Lambda Microvms",
+  "signingName": "lambda",
+  "title": "Lambda MicroVMs"
+ },
+ "lightsail": {
+  "apiVersion": "2016-11-28",
+  "endpointPrefix": "lightsail",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Lightsail",
+  "targetPrefix": "Lightsail_20161128",
+  "title": "Amazon Lightsail"
+ },
+ "macie2": {
+  "apiVersion": "2020-01-01",
+  "endpointPrefix": "macie2",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "Macie2",
+  "signingName": "macie2",
+  "title": "Amazon Macie 2"
+ },
+ "marketplace-catalog": {
+  "apiVersion": "2018-09-17",
+  "endpointPrefix": "catalog.marketplace",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "Marketplace Catalog",
+  "signingName": "aws-marketplace",
+  "title": "AWS Marketplace Catalog Service"
+ },
+ "marketplace-entitlement": {
+  "apiVersion": "2017-01-11",
+  "endpointPrefix": "entitlement.marketplace",
+  "jsonVersion": "1.1",
+  "protocol": "smithy-rpc-v2-cbor",
+  "serviceId": "Marketplace Entitlement Service",
+  "signingName": "aws-marketplace",
+  "targetPrefix": "AWSMPEntitlementService",
+  "title": "AWS Marketplace Entitlement Service"
+ },
+ "meteringmarketplace": {
+  "apiVersion": "2016-01-14",
+  "endpointPrefix": "metering.marketplace",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Marketplace Metering",
+  "signingName": "aws-marketplace",
+  "targetPrefix": "AWSMPMeteringService",
+  "title": "AWSMarketplace Metering"
+ },
+ "mwaa": {
+  "apiVersion": "2020-07-01",
+  "endpointPrefix": "airflow",
+  "protocol": "rest-json",
+  "serviceId": "MWAA",
+  "signingName": "airflow",
+  "title": "AmazonMWAA"
+ },
+ "network-firewall": {
+  "apiVersion": "2020-11-12",
+  "endpointPrefix": "network-firewall",
+  "jsonVersion": "1.0",
+  "protocol": "json",
+  "serviceId": "Network Firewall",
+  "signingName": "network-firewall",
+  "targetPrefix": "NetworkFirewall_20201112",
+  "title": "AWS Network Firewall"
+ },
+ "oam": {
+  "apiVersion": "2022-06-10",
+  "endpointPrefix": "oam",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "OAM",
+  "signingName": "oam",
+  "title": "CloudWatch Observability Access Manager"
+ },
+ "pricing": {
+  "apiVersion": "2017-10-15",
+  "endpointPrefix": "api.pricing",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Pricing",
+  "signingName": "pricing",
+  "targetPrefix": "AWSPriceListService",
+  "title": "AWS Price List Service"
+ },
+ "ram": {
+  "apiVersion": "2018-01-04",
+  "endpointPrefix": "ram",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "RAM",
+  "title": "AWS Resource Access Manager"
+ },
+ "rekognition": {
+  "apiVersion": "2016-06-27",
+  "endpointPrefix": "rekognition",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Rekognition",
+  "targetPrefix": "RekognitionService",
+  "title": "Amazon Rekognition"
+ },
+ "route53": {
+  "apiVersion": "2013-04-01",
+  "endpointPrefix": "route53",
+  "protocol": "rest-xml",
+  "serviceId": "Route 53",
+  "title": "Amazon Route 53"
+ },
+ "route53resolver": {
+  "apiVersion": "2018-04-01",
+  "endpointPrefix": "route53resolver",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Route53Resolver",
+  "targetPrefix": "Route53Resolver",
+  "title": "Amazon Route 53 Resolver"
+ },
+ "rum": {
+  "apiVersion": "2018-05-10",
+  "endpointPrefix": "rum",
+  "protocol": "rest-json",
+  "serviceId": "RUM",
+  "signingName": "rum",
+  "title": "CloudWatch RUM"
+ },
+ "s3tables": {
+  "apiVersion": "2018-05-10",
+  "endpointPrefix": "s3tables",
+  "protocol": "rest-json",
+  "serviceId": "S3Tables",
+  "signingName": "s3tables",
+  "title": "Amazon S3 Tables"
+ },
+ "sagemaker": {
+  "apiVersion": "2017-07-24",
+  "endpointPrefix": "api.sagemaker",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "SageMaker",
+  "signingName": "sagemaker",
+  "targetPrefix": "SageMaker",
+  "title": "Amazon SageMaker Service"
+ },
+ "sagemaker-runtime": {
+  "apiVersion": "2017-05-13",
+  "endpointPrefix": "runtime.sagemaker",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "SageMaker Runtime",
+  "signingName": "sagemaker",
+  "title": "Amazon SageMaker Runtime"
+ },
+ "securityhub": {
+  "apiVersion": "2018-10-26",
+  "endpointPrefix": "securityhub",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "SecurityHub",
+  "signingName": "securityhub",
+  "title": "AWS SecurityHub"
+ },
+ "service-quotas": {
+  "apiVersion": "2019-06-24",
+  "endpointPrefix": "servicequotas",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Service Quotas",
+  "targetPrefix": "ServiceQuotasV20190624",
+  "title": "Service Quotas"
+ },
+ "servicecatalog": {
+  "apiVersion": "2015-12-10",
+  "endpointPrefix": "servicecatalog",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Service Catalog",
+  "targetPrefix": "AWS242ServiceCatalogService",
+  "title": "AWS Service Catalog"
+ },
+ "sso": {
+  "apiVersion": "2019-06-10",
+  "endpointPrefix": "portal.sso",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "SSO",
+  "signingName": "awsssoportal",
+  "title": "AWS Single Sign-On"
+ },
+ "sso-admin": {
+  "apiVersion": "2020-07-20",
+  "endpointPrefix": "sso",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "SSO Admin",
+  "signingName": "sso",
+  "targetPrefix": "SWBExternalService",
+  "title": "AWS Single Sign-On Admin"
+ },
+ "sso-oidc": {
+  "apiVersion": "2019-06-10",
+  "endpointPrefix": "oidc",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "SSO OIDC",
+  "signingName": "sso-oauth",
+  "title": "AWS SSO OIDC"
+ },
+ "swf": {
+  "apiVersion": "2012-01-25",
+  "endpointPrefix": "swf",
+  "jsonVersion": "1.0",
+  "protocol": "json",
+  "serviceId": "SWF",
+  "targetPrefix": "SimpleWorkflowService",
+  "title": "Amazon Simple Workflow Service"
+ },
+ "textract": {
+  "apiVersion": "2018-06-27",
+  "endpointPrefix": "textract",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Textract",
+  "targetPrefix": "Textract",
+  "title": "Amazon Textract"
+ },
+ "transcribe": {
+  "apiVersion": "2017-10-26",
+  "endpointPrefix": "transcribe",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Transcribe",
+  "signingName": "transcribe",
+  "targetPrefix": "Transcribe",
+  "title": "Amazon Transcribe Service"
+ },
+ "transfer": {
+  "apiVersion": "2018-11-05",
+  "endpointPrefix": "transfer",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Transfer",
+  "signingName": "transfer",
+  "targetPrefix": "TransferService",
+  "title": "AWS Transfer Family"
+ },
+ "translate": {
+  "apiVersion": "2017-07-01",
+  "endpointPrefix": "translate",
+  "jsonVersion": "1.1",
+  "protocol": "smithy-rpc-v2-cbor",
+  "serviceId": "Translate",
+  "signingName": "translate",
+  "targetPrefix": "AWSShineFrontendService_20170701",
+  "title": "Amazon Translate"
+ },
+ "wafv2": {
+  "apiVersion": "2019-07-29",
+  "endpointPrefix": "wafv2",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "WAFV2",
+  "targetPrefix": "AWSWAF_20190729",
+  "title": "AWS WAFV2"
+ }
+}

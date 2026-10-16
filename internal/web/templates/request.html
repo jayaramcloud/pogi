@@ -1,0 +1,26 @@
+{{define "tabs"}}<div class="tabs" role="tablist" aria-label="Request detail"><button type="button" role="tab" aria-selected="true" class="on" data-tab="overview">Overview</button><button type="button" role="tab" aria-selected="false" data-tab="request">Request</button><button type="button" role="tab" aria-selected="false" data-tab="response">Response</button></div>{{end}}
+{{define "status"}}<span class="st {{stc .Status}}">{{.Status}}{{if .Error}} {{.Error}}{{end}}</span>{{if .Chaos}} <span class="st warn">chaos</span>{{end}}{{end}}
+{{define "panes"}}
+{{with .Trace}}<a class="banner" href="/_pogi/flows/{{.}}" data-drawer>{{icon "map"}}<span>Part of flow <b class="mono">{{.}}</b></span><span class="spacer"></span>{{icon "right"}}</a>{{end}}
+<div data-pane="overview"><div class="kvs">
+  <div>Request</div><div class="mono">{{.Method}} {{.Path}}</div>
+  <div>Latency</div><div>{{printf "%.1f" .Ms}} ms</div>
+  <div>Account / region</div><div class="mono">{{.Account}} / {{.Region}}</div>
+  <div>Caller</div><div class="mono">{{or .Principal .AccessKey "–"}}</div>
+  <div>IAM</div><div>{{with .IAM}}<span class="st {{if hasPrefix . "deny"}}bad{{else}}ok{{end}}">{{.}}</span>{{else}}<span class="st mute">off</span>{{end}}</div>
+  {{if .Chaos}}<div>Chaos</div><div><span class="st warn">fault injected</span></div>{{end}}
+</div></div>
+<div data-pane="request">
+  <h4 style="margin:0 0 6px">Request headers</h4><pre class="code" style="margin-bottom:14px">{{range $k, $v := .ReqHeaders}}{{$k}}: {{$v}}
+{{else}}(none){{end}}</pre>
+  <h4 style="margin:0 0 6px">Request body</h4><pre class="code">{{if .ReqBody}}{{pretty .ReqBody}}{{else}}(empty){{end}}</pre>
+</div>
+<div data-pane="response"><h4 style="margin:0 0 6px">Response body</h4><pre class="code">{{if .RespBody}}{{pretty .RespBody}}{{else}}(empty){{end}}</pre></div>
+{{end}}
+{{define "head"}}{{with .Data}}<div class="ph"><div><div class="faint">Request #{{.ID}} · {{date .Time}}</div><h1><span class="dot {{.Cloud}}"></span> {{.Service}} · {{.Op}}</h1></div>
+  <div class="actions">{{template "status" .}}<button class="btn sm" data-copy="{{.Curl}}">{{icon "copy"}}Copy as curl</button></div></div>{{end}}{{end}}
+{{define "content"}}{{with .Data}}<div data-tabs>{{template "tabs"}}{{template "panes" .}}</div>{{end}}{{end}}
+{{define "drawer"}}{{with .Data}}<header><div class="eyebrow">Request #{{.ID}} · {{time .Time}}</div>
+  <div class="title"><h2 id="dtitle"><span class="dot {{.Cloud}}"></span> {{.Service}} · {{.Op}}</h2>{{template "status" .}}<button class="btn sm" data-copy="{{.Curl}}">{{icon "copy"}}Copy as curl</button><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div>
+  {{template "tabs"}}</header>
+<div class="dbody">{{template "panes" .}}</div>{{end}}{{end}}

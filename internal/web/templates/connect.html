@@ -1,0 +1,68 @@
+{{define "head"}}<div class="ph"><div><h1>Connect</h1><p class="sub">pogi listens on <code>{{.Data.Endpoint}}</code>. Every SDK and CLI works unchanged once it points there.</p></div></div>{{end}}
+
+{{define "content"}}{{with .Data}}<div style="max-width:880px">
+<section class="card" style="margin-bottom:16px"><div class="body">
+  <form method="get" action="/_pogi/connect" class="seg" style="margin-bottom:10px;flex-wrap:wrap">{{$t := .Tab}}{{range .Tabs}}<button name="tab" value="{{index . 0}}" class="{{if eq (index . 0) $t}}on{{end}}">{{index . 1}}</button>{{end}}</form>
+  <div class="codewrap"><pre class="code" id="snip" style="max-height:380px">{{if eq .Tab "shell"}}eval "$(pogi env)"      # or paste:
+{{range .Env}}export {{.}}
+{{end}}
+# then use your tools as usual
+aws s3 mb s3://demo
+gcloud storage ls
+az storage container list{{else if eq .Tab "cli"}}pogi aws s3 mb s3://demo
+pogi aws sqs create-queue --queue-name jobs
+
+# or any aws CLI
+aws --endpoint-url {{.Endpoint}} s3 ls{{else if eq .Tab "tf"}}pogi tf > pogi_override.tf          # AWS provider block
+pogi tf --cloud gcp > pogi_override.tf
+pogi tf --cloud azure > pogi_override.tf
+terraform apply
+
+# what the AWS block looks like
+provider "aws" {
+  region                      = "{{.Region}}"
+  access_key                  = "test"
+  secret_key                  = "test"
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
+  s3_use_path_style           = true
+  endpoints { s3 = "{{.Endpoint}}"  sqs = "{{.Endpoint}}"  sts = "{{.Endpoint}}" }
+}{{else if eq .Tab "sdk"}}# Python (boto3)
+import boto3
+s3 = boto3.client("s3", endpoint_url="{{.Endpoint}}", region_name="{{.Region}}",
+                  aws_access_key_id="test", aws_secret_access_key="test")
+
+// JavaScript (AWS SDK v3)
+import { S3Client } from "@aws-sdk/client-s3";
+const s3 = new S3Client({ endpoint: "{{.Endpoint}}", region: "{{.Region}}", forcePathStyle: true,
+  credentials: { accessKeyId: "test", secretAccessKey: "test" } });
+
+// Go (aws-sdk-go-v2)
+cfg, _ := config.LoadDefaultConfig(ctx,
+    config.WithRegion("{{.Region}}"),
+    config.WithBaseEndpoint("{{.Endpoint}}"),
+    config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("test", "test", "")))
+s3c := s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = true })
+
+// or in Go tests, in-process:  srv := pogi.Start(t){{else if eq .Tab "gcp"}}# the official client libraries read these (set by pogi env)
+export STORAGE_EMULATOR_HOST={{.Endpoint}}
+export PUBSUB_EMULATOR_HOST={{hostport .Endpoint}} FIRESTORE_EMULATOR_HOST={{hostport .Endpoint}} DATASTORE_EMULATOR_HOST={{hostport .Endpoint}}
+
+// Go: storage.NewClient(ctx), pubsub.NewClient(ctx, "demo"), firestore.NewClient(ctx, "demo")
+// BigQuery takes the endpoint with its version path:
+//   bigquery.NewClient(ctx, "demo", option.WithEndpoint("{{.Endpoint}}/bigquery/v2/"), option.WithoutAuthentication())
+// Secret Manager, Logging and Monitoring have no emulator variable:
+secretmanager.NewClient(ctx, option.WithEndpoint("{{hostport .Endpoint}}"), option.WithoutAuthentication(),
+    option.WithGRPCDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())))
+{{else}}# Storage on the Azurite ports 10000-10002 (AZURE_STORAGE_CONNECTION_STRING from pogi env)
+client, _ := azblob.NewClientFromConnectionString(os.Getenv("AZURE_STORAGE_CONNECTION_STRING"), nil)
+
+# Cosmos DB and Key Vault speak HTTPS on {{hostport .Endpoint}}: trust pogi's CA once (pogi cert)
+cosmos, _ := azcosmos.NewClientFromConnectionString("AccountEndpoint=https://{{hostport .Endpoint}}/;AccountKey=" + os.Getenv("COSMOS_KEY"), nil)
+vault, _ := azsecrets.NewClient("https://{{hostport .Endpoint}}/", anyTokenCredential, nil){{end}}</pre>
+    <button class="btn sm copy" data-copy="#snip">{{icon "copy"}}Copy</button></div></div></section>
+<section class="card"><header>Health</header><div class="body"><div class="kvs">
+  {{range .Health}}<div>{{.Label}}</div><div><span class="st {{.Kind}}">{{.State}}</span> <span class="dim">{{.Note}}</span></div>
+  {{end}}<div>LocalStack</div><div class="dim">pogi answers port 7644 with /_localstack/health and runs init/ready.d scripts, so existing setups and Testcontainers keep working</div></div></div></section></div>
+{{end}}{{end}}

@@ -1,0 +1,49 @@
+name: Bug report
+description: Something in pogi behaves differently from the real cloud, or breaks.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the report. Security problems go to a private advisory instead (see SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: pogi version
+      description: The output of `pogi version`.
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: How you run it
+      description: OS, and binary, Homebrew, Scoop or Docker. Docker or Podman running, yes or no.
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Client
+      description: The SDK, CLI or tool and its version, for example aws-sdk-go-v2 1.32, Terraform 1.9 with the AWS provider 5.70, boto3 1.35.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The smallest set of commands or code that shows the problem.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened
+      description: If the real cloud does something different, say what it does.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Run pogi with `--debug` (or `POGI_DEBUG=1`) and paste the lines around the failing request. Remove anything private.
+      render: text

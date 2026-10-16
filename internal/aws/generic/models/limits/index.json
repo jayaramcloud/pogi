@@ -1,0 +1,185 @@
+{
+ "acm": [
+  "acm"
+ ],
+ "apigateway": [
+  "apigateway",
+  "apigatewayv2"
+ ],
+ "appconfig": [
+  "appconfig"
+ ],
+ "application-autoscaling": [
+  "application-autoscaling"
+ ],
+ "appsync": [
+  "appsync"
+ ],
+ "athena": [
+  "athena"
+ ],
+ "autoscaling": [
+  "autoscaling"
+ ],
+ "batch": [
+  "batch"
+ ],
+ "cloudformation": [
+  "cloudformation"
+ ],
+ "cloudfront": [
+  "cloudfront"
+ ],
+ "cloudtrail": [
+  "cloudtrail"
+ ],
+ "cloudwatch": [
+  "cloudwatch"
+ ],
+ "codebuild": [
+  "codebuild"
+ ],
+ "codedeploy": [
+  "codedeploy"
+ ],
+ "codepipeline": [
+  "codepipeline"
+ ],
+ "cognito-identity": [
+  "cognito-identity"
+ ],
+ "cognito-idp": [
+  "cognito-idp"
+ ],
+ "dynamodb": [
+  "dynamodb",
+  "dynamodbstreams"
+ ],
+ "ecr": [
+  "ecr"
+ ],
+ "ecs": [
+  "ecs"
+ ],
+ "eks": [
+  "eks"
+ ],
+ "elasticache": [
+  "elasticache"
+ ],
+ "elbv2": [
+  "elbv2"
+ ],
+ "events": [
+  "events"
+ ],
+ "firehose": [
+  "firehose"
+ ],
+ "fis": [
+  "fis"
+ ],
+ "glue": [
+  "glue"
+ ],
+ "iam": [
+  "iam"
+ ],
+ "iot": [
+  "iot"
+ ],
+ "iotdata": [
+  "iot-data"
+ ],
+ "kafka": [
+  "kafka"
+ ],
+ "kinesis": [
+  "kinesis"
+ ],
+ "kms": [
+  "kms"
+ ],
+ "lambda": [
+  "lambda"
+ ],
+ "logs": [
+  "logs"
+ ],
+ "memorydb": [
+  "memorydb"
+ ],
+ "mq": [
+  "mq"
+ ],
+ "opensearch": [
+  "opensearch"
+ ],
+ "organizations": [
+  "organizations"
+ ],
+ "pipes": [
+  "pipes"
+ ],
+ "rds": [
+  "rds"
+ ],
+ "rds-data": [
+  "rds-data"
+ ],
+ "redshift": [
+  "redshift"
+ ],
+ "redshift-data": [
+  "redshift-data"
+ ],
+ "redshift-serverless": [
+  "redshift-serverless"
+ ],
+ "resource-explorer-2": [
+  "resource-explorer-2"
+ ],
+ "resourcegroupstaggingapi": [
+  "resourcegroupstaggingapi"
+ ],
+ "route53": [
+  "route53"
+ ],
+ "s3vectors": [
+  "s3vectors"
+ ],
+ "scheduler": [
+  "scheduler"
+ ],
+ "secretsmanager": [
+  "secretsmanager"
+ ],
+ "servicediscovery": [
+  "servicediscovery"
+ ],
+ "ses": [
+  "ses",
+  "sesv2"
+ ],
+ "sns": [
+  "sns"
+ ],
+ "sqs": [
+  "sqs"
+ ],
+ "ssm": [
+  "ssm"
+ ],
+ "stepfunctions": [
+  "stepfunctions"
+ ],
+ "sts": [
+  "sts"
+ ],
+ "timestream-influxdb": [
+  "timestream-influxdb"
+ ],
+ "verifiedpermissions": [
+  "verifiedpermissions"
+ ]
+}

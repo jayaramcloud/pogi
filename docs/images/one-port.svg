@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 370" width="700" height="370" role="img" aria-labelledby="t d" font-family="Onest, system-ui, sans-serif">
+  <title id="t">One port for three clouds</title>
+  <desc id="d">An AWS call, a Google Cloud call and an Azure call all go to localhost:7644. pogi sends each one to its service: S3, Pub/Sub and Key Vault.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#ff8cc6"/>
+    </marker>
+  </defs>
+  <rect width="700" height="370" rx="16" fill="#111114"/>
+
+  <!-- Callers -->
+  <g fill="#1c1c22" stroke="#3a3a44">
+    <rect x="20" y="30" width="220" height="90" rx="10"/>
+    <rect x="20" y="140" width="220" height="90" rx="10"/>
+    <rect x="20" y="250" width="220" height="90" rx="10"/>
+  </g>
+  <g fill="#f2f2f5" font-size="15" font-weight="700">
+    <text x="36" y="62">AWS</text>
+    <text x="36" y="172">Google Cloud</text>
+    <text x="36" y="282">Azure</text>
+  </g>
+  <g fill="#d6d6df" font-size="13">
+    <text x="36" y="92">aws s3 mb s3://demo</text>
+    <text x="36" y="202">gcloud pubsub topics list</text>
+    <text x="36" y="312">PUT …/secrets/db-password</text>
+  </g>
+
+  <!-- One port -->
+  <rect x="290" y="30" width="150" height="310" rx="12" fill="#ff8cc6"/>
+  <text x="365" y="170" text-anchor="middle" font-size="17" font-weight="700" fill="#3d0a26">localhost:7644</text>
+  <text x="365" y="196" text-anchor="middle" font-size="13" fill="#3d0a26">one port,</text>
+  <text x="365" y="214" text-anchor="middle" font-size="13" fill="#3d0a26">pogi picks the service</text>
+
+  <!-- Arrows -->
+  <g stroke="#ff8cc6" stroke-width="2" fill="none" marker-end="url(#a)">
+    <path d="M242 75 H286"/>
+    <path d="M242 185 H286"/>
+    <path d="M242 295 H286"/>
+    <path d="M442 75 H486"/>
+    <path d="M442 185 H486"/>
+    <path d="M442 295 H486"/>
+  </g>
+
+  <!-- Services -->
+  <g fill="#1c1c22" stroke="#3a3a44">
+    <rect x="490" y="30" width="190" height="90" rx="10"/>
+    <rect x="490" y="140" width="190" height="90" rx="10"/>
+    <rect x="490" y="250" width="190" height="90" rx="10"/>
+  </g>
+  <g fill="#f2f2f5" font-size="15" font-weight="700">
+    <text x="506" y="62">S3</text>
+    <text x="506" y="172">Pub/Sub</text>
+    <text x="506" y="282">Key Vault</text>
+  </g>
+  <g fill="#d6d6df" font-size="12">
+    <text x="506" y="88">found by its signing name</text>
+    <text x="506" y="106">in the request</text>
+    <text x="506" y="198">found by its path,</text>
+    <text x="506" y="216">/v1/projects/…</text>
+    <text x="506" y="308">found by its path,</text>
+    <text x="506" y="326">/secrets/… and api-version</text>
+  </g>
+</svg>

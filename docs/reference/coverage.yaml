@@ -1,0 +1,821 @@
+# The data behind docs/reference/coverage.md and the Services table in README.md, joined with each
+# service's Info from the registry. Edit here, then run `go generate .`; a test fails when
+# the generated files are stale, when a registered service is in no row, or when a row
+# names a service that is not registered.
+#
+# Row fields: title, cloud (aws, gcp, azure), depth (Deep, Core, Thin), services (registry
+# names, a service may be in several rows), docker (needs Docker for its real behavior),
+# covered, not_yet. `rest: true` takes the AWS services no other row names; {n} in its text
+# is their count.
+intro: |
+  # Coverage
+
+  Every service is tested with the official SDK for its cloud. Terraform (hashicorp/aws 6.x, google and azurerm) and the CDK CLI run against pogi in
+  [`scripts/conformance.sh`](../../scripts/conformance.sh).
+
+  Depth:
+
+  - **Deep:** real behavior, plus wiring to other services.
+  - **Core:** the main API, with real semantics.
+  - **Thin:** create, describe and delete. That is enough for infrastructure tools such as Terraform.
+
+  ARNs use the right prefix for the region (`aws`, `aws-cn` for China, `aws-us-gov` for GovCloud). The Terraform run also passes
+  with `REGION=us-gov-west-1` and `REGION=cn-north-1`.
+
+  Names that end in `.localhost` (virtual-host S3, `execute-api`, `lambda-url`) resolve on macOS and on most Linux systems. They don't resolve in
+  Alpine Linux containers, which use a small C library without that rule. `pogi doctor` tells you which case you are in.
+
+categories:
+  "Storage": [s3, s3vectors, s3tables, efs, gcs, azblob, datasync, transfer, backup, dlm]
+  "Databases": [dynamodb, rds, rds-data, elasticache, memorydb, redshift, redshift-data, redshift-serverless, opensearch, timestream-influxdb, datastore, firestore, sqladmin, cosmos, aztable, azdatabases, dms]
+  "Messaging & events": [sqs, sns, mq, kinesis, firehose, events, scheduler, pipes, kafka, managedkafka, pubsub, eventarc, eventgrid, eventhubs, servicebus, azqueue, signalr, azemail, ses, iot, iotdata]
+  "Compute & containers": [lambda, lambda-microvms, ecs, eks, ec2, autoscaling, application-autoscaling, batch, elasticbeanstalk, lightsail, container, compute, run, cloudfunctions, azfunctions, azaks, azaci, azcontainerapps, azcompute]
+  "Networking": [route53, route53resolver, elb, elbv2, globalaccelerator, network-firewall, aznetwork, servicediscovery, cloudfront]
+  "Security & identity": [iam, sts, kms, cloudkms, keyvault, secretsmanager, secretmanager, acm, cognito-idp, cognito-identity, identitystore, sso, sso-admin, sso-oidc, verifiedpermissions, gcpiam, iamcredentials, gcpoauth, firebaseauth, entra, graph, guardduty, securityhub, detective, inspector2, macie2, accessanalyzer, wafv2, cloudhsmv2]
+  "Observability": [logs, cloudwatch, cloudtrail, amp, rum, oam, logging, monitoring, azmonitor]
+  "Integration & workflow": [stepfunctions, swf, apigateway, apim, appsync, appintegrations, connect, cloudtasks, cloudscheduler, mwaa]
+  "Analytics & AI": [athena, glue, emr, emr-serverless, kinesisanalyticsv2, lakeformation, bigquery, sagemaker, sagemaker-runtime, bedrock, bedrock-agent, bedrock-agent-runtime, bedrock-agentcore, bedrock-agentcore-control, bedrock-runtime, comprehend, translate, textract, transcribe, rekognition]
+  "Developer tools": [codebuild, codeartifact, codeguru-reviewer, codedeploy, codepipeline, ecr, artifactregistry, azacr, azappconfig]
+  "Management & governance": [organizations, cloudformation, arm, resourcemanager, serviceusage, operations, cloudcontrol, resource-explorer-2, resourcegroupstaggingapi, config, controltower, controlcatalog, service-quotas, servicecatalog, ssm, appconfig, fis, ram, account, budgets, ce, cur, pricing, bcm-data-exports, bcm-pricing-calculator, meteringmarketplace, marketplace-catalog, marketplace-entitlement]
+
+rows:
+- title: "S3"
+  cloud: aws
+  depth: Deep
+  services: [s3]
+  covered: "buckets, objects, versioning, multipart, copy, tagging, ranges, conditional writes, presigned URLs and POST uploads, CORS, every Terraform `GetBucket*`, checksums (CRC32, CRC32C, CRC64NVME, SHA) and aws-chunked uploads, notifications to SQS, SNS, Lambda and EventBridge, bucket policies in enforcement (Allow and Deny, same and cross account, copy sources) and for anonymous callers, lifecycle rules applied by a sweep (current and noncurrent expiry, expired delete markers, aborted uploads, `x-amz-expiration`), Object Lock retention, legal hold and default retention enforced on delete and overwrite, static website hosting on `<bucket>.s3-website.localhost` (index and error documents)"
+  not_yet: "stored replication settings are not acted on; lifecycle transitions are ignored; website routing rules are not applied; S3 Select; uploads over 10 MiB are refused unless `--max-upload-mb` is raised, because object bodies are held in memory (also in persistent mode)"
+
+- title: "SQS"
+  cloud: aws
+  depth: Deep
+  services: [sqs]
+  covered: "standard and FIFO, JSON and Query protocols, visibility, long polling, delays, DLQs and redrive (incl. message move tasks), batches, tags, attribute MD5s"
+  not_yet: ""
+
+- title: "SNS"
+  cloud: aws
+  depth: Deep
+  services: [sns]
+  covered: "standard and FIFO topics; SQS, Lambda, HTTP, email and SMS (outbox) subscriptions; filter policies; raw delivery; platform applications"
+  not_yet: ""
+
+- title: "DynamoDB + Streams"
+  cloud: aws
+  depth: Deep
+  services: [dynamodb]
+  covered: "every expression type, GSI/LSI (GSI keys with up to four HASH and four RANGE attributes), Query/Scan with paging, transactions, batches, TTL, streams with Lambda triggers, exact numbers, on-demand backups and restore (also to a point in time, from the current items), global table replicas that copy writes between regions"
+  not_yet: "PartiQL, import/export; redundant parentheses in an expression are accepted (AWS refuses some)"
+
+- title: "Lambda"
+  cloud: aws
+  depth: Deep
+  services: [lambda]
+  covered: "CRUD, versions, aliases, layers, sync/async invoke, native Python/Node.js/custom runtimes or Docker, container images with ImageConfig, warm pool, reserved and provisioned concurrency with throttling, event source mappings (SQS, Kinesis, DynamoDB, and Amazon MSK clusters by ARN, and self-managed Kafka on any reachable broker) with batching windows, partial batch responses, bisecting and S3, SQS or SNS failure destinations, function URLs, hot reload, logs to CloudWatch, execution-role credentials, the Extensions API (INVOKE and SHUTDOWN events; extensions in a layer's `extensions/` folder start with native and Docker runtimes)"
+  not_yet: "Java/.NET/Ruby run only in Docker, code signing, SnapStart; Kafka and MSK mappings use plain or SASL connections (no TLS settings), and an MSK mapping needs its cluster ACTIVE with Docker; extensions do not delay an invocation and the Logs and Telemetry APIs are not served, and a container image's own `/opt/extensions` do not start; `Architectures` is stored but native functions run on the host architecture; failed async invokes retry after 1 and 2 seconds, where AWS waits 1 and 2 minutes, so tests stay fast; `ListLayers` refuses a `CompatibleRuntime` of an unknown family but accepts a mistyped version such as `python3.99`"
+
+- title: "API Gateway v1 + v2"
+  cloud: aws
+  depth: Deep
+  services: [apigateway]
+  covered: "REST and HTTP APIs, Lambda proxy (payload 1.0/2.0), HTTP proxy, mock, `AWS` integrations to Lambda and to other services (SQS, SNS, DynamoDB, Kinesis, Step Functions, S3 and more, with path and action URIs, request parameters and `selectionPattern` by status code), mapping templates in VTL (`#set`, `#if`, `#foreach`, `$input`, `$util`, `$context`, `$stageVariables`), custom domain names and base path mappings (REST, and HTTP with API mappings) reached by Host header or `*.localhost`, stage method settings (`~1` and `~0` paths), Lambda/JWT/Cognito authorizers, API keys and usage plans, CORS, OpenAPI import (API key security, warnings, `failonwarnings`)"
+  not_yet: "WebSocket invoke, VTL `#macro`, the role of an `AWS` integration (`credentials`) is not assumed, custom domain certificates are not checked and domains answer over HTTP only; `AWS_IAM` routes need a SigV4-signed request but the signature and the caller's permissions are not checked; a RestApi resource policy is enforced for `Deny` statements only (no implicit deny)"
+
+- title: "Step Functions"
+  cloud: aws
+  depth: Deep
+  services: [stepfunctions]
+  covered: "all state types, Retry/Catch, Map and Parallel, intrinsics, integrations with Lambda, SQS, SNS, DynamoDB, EventBridge and `aws-sdk:*`, callbacks, activities, `.sync` child executions, history, JSONata (`Arguments`, `Output`, `Assign`, `Condition`, `$states`, the built-in functions and the Step Functions ones, parsed at create) and state variables, JSONPath filters and `..`, state machine versions and aliases"
+  not_yet: "distributed Map, redrive; Map `ToleratedFailure*` fields are checked at create but not applied (one failed item fails the Map); JSONata: `$eval`, `$formatInteger`, `$parseInteger`, the `%`, `@` and `#` operators, and picture strings in `$toMillis`; by design, every real sleep (a Wait state or a Retry backoff) is cut to at most 60 seconds so local runs stay fast, so a Wait of an hour ends after one minute"
+
+- title: "EventBridge + Scheduler"
+  cloud: aws
+  depth: Deep
+  services: [events, scheduler]
+  covered: "buses, the full pattern syntax, targets, input transformers, archives and replay, connections and API destinations, schedules (at/rate/cron), Scheduler universal targets (`aws-sdk:<service>:<action>`)"
+  not_yet: "EventBridge Pipes; a schedule with no Input delivers `{}` (AWS sends a default notification)"
+
+- title: "Kinesis / Firehose"
+  cloud: aws
+  depth: Core
+  services: [kinesis, firehose]
+  covered: "streams, shards, records, iterators, legacy CBOR, consumers with SubscribeToShard event streams (enhanced fan-out); Firehose buffering into S3"
+  not_yet: ""
+
+- title: "CloudFormation"
+  cloud: aws
+  depth: Deep
+  services: [cloudformation]
+  covered: "stacks, change sets, YAML/JSON, every intrinsic, conditions, rules, SSM parameter types, dynamic references, exports, nested stacks, custom resources, `AWS::Include`, the SAM transform (functions with Api, HttpApi, SQS, SNS, S3, Schedule, DynamoDB, Kinesis and EventBridge events, aliases, Globals, APIs, HTTP APIs, simple tables, layers, state machines), rollback that reverts in-place changes and keeps replaced resources until the update works, about 250 resource types (networking and EC2 instances, volumes and launch templates, ECS, load balancers, Auto Scaling, RDS and DocumentDB/Neptune clusters, ElastiCache, MemoryDB, Redshift, OpenSearch, Route 53, CloudFront, API Gateway, Cognito, AppSync, Glue, Athena, Backup, CodeBuild/CodePipeline/CodeDeploy, IoT, MQ, MSK, EKS and more, each created in its own service), plus any type an embedded service manages through Cloud Control (EFS, WAF, Config and others); a template with any other type is refused with a clear error; `cdk bootstrap`/`deploy`/`destroy` work"
+  not_yet: "SAM connectors, applications and deployment preferences, StackSets and macros, drift detection (always in sync), types whose service has no API for them yet (SES receipt rules, RDS proxies, Logs resource policies and destinations, ECR replication, API Gateway accounts and VPC links, Glue workflows, VPN and peering connections)"
+
+- title: "IAM"
+  cloud: aws
+  depth: Core
+  services: [iam]
+  covered: "users, groups, roles, managed and inline policies, keys, instance profiles, OIDC/SAML providers, policy simulation, SSH public keys, service last-accessed reports, and **enforcement** (`--iam soft/strict`) of identity policies and permissions boundaries"
+  not_yet: "resource-based policies other than S3 bucket policies and API Gateway resource policies, credential reports"
+
+- title: "STS"
+  cloud: aws
+  depth: Core
+  services: [sts]
+  covered: "GetCallerIdentity, AssumeRole (multi-account; the role must exist in IAM), web identity (an expired token is refused), session and federation tokens (DurationSeconds 900 or more; with signature checking on, expired credentials are refused)"
+  not_yet: "trust policies are not checked, web identity tokens are not verified"
+
+- title: "KMS"
+  cloud: aws
+  depth: Core
+  services: [kms]
+  covered: "symmetric, RSA, ECC (incl. secp256k1 and Ed25519), ML-DSA and HMAC keys, aliases, encrypt/decrypt with context, data keys, sign/verify, MAC, rotation"
+  not_yet: "grants, imported key material, multi-region keys"
+
+- title: "Secrets Manager"
+  cloud: aws
+  depth: Core
+  services: [secretsmanager]
+  covered: "versions and stages, rotation through Lambda, random passwords, batch get"
+  not_yet: "replication (metadata only)"
+
+- title: "Systems Manager (SSM)"
+  cloud: aws
+  depth: Core
+  services: [ssm]
+  docker: true
+  covered: "Parameter Store (String, StringList and SecureString types, paths, history, labels, public AMI parameters, `/aws/reference/secretsmanager/<id>`), documents with versions, permissions and tags, associations, service settings, and Run Command (`SendCommand` runs shell documents with `docker exec` in the containers of running pogi EC2 instances, with statuses and `GetCommandInvocation`)"
+  not_yet: "parameter policies; associations run once when made, not on their schedule; Run Command targets InstanceIds only (no tag targets), has one output stream, and runs `aws:runShellScript` steps only; Automation, Session Manager, Inventory and Patch Manager"
+
+- title: "CloudWatch Logs"
+  cloud: aws
+  depth: Core
+  services: [logs]
+  covered: "groups, streams, events, filter patterns, subscriptions, metric filters that publish to CloudWatch (a numeric or JSON `$.field` value, `defaultValue`, dimensions, unit; alarms on them fire), retention, Lambda logs, Insights (`fields/filter/sort/limit`)"
+  not_yet: "Insights `stats/parse`; metric filters read JSON fields only (not space-delimited `$name`), and `defaultValue` is published per batch of ingested events, not per minute"
+
+- title: "CloudWatch Metrics"
+  cloud: aws
+  depth: Core
+  services: [cloudwatch]
+  covered: "metric data, statistics, metric math (basic), alarms with SNS/Lambda actions, CBOR/JSON/Query"
+  not_yet: "composite alarm evaluation"
+
+- title: "SES v1 + v2"
+  cloud: aws
+  depth: Core
+  services: [ses]
+  covered: "simple, raw and templated email, identities, outbox at `/_aws/ses` and in the console, configuration sets (v1 and v2) with event destinations to SNS, EventBridge (default bus) and CloudWatch (`AWS/SES`) that get Send, Delivery, Bounce and Complaint events, using the mailbox simulator addresses"
+  not_yet: "Open, Click and Reject events; Firehose and Pinpoint destinations are stored but get nothing; the sandbox rule that a sender must be verified (any sender is accepted, on purpose)"
+
+- title: "Cognito user pools"
+  cloud: aws
+  depth: Deep
+  services: [cognito-idp]
+  covered: "pools, clients, groups, users, sign-up/confirm/forgot flows, USER_PASSWORD, SRP, REFRESH (with token rotation) and CUSTOM auth, choice-based USER_AUTH (password and email/SMS one-time codes), software token MFA with MFA_SETUP and a real TOTP check, identity providers shown on the login page, RS256 JWTs with JWKS and OpenID discovery, OAuth2 endpoints, Lambda triggers, password policy with history, account recovery setting, token validity limits"
+  not_yet: "signing in through an external identity provider, passkeys (WEB_AUTHN), hosted-UI sign-up; a user whose MFA method was only switched on has no authenticator, so the code 123456 passes"
+
+- title: "RDS / ElastiCache"
+  cloud: aws
+  depth: Core
+  services: [rds, elasticache]
+  docker: true
+  covered: "instances, clusters, subnet and parameter groups; real Postgres, MySQL, MariaDB, Redis, Valkey and Memcached containers with Docker"
+  not_yet: "snapshot restore, read replicas, parameters applied to engines"
+
+- title: "ECR"
+  cloud: aws
+  depth: Deep
+  services: [ecr]
+  docker: true
+  covered: "repositories and the image APIs on a real OCI registry: `docker login`/`push`/`pull` at `localhost:4510` (a forwarding container on Docker Desktop, OrbStack and Colima), layer-upload APIs, lifecycle policies, canned scans; `<account>.dkr.ecr.<region>.amazonaws.com/…` images pull from it"
+  not_yet: "one registry host for all accounts, blob garbage collection"
+
+- title: "ECS"
+  cloud: aws
+  depth: Deep
+  services: [ecs]
+  docker: true
+  covered: "clusters, capacity providers, task definitions, tasks as containers (awsvpc via a shared network namespace, secrets from SSM/Secrets Manager, task-role credentials and metadata endpoints, awslogs to CloudWatch Logs, task volumes: host paths, shared Docker volumes and volumesFrom), services that keep their desired count, rolling deployments with `aws.ecs` events on the default bus, the deployment circuit breaker (a deployment whose tasks keep failing to start FAILS, with optional rollback), ALB registration"
+  not_yet: "CPU shares, task sets, ECS Exec, EFS and FSx volumes"
+
+- title: "ELB v2"
+  cloud: aws
+  depth: Deep
+  services: [elbv2]
+  docker: true
+  covered: "ALB/NLB/GWLB control plane; ALBs answer at `http://<dns-name>:7644` (and on their listener port when free) with every rule condition, weighted and sticky forwards, redirects, fixed responses, Lambda targets and health checks; NLBs proxy TCP"
+  not_yet: "`authenticate-*` actions, UDP, TLS termination on NLBs"
+
+- title: "EC2 transit gateways, flow logs, hosts and images"
+  cloud: aws
+  depth: Core
+  services: [ec2]
+  docker: true
+  covered: "transit gateways with VPC and peering attachments (peerings wait for accept) and the default route table links Terraform reads, flow logs with their `LogFormat`, dedicated hosts, EBS encryption by default (applied to new and root volumes), `CreateImage` (a docker commit of the instance container) and `DeregisterImage`, IAM instance profile associations, `AssociateVpcCidrBlock` (extra blocks take subnets), `DescribeInstanceTypeOfferings`"
+  not_yet: "flow logs write no records, instances do not run on dedicated hosts, transit gateway route tables and routes, created images keep no snapshots (pogi has no EBS snapshots), IPv6 CIDR blocks on VPCs"
+
+- title: "EKS"
+  cloud: aws
+  depth: Core
+  services: [eks]
+  docker: true
+  covered: "clusters as k3s containers: `aws eks update-kubeconfig` and `kubectl` work, with EKS-style token authentication and access entries; node groups, Fargate profiles, add-ons and pod identity as metadata"
+  not_yet: "node groups add no nodes, version upgrades, a cluster endpoint other machines can reach (it is always `https://127.0.0.1:<port>`; pogi publishes container ports on loopback only)"
+
+- title: "EC2 instances"
+  cloud: aws
+  depth: Core
+  services: [ec2]
+  docker: true
+  covered: "instances as containers from an AMI catalog, UserData and cloud-config `runcmd`, IMDSv1/v2 with role credentials, reachable at `169.254.169.254` inside instances (an engine that shares the host network keeps only `AWS_EC2_METADATA_SERVICE_ENDPOINT`), ssh into an instance with a key pair (sshd is installed at boot with apk, apt-get, dnf or yum when the image has none), `GetConsoleOutput`, launch templates, security-group ports published, start/stop/terminate"
+
+- title: "Auto Scaling + Application Auto Scaling"
+  cloud: aws
+  depth: Core
+  services: [autoscaling, application-autoscaling]
+  docker: true
+  covered: "groups that keep their capacity, simple/step/target-tracking policies driven by CloudWatch alarms, scheduled actions, target-group registration; scalable targets for ECS, DynamoDB and Lambda"
+  not_yet: "lifecycle hooks pause nothing, cooldowns"
+
+- title: "Batch"
+  cloud: aws
+  depth: Core
+  services: [batch]
+  docker: true
+  covered: "compute environments, queues, job definitions, jobs as containers with retries, timeouts, arrays and dependencies, logs to CloudWatch"
+  not_yet: "multi-node and EKS jobs"
+
+- title: "CodeBuild"
+  cloud: aws
+  depth: Core
+  services: [codebuild]
+  docker: true
+  covered: "projects and builds that run real buildspecs in containers (phases, env from SSM and Secrets Manager, S3 sources, artifacts to S3, logs to CloudWatch)"
+  not_yet: "privileged mode, caches, secondary sources, batch builds"
+
+- title: "RDS extras"
+  cloud: aws
+  depth: Deep
+  services: [rds, rds-data]
+  docker: true
+  covered: "the Data API (typed parameters, JSON records, batches, real transactions) for Aurora PostgreSQL and MySQL; IAM database authentication through a Postgres/MySQL proxy that checks `generate-db-auth-token` tokens; snapshot copy (also from another region), snapshot modify, and point-in-time restore from dumps; TLS on the IAM proxy for Postgres with a leaf certificate from the local CA; DocumentDB (`mongo:7`), Neptune (Gremlin Server) and SQL Server engines"
+  not_yet: "point-in-time restore uses current data, no TLS on MySQL (or on endpoints without IAM auth), MySQL IAM logins run as the master user, Data API arrays that hold NULL come back as text, Neptune openCypher/SPARQL"
+
+- title: "ElastiCache users / MemoryDB"
+  cloud: aws
+  depth: Core
+  services: [elasticache, memorydb]
+  docker: true
+  covered: "users, user groups and ACLs applied to Redis/Valkey with `ACL SETUSER`; IAM authentication tokens through a RESP proxy; MemoryDB clusters on Valkey"
+  not_yet: "MemoryDB IAM sign-in, TLS"
+
+- title: "MSK"
+  cloud: aws
+  depth: Core
+  services: [kafka]
+  docker: true
+  covered: "provisioned and serverless clusters on Redpanda, bootstrap brokers for host and container clients, configurations and revisions, cluster operations"
+  not_yet: "updates change metadata only, TLS/SCRAM/IAM listeners point at the plaintext one"
+
+- title: "Amazon MQ"
+  cloud: aws
+  depth: Core
+  services: [mq]
+  docker: true
+  covered: "RabbitMQ and ActiveMQ brokers in containers with their users, consoles and endpoints, configurations and revisions, reboots"
+  not_yet: "configuration data is not applied, no TLS endpoints"
+
+- title: "OpenSearch Service"
+  cloud: aws
+  depth: Core
+  services: [opensearch]
+  docker: true
+  covered: "OpenSearch and legacy Elasticsearch domains in containers, reached at `<domain>.<region>.opensearch.localhost:7644` with SigV4 stripped; config, versions, tags"
+  not_yet: "upgrades, access policies, multi-node clusters"
+
+- title: "Glue + Athena"
+  cloud: aws
+  depth: Deep
+  services: [glue, athena]
+  docker: true
+  covered: "Data Catalog databases, tables, partitions, crawlers (CSV/JSON schema inference), the Schema Registry (registries, schemas, versions that ignore custom Avro attributes, version metadata); Athena workgroups, named queries, prepared statements, DDL into Glue, and SELECTs run on DuckDB over the tables' S3 data, with results written to S3"
+  not_yet: "data is copied per query, no CTAS/INSERT/views, Parquet crawling"
+
+- title: "Redshift + Data API + Serverless"
+  cloud: aws
+  depth: Core
+  services: [redshift, redshift-data, redshift-serverless]
+  docker: true
+  covered: "clusters and serverless workgroups on Postgres, the Data API (async statements, typed results, batches, catalog listing) with Redshift DDL clauses rewritten, temporary credentials that really log in; snapshot copy settings, copy grants and snapshot schedules as settings (nothing is copied or taken on a schedule)"
+  not_yet: "parameters not applied, snapshots as metadata"
+
+- title: "Timestream for InfluxDB"
+  cloud: aws
+  depth: Core
+  services: [timestream-influxdb]
+  docker: true
+  covered: "DB instances on InfluxDB 2 with the admin token in Secrets Manager"
+  not_yet: ""
+
+- title: "AppSync"
+  cloud: aws
+  depth: Deep
+  services: [appsync]
+  covered: "GraphQL APIs with API key, Cognito, IAM, OIDC and Lambda auth; Lambda, DynamoDB, HTTP, NONE and RDS data sources; VTL and APPSYNC_JS resolvers, pipelines; subscriptions over the real-time WebSocket protocol with argument filters; introspection"
+  not_yet: "sibling fields resolve serially, no caching, enhanced filters"
+
+- title: "EventBridge Pipes"
+  cloud: aws
+  depth: Deep
+  services: [pipes]
+  covered: "SQS, Kinesis and DynamoDB Streams sources with filters, Lambda/Step Functions/API destination enrichment, every async target, input templates, retries of failed batches"
+  not_yet: "stream DLQs and partial batch failures, `HttpParameters`"
+
+- title: "API Gateway WebSockets"
+  cloud: aws
+  depth: Core
+  services: [apigateway]
+  covered: "WEBSOCKET APIs with route selection, `$connect` authorizers, two-way routes, `@connections` POST/GET/DELETE, integration and route responses"
+  not_yet: "integration responses shape MOCK only"
+
+- title: "Cognito identity pools"
+  cloud: aws
+  depth: Core
+  services: [cognito-identity]
+  covered: "GetId, credentials for authenticated (user pools, OIDC, developer) and unauthenticated identities, role mappings, GetOpenIdToken"
+  not_yet: "SAML and social tokens trusted unverified"
+
+- title: "IoT Core"
+  cloud: aws
+  depth: Core
+  services: [iot, iotdata]
+  covered: "things, groups, certificates, policies; an MQTT broker (TCP 1883 and WebSocket `/mqtt`), device shadows (classic and named), rules (SQL subset) to SQS, SNS, Lambda, DynamoDB, Kinesis, S3 and republish; the iotdata API"
+  not_yet: "TLS client certificates, other rule actions"
+
+- title: "Cloud Map"
+  cloud: aws
+  depth: Core
+  services: [servicediscovery]
+  covered: "namespaces (private DNS ones create Route 53 zones with A/SRV records), services, instances, `DiscoverInstances` with filters, custom health; ECS service registries"
+  not_yet: "Route 53 health checks"
+
+- title: "CloudTrail"
+  cloud: aws
+  depth: Core
+  services: [cloudtrail]
+  covered: "LookupEvents over every API call pogi serves, trails delivering gzipped logs to S3 and CloudWatch Logs, event selectors"
+  not_yet: "events kept in memory only"
+
+- title: "Fault Injection Service"
+  cloud: aws
+  depth: Core
+  services: [fis]
+  covered: "templates and experiments injecting throttling, errors and latency per service, operation, role or Lambda function; stop conditions on CloudWatch alarms"
+  not_yet: "target filters"
+
+- title: "CodeDeploy + CodePipeline"
+  cloud: aws
+  depth: Core
+  services: [codedeploy, codepipeline]
+  covered: "Lambda deployments with linear/canary traffic shifting, hooks and rollback; pipelines with S3 sources (a source with `PollForSourceChanges` set to `true` starts a run when the object changes), CodeBuild, CloudFormation, Lambda and approvals"
+  not_yet: "change-set modes, ECS blue/green"
+
+- title: "Organizations + SCPs, Verified Permissions, Resource Explorer"
+  cloud: aws
+  depth: Core
+  services: [organizations, verifiedpermissions, resource-explorer-2]
+  covered: "organizations, OUs, accounts, policies and their attachment; Cedar policy stores, schemas, templates and IsAuthorized (with Cognito tokens); indexes, views and search"
+  not_yet: "SCPs don't restrict root; list operations return one page"
+
+- title: "AppConfig"
+  cloud: aws
+  depth: Core
+  services: [appconfig]
+  covered: "applications, environments, profiles, hosted versions with JSON Schema validators, deployments and strategies, the data plane (`StartConfigurationSession` and `GetLatestConfiguration`, as Ion text when `Accept` asks for it), feature flags, extensions"
+  not_yet: "growth is not simulated"
+
+- title: "CloudFront"
+  cloud: aws
+  depth: Core
+  services: [cloudfront]
+  covered: "distributions served at `<id>.cloudfront.localhost` with behaviors, S3 and custom origins, cache and origin-request policies, functions (cloudfront-js), invalidations, OAC"
+  not_yet: "signed URLs, viewer protocol policy"
+
+- title: "S3 Vectors"
+  cloud: aws
+  depth: Core
+  services: [s3vectors]
+  covered: "vector buckets, indexes, put/get/list/delete vectors, metadata filters, cosine and euclidean query"
+  not_yet: "exact k-NN only"
+
+- title: "SES SMTP"
+  cloud: aws
+  depth: Core
+  services: [ses]
+  covered: "an SMTP server on port 2525 with SES SMTP credentials, mail into the console inbox, optional relay to Mailpit/MailHog"
+  not_yet: "no retries or bounces"
+
+- title: "Long tail (generated)"
+  cloud: aws
+  depth: Core
+  rest: true # every AWS service no other row names
+  covered: "{n} more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above"
+  not_yet: "per-service behavior beyond the services named in the other rows is bookkeeping"
+
+- title: "IAM Identity Center"
+  cloud: aws
+  depth: Deep
+  services: [sso, sso-admin, sso-oidc, identitystore]
+  covered: "`aws sso login` (device code and PKCE) with real portal credentials, permission sets and account assignments that create `AWSReservedSSO_` roles, Identity Store users and groups"
+  not_yet: ""
+
+- title: "Security services"
+  cloud: aws
+  depth: Core
+  services: [ram, wafv2, securityhub, detective, inspector2, macie2, accessanalyzer, network-firewall, cloudhsmv2, controltower, account]
+  covered: "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account"
+  not_yet: "no findings, no request filtering"
+
+- title: "Transfer Family, DataSync, S3 Tables"
+  cloud: aws
+  depth: Deep
+  services: [transfer, datasync, s3tables]
+  covered: "a real SFTP server (port 2222) on S3 with key auth and home-directory mappings; DataSync tasks that copy between S3 locations with filters; Iceberg table buckets with real metadata files and version tokens"
+  not_yet: "FTPS, NFS/SMB transfers, the Iceberg REST catalog"
+
+- title: "AWS Backup"
+  cloud: aws
+  depth: Core
+  services: [backup]
+  covered: "vaults, plans, selections, tags; backup jobs that run to COMPLETED and make recovery points (in any account, resumed after a restart), vault notifications to SNS"
+  not_yet: "scheduled plan runs, restore jobs, cross-account copy"
+
+- title: "Config, Managed Prometheus, RUM, OAM"
+  cloud: aws
+  depth: Core
+  services: [config, amp, rum, oam]
+  covered: "Config recorders, rules and evaluations; Prometheus remote write with a PromQL subset (selectors, rate, sum by)"
+  not_yet: "binary operators, custom Config rules"
+
+- title: "Cloud Control API"
+  cloud: aws
+  depth: Deep
+  services: [cloudcontrol]
+  covered: "create, read, update (JSON Patch) and delete through CloudFormation's own resource handlers, or the generated engine's"
+  not_yet: "ListResources finds resources made outside Cloud Control only for queues and log groups; other types list what Cloud Control made"
+
+- title: "Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect"
+  cloud: aws
+  depth: Core
+  services: [elasticbeanstalk, emr, emr-serverless, mwaa, kinesisanalyticsv2, lightsail, dms, lakeformation, connect]
+  covered: "lifecycles that settle (Launching → Ready, STARTING → WAITING, ...), Lake Formation permissions and LF-tags; with Docker, MWAA runs the official apache/airflow image (standalone, DAGs synced from the S3 path, configuration options, requirements.txt, plugins zip and startup script applied, UpdateEnvironment runs it again with the new settings) behind the web server host and the Airflow CLI endpoint, and Managed Flink runs the application's JAR from S3 on a real apache/flink cluster with the runtime properties, AWS credentials and the pogi endpoint (the application is READY again when its job ends by itself); with saved state, Flink applications that were RUNNING and MWAA environments that were up start again after a pogi restart"
+  not_yet: "without Docker nothing runs (statuses only; the CLI endpoint says so); older Flink versions run under emulation on Apple Silicon (only 1.20 has an arm64 image); the Airflow web UI has no login; installing requirements needs internet access in the container; the requirements.txt object version is not used (the latest object is read); the other services here run nothing"
+
+- title: "Bedrock and the AI services"
+  cloud: aws
+  depth: Deep
+  services: [bedrock, bedrock-agent, bedrock-agent-runtime, bedrock-agentcore, bedrock-agentcore-control, bedrock-runtime, sagemaker, sagemaker-runtime, comprehend, translate, textract, transcribe, rekognition]
+  covered: "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results"
+  not_yet: "guardrails are not evaluated, agents don't call action groups"
+
+- title: "Cost services"
+  cloud: aws
+  depth: Core
+  services: [pricing, ce, budgets, cur, bcm-data-exports, bcm-pricing-calculator, meteringmarketplace]
+  covered: "an embedded price list (Pricing API); Cost Explorer and Budgets computed from what pogi actually ran, with budget alerts to SNS; CUR and data exports written to S3; Pricing Calculator; Marketplace metering"
+  not_yet: "storage and Lambda-duration billing"
+
+- title: "ACM, Route 53, EC2 network, Tagging"
+  cloud: aws
+  depth: Thin
+  services: [acm, route53, ec2, resourcegroupstaggingapi]
+  covered: "certificates, hosted zones and records, VPCs/subnets/security groups with a default VPC, route tables and routes, internet and egress-only gateways, Elastic IPs, NAT gateways (with their Elastic IP and network interface), network interfaces (instances show theirs), VPC endpoints (gateway routes, interface addresses), AWS and managed prefix lists, network ACLs and entries, tagging across services (queues, log groups, rules, API keys, functions, tables and more)"
+  not_yet: "ACM certificates are issued at once, also with EMAIL validation (no approval step); network ACL and route rules do not filter traffic; DescribeVpcEndpointServices, peering connections as resources"
+
+- title: "Cloud Storage"
+  cloud: gcp
+  depth: Deep
+  services: [gcs]
+  covered: "buckets, objects, media/multipart/resumable uploads, generations and preconditions, compose/rewrite/copy, signed URLs, notifications to Pub/Sub"
+  not_yet: "IAM conditions, retention policies"
+
+- title: "Pub/Sub"
+  cloud: gcp
+  depth: Deep
+  services: [pubsub]
+  covered: "gRPC and REST, pull, streaming pull, push, ack deadlines, ordering keys, filters, dead-letter, retry, seek and snapshots, schemas that topics enforce on publish (Avro and Protocol Buffers, JSON or binary encoding; `ValidateMessage` uses the same check)"
+  not_yet: "exactly-once, BigQuery/GCS subscriptions; the schema check says only that a message failed validation, Avro JSON ignores fields the schema does not name, and Protocol Buffers definitions cannot import other files"
+
+- title: "Firestore (Native)"
+  cloud: gcp
+  depth: Deep
+  services: [firestore]
+  covered: "documents, subcollections, queries with cursors and collection groups, aggregations, transactions, batches, transforms, realtime listeners, `read_time`"
+  not_yet: "vector search, security rules"
+
+- title: "Firestore (Datastore mode)"
+  cloud: gcp
+  depth: Core
+  services: [datastore]
+  covered: "gRPC and REST: lookups, queries (filters, composite AND/OR, orders, projections, distinct on, ancestors, namespaces, cursors, offset, limit), count/sum/avg aggregations, optimistic transactions, property masks and transforms, `allocateIds`, `reserveIds`, `POST /reset`; `DATASTORE_EMULATOR_HOST`"
+  not_yet: "GQL, `read_time`, metadata queries (`__kind__`), index checks"
+
+- title: "Cloud SQL"
+  cloud: gcp
+  depth: Core
+  services: [sqladmin]
+  docker: true
+  covered: "v1beta4 and v1 REST API: instances on real PostgreSQL, MySQL and SQL Server containers, databases and users created in the engine, SSL certs, operations, flags, tiers, clone, SQL export/import through Cloud Storage, `connectSettings`, `generateEphemeralCert`; the address is `127.0.0.1:<port>`"
+  not_yet: "Auth Proxy, TLS and IAM database auth, CSV/BAK, replicas, backups, failover"
+
+- title: "Secret Manager"
+  cloud: gcp
+  depth: Core
+  services: [secretmanager]
+  covered: "secrets, versions (enable, disable, destroy), aliases, checksums, etags"
+  not_yet: "rotation and notifications (stored only)"
+
+- title: "Cloud Run"
+  cloud: gcp
+  depth: Core
+  services: [run]
+  docker: true
+  covered: "v2 API (gRPC and REST): services, revisions, traffic splits and tags, jobs and executions; containers on `<svc>.run.localhost`, started on the first request; `Hub.Deliver` target"
+  not_yet: "worker pools, tasks API, sidecars, scaling, secrets and volumes"
+
+- title: "BigQuery"
+  cloud: gcp
+  depth: Core
+  services: [bigquery]
+  docker: true
+  covered: "datasets, tables with nested and repeated schemas, partitioning and clustering (stored), views, streaming inserts, `tabledata.list`, jobs (query, load from Cloud Storage as CSV, JSON lines and Parquet, extract, copy); SQL on DuckDB in a container (GoogleSQL translated: backtick names, `SAFE_CAST`, `STRUCT`/`ARRAY`, `UNNEST`, common functions, DML, DDL, scripts)"
+  not_yet: "needs Docker for queries; no `WITH OFFSET`, wildcard tables, `INFORMATION_SCHEMA`, ML, Storage API, partition pseudo-columns"
+
+- title: "Cloud Logging"
+  cloud: gcp
+  depth: Core
+  services: [logging]
+  covered: "write, list (the query language: severity, resource, labels, payload fields, regex, time, AND/OR/NOT), tail, logs; sinks to Pub/Sub, Cloud Storage and BigQuery; exclusions; log-based metrics (stored); buckets; Cloud Run, Cloud Functions and Run jobs output"
+  not_yet: "views, links, analytics, log scopes"
+
+- title: "Cloud Monitoring"
+  cloud: gcp
+  depth: Core
+  services: [monitoring]
+  covered: "custom metric descriptors, `CreateTimeSeries`, `ListTimeSeries` with filters, alignment and cross-series reduction; resource descriptors; alert policies, notification channels and uptime checks (stored only)"
+  not_yet: "MQL/PromQL, groups, services and SLOs, snoozes, built-in metrics"
+
+- title: "Cloud Functions"
+  cloud: gcp
+  depth: Core
+  services: [cloudfunctions]
+  docker: true
+  covered: "v2 API (gRPC and REST): Python functions on the Functions Framework (native or in Docker), HTTP and Pub/Sub triggers, `generateUploadUrl`, `Hub.Deliver` target for Eventarc"
+  not_yet: "Node, Go and other runtimes, repository sources, IAM"
+
+- title: "Cloud Tasks"
+  cloud: gcp
+  depth: Core
+  services: [cloudtasks]
+  covered: "queues with rate limits and retry config, HTTP tasks with OIDC/OAuth tokens, dispatch with backoff, pause/resume/purge, `RunTask`, task-name tombstones"
+  not_yet: "App Engine tasks, queue-level HTTP overrides"
+
+- title: "Cloud Scheduler"
+  cloud: gcp
+  depth: Core
+  services: [cloudscheduler]
+  covered: "jobs on unix-cron schedules with time zones, HTTP (with OIDC/OAuth) and Pub/Sub targets, retries, pause/resume/run"
+  not_yet: "App Engine targets, cron macros"
+
+- title: "Eventarc"
+  cloud: gcp
+  depth: Core
+  services: [eventarc]
+  covered: "triggers on Cloud Storage object events and Pub/Sub messages, delivering CloudEvents to Cloud Run, Cloud Functions and HTTP endpoints"
+  not_yet: "audit-log triggers, retries of failed deliveries, Workflows destinations"
+
+- title: "Managed Kafka"
+  cloud: gcp
+  depth: Core
+  services: [managedkafka]
+  docker: true
+  covered: "clusters (one Redpanda broker each with Docker), topics, consumer groups read from the broker; the local bootstrap address in the `pogi-bootstrap` label"
+  not_yet: "ACLs, replication"
+
+- title: "IAM, IAM Credentials, OAuth2, STS"
+  cloud: gcp
+  depth: Core
+  services: [gcpiam, iamcredentials, gcpoauth]
+  covered: "service accounts with real key files (`token_uri` pointing at pogi), custom and predefined roles, policies; access and ID tokens, `signBlob`/`signJwt`, public keys at the metadata endpoints and `/oauth2/v3/certs`; the token endpoint for key files, user ADC and workload identity federation"
+  not_yet: "IAM is not enforced, a sample of predefined roles"
+
+- title: "Resource Manager, Service Usage"
+  cloud: gcp
+  depth: Core
+  services: [resourcemanager, serviceusage]
+  covered: "projects (v1 and v3), folders and organizations (read-only), project IAM policies; enabling and listing services"
+  not_yet: "bookkeeping only"
+
+- title: "Cloud KMS"
+  cloud: gcp
+  depth: Deep
+  services: [cloudkms]
+  covered: "key rings, keys and versions with real cryptography: AES-GCM with AAD and CRC32C, RSA and EC signing, RSA decryption, HMAC, rotation, scheduled destruction, `generateRandomBytes`"
+  not_yet: "raw encryption, import jobs, ED25519 and post-quantum keys"
+
+- title: "Firebase Auth"
+  cloud: gcp
+  depth: Core
+  services: [firebaseauth]
+  covered: "the Identity Toolkit and emulator APIs: email/password, anonymous, custom-token and fake-IdP sign-in, refresh, custom claims, OOB codes in the console inbox; Admin SDK `VerifyIDToken` in emulator mode"
+  not_yet: "tenants, MFA, email-link sign-in"
+
+- title: "Blob Storage"
+  cloud: azure
+  depth: Deep
+  services: [azblob]
+  covered: "containers, block, append and page blobs, block lists, ranges, metadata, copy, leases, tags (Azurite port 10000)"
+  not_yet: ""
+
+- title: "Queue Storage"
+  cloud: azure
+  depth: Core
+  services: [azqueue]
+  covered: "messages: put, get, peek, update, delete, visibility, TTL (port 10001)"
+  not_yet: ""
+
+- title: "Table Storage"
+  cloud: azure
+  depth: Core
+  services: [aztable]
+  covered: "entities with typed properties, upsert/merge/replace, `$filter/$select/$top`, continuation, `$batch` (port 10002)"
+  not_yet: "`$filter` functions, Atom payloads"
+
+- title: "Cosmos DB (NoSQL)"
+  cloud: azure
+  depth: Core
+  services: [cosmos]
+  covered: "databases, containers, items, patch, the SQL dialect (joins, subqueries, GROUP BY, functions), transactional batch, change feed, TTL, offers"
+  not_yet: "stored procedures run nothing, .NET binary batches, spatial/vector functions"
+
+- title: "Key Vault"
+  cloud: azure
+  depth: Core
+  services: [keyvault]
+  covered: "secrets (versions, soft delete, recover, purge, backup) and keys (RSA/EC/oct crypto, wrap, sign, rotate); self-signed certificates"
+  not_yet: "certificate issuers, key release"
+
+- title: "Service Bus"
+  cloud: azure
+  depth: Deep
+  services: [servicebus]
+  covered: "AMQP (port 5672) with the official SDK: queues, topics, subscriptions with SQL and correlation rules and actions, peek-lock and receive-and-delete, sessions with state, dead-letter, defer, schedule, lock renewal, duplicate detection, forwarding, TTL; the admin (ATOM) API"
+  not_yet: "auto-delete-on-idle and max size are stored only"
+
+- title: "Event Hubs"
+  cloud: azure
+  depth: Deep
+  services: [eventhubs]
+  covered: "AMQP with the official SDK: partitions, keys, start positions, epochs, `$management` properties, the Processor with Blob checkpoints; a Kafka endpoint on Redpanda with Docker"
+  not_yet: "AMQP and Kafka are separate logs, fixed partition count"
+
+- title: "Event Grid"
+  cloud: azure
+  depth: Core
+  services: [eventgrid]
+  covered: "custom topics, domains, Blob system topics; subscriptions with filters delivering to webhooks (with the validation handshake), Service Bus, Event Hubs, Storage queues and Functions in Event Grid or CloudEvents schema; retries and dead-letter to Blob"
+  not_yet: "hybrid connections, input schema mapping"
+
+- title: "Azure Functions"
+  cloud: azure
+  depth: Core
+  services: [azfunctions]
+  docker: true
+  covered: "apps run by the real Functions host (Core Tools or the official image) on pogi's Storage: HTTP, timer, queue and Event Grid triggers, zip deploy"
+  not_yet: "Kudu beyond zip deploy, `requirements.txt` in containers"
+
+- title: "App Configuration"
+  cloud: azure
+  depth: Core
+  services: [azappconfig]
+  covered: "key-values with labels, filters, ETags, locks, revisions, snapshots, feature flags; HMAC auth"
+  not_yet: ""
+
+- title: "SignalR, Communication Services email"
+  cloud: azure
+  depth: Core
+  services: [signalr, azemail]
+  covered: "SignalR negotiate, WebSocket JSON hub protocol and server REST API (users, groups, connections); Communication Services email into the console inbox"
+  not_yet: "SignalR upstreams, SSE and MessagePack"
+
+- title: "Resource Manager, Entra ID, Managed Identity, Graph"
+  cloud: azure
+  depth: Core
+  services: [arm, entra, graph]
+  covered: "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, async operations, deployments as metadata, generic resources); Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups"
+  not_yet: "templates are not run (a deployment whose template holds an unknown resource type ends Failed), a PUT of a resource type pogi does not know is refused (`InvalidResourceType`, or `NoRegisteredProviderFound` for an unknown namespace), Graph covers what `azuread` and `az ad` use"
+
+- title: "Management planes (ARM)"
+  cloud: azure
+  depth: Core
+  services: [arm]
+  covered: "ARM resources for storage accounts, Key Vault, Cosmos DB, Service Bus, Event Hubs, Event Grid, Functions, App Configuration, SignalR and Communication Services, wired to their data planes; the azurerm Terraform provider applies, plans clean and destroys (run in Docker on macOS)"
+  not_yet: "storage `regenerateKey`, function app config sub-resources"
+
+- title: "Azure SQL, PostgreSQL, MySQL, MariaDB, Cache for Redis"
+  cloud: azure
+  depth: Core
+  services: [azdatabases]
+  docker: true
+  covered: "servers, databases and firewall rules as real engines in containers; Redis keys that work as AUTH passwords"
+  not_yet: "configurations are not applied, no TLS"
+
+- title: "Azure Monitor"
+  cloud: azure
+  depth: Core
+  services: [azmonitor]
+  covered: "Log Analytics workspaces, data collection rules and endpoints, the Logs Ingestion API with KQL transforms, the query API with a KQL subset (where, project, extend, summarize, order, top, let and more), Application Insights requests and traces"
+  not_yet: "joins, unions and parse, real metrics"
+
+- title: "Virtual Network"
+  cloud: azure
+  depth: Core
+  services: [aznetwork]
+  covered: "virtual networks and subnets with address checks, NSGs and rules, public IPs, NICs with private IP allocation, route tables, NAT gateways, private DNS zones"
+  not_yet: "no traffic, peerings or service endpoints"
+- title: "Kubernetes Engine"
+  cloud: gcp
+  depth: Core
+  services: [container]
+  docker: true
+  covered: "container.googleapis.com v1 and v1beta1 (gRPC and REST): clusters and node pools with GKE's own operations; each cluster is a real k3s API server, PROVISIONING until its node is Ready, with `endpoint` and `masterAuth.clusterCaCertificate`; `kubectl` works with a kubeconfig from `pogi kubeconfig gke <cluster>` or `gcloud container clusters get-credentials` (the API server accepts pogi's own `ya29.pogi-…` tokens); without Docker, metadata only"
+  not_yet: "node pools are metadata and add no nodes, one Kubernetes version (the k3s one), every valid token is cluster-admin, lists are one page"
+
+- title: "Compute Engine"
+  cloud: gcp
+  depth: Core
+  services: [compute]
+  docker: true
+  covered: "the REST API at `/compute/v1/projects/<p>/…` (`google.golang.org/api/compute/v1`, `cloud.google.com/go/compute/apiv1`, gcloud, Terraform): zones, regions, machine types and images as static lists; instances (insert, get, list, delete, start, stop, reset, setMetadata, setLabels), disks, networks, subnetworks, firewalls and addresses; operations are DONE when returned; instances run as containers of their boot image (debian, ubuntu, cos) with `startup-script` metadata run at every boot, and the metadata server at `/computeMetadata/v1/` (project, zone, attributes, service-account tokens, `?recursive` and `?alt=json`) reached through `GCE_METADATA_HOST`; without Docker, metadata only"
+  not_yet: "live migration, snapshots, instance templates, groups, load balancing, custom images; networks carry no traffic and firewall rules are only stored; `startup-script-url` and shutdown scripts; instances share the host's ports on engines without a VM"
+
+- title: "Artifact Registry"
+  cloud: gcp
+  depth: Core
+  services: [artifactregistry]
+  docker: true
+  covered: "v1 (gRPC and REST): repositories (create, get, list, update, delete, IAM) and Docker images on ECR's OCI registry: `docker push` and `pull` at `localhost:4510/<project>/<repo>/<image>`, and `<region>-docker.pkg.dev/<project>/<repo>/<image>` references run by Cloud Run, ACI and the like are pulled from it; without Docker, metadata only"
+  not_yet: "formats other than Docker (stored as metadata), packages, versions, tags, files and rules, `dockerImages.get`"
+
+- title: "Long-running operations"
+  cloud: gcp
+  depth: Core
+  services: [operations]
+  covered: "the shared `google.longrunning.Operations` service every GCP method that returns an Operation uses: get, list, wait, cancel and delete, over gRPC and REST (`/v1|v2/projects/p/locations/l/operations/o`)"
+  not_yet: "operations are in memory only and never expire"
+
+- title: "API Management"
+  cloud: azure
+  depth: Core
+  services: [apim]
+  covered: "the management plane (services, APIs with operations, policies and schemas, backends, products with their APIs and policies, subscriptions with primary and secondary keys and `listSecrets`, named values, the service-level policy) and the gateway at `<service>.azure-api.localhost:7644/<api path>` or `/_azure/apim/<service>/…`: API and operation matching by path, method and URL template, subscription keys, policies in order service → product → API → operation with `<base/>`, forwarding to the backend; policies `set-header`, `set-query-parameter`, `rewrite-uri`, `set-backend-service`, `rate-limit`, `rate-limit-by-key`, `validate-jwt` (pogi's Entra tokens work), `return-response`, `mock-response`, `cors`, `set-body`"
+  not_yet: "OpenAPI and WSDL import, the C# policy expression language (a few `context.Request.Headers` forms only), other policies (`choose`, `send-request`, `quota`, caching, `retry`) are skipped, `on-error` sections, rate limits are a fixed window kept in memory"
+
+- title: "Kubernetes Service"
+  cloud: azure
+  depth: Core
+  services: [azaks]
+  docker: true
+  covered: "ARM `Microsoft.ContainerService/managedClusters` and `agentPools`: each cluster is a real k3s API server, Creating until its node is Ready, with `fqdn`; `listClusterUserCredential` and `listClusterAdminCredential` return a kubeconfig whose token the API server accepts (the `armcontainerservice` client and `az aks get-credentials`); without Docker, Succeeded at once with no API server"
+  not_yet: "agent pools are metadata and add no nodes, one Kubernetes version, a static bearer token instead of Entra tokens (no kubelogin)"
+
+- title: "Container Registry"
+  cloud: azure
+  depth: Core
+  services: [azacr]
+  docker: true
+  covered: "ARM `Microsoft.ContainerRegistry/registries` on ECR's OCI registry: `<name>.azurecr.localhost:4510` or `localhost:4510/<name>/…`, `docker push` and `pull`, `listCredentials`, and the sign-in endpoints of `az acr login` and `/oauth2/exchange`; ACI and Container Apps pull images from it; without ECR, metadata only"
+  not_yet: "credentials are issued but never checked (the registry accepts any, anonymous included)"
+
+- title: "Container Instances"
+  cloud: azure
+  depth: Core
+  services: [azaci]
+  docker: true
+  covered: "ARM `Microsoft.ContainerInstance/containerGroups`: containers in Docker with image, command, environment, ports, CPU and memory limits and restart policy; the group's IP address and `dnsNameLabel` served at `<label>.<location>.azurecontainer.localhost:7644` and `/_azure/aci/<group>/…`; `instanceView` states, `start`, `stop`, `restart` and container logs; without Docker, groups stay Pending"
+  not_yet: "exec and attach, volumes, probes, GPUs, virtual networks, init containers, identities"
+
+- title: "Container Apps"
+  cloud: azure
+  depth: Core
+  services: [azcontainerapps]
+  docker: true
+  covered: "ARM `Microsoft.App/managedEnvironments`, `containerApps` (with revisions) and `jobs` (with executions): apps as containers behind ingress at `<app>.<env>.azurecontainerapps.localhost:7644`, started on the first request like Cloud Run; a revision per template change, traffic weights in Multiple mode; secrets and env; jobs run on the `start` action with parallelism, retries and timeouts; without Docker, metadata only"
+  not_yet: "the first container of a template only (no sidecars or init containers), one replica per revision and no scaling (settings are stored), volumes, probes, Dapr, custom domains, schedule and event triggers of jobs never fire"
+
+- title: "Virtual Machines"
+  cloud: azure
+  depth: Core
+  services: [azcompute]
+  docker: true
+  covered: "ARM `Microsoft.Compute/virtualMachines`, `disks`, `availabilitySets` and `sshPublicKeys`: VMs as containers of the base image their image reference names (Ubuntu, Debian), `customData` run at first boot (a cloud-config `runcmd` subset or a script), `instanceView` power state, `start`, `powerOff`, `deallocate` and `restart`, NIC private IPs from the Virtual Network service, and the instance metadata service (`/metadata/instance` and identity tokens) reachable from inside; Windows and other images, and Docker-less runs, are metadata only"
+  not_yet: "extensions, scale sets, images, snapshots, run commands, ssh into the VM, other cloud-config modules, `GET …/instanceView` (the view is part of every GET)"

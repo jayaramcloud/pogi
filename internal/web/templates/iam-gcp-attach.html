@@ -1,0 +1,8 @@
+{{define "body"}}<div class="kvs" style="margin-bottom:16px"><div>Principal</div><div class="mono">{{.Principal}}</div>
+  <div>Adds</div><div>{{if .Diff}}+{{len .Diff}}: {{range $i, $d := .Diff}}{{if $i}}, {{end}}<span class="mono">{{$d}}</span>{{end}}{{else}}nothing: the policies already hold these bindings{{end}}</div></div>
+<p class="faint" style="margin:0 0 8px">Each binding is added to the policy of its resource with that service's setIamPolicy. Everything else in the policy stays, and Undo puts the old policy back.</p>
+<pre class="code" style="max-height:300px;overflow:auto">{{.Doc}}</pre>{{end}}
+{{define "content"}}{{with .Data}}{{template "body" .}}<form method="post" action="/_pogi/iam/gcp/attach" class="actions" style="margin-top:12px"><input type="hidden" name="principal" value="{{.Principal}}"><input type="hidden" name="role" value="{{.Role}}"><a class="btn" href="/_pogi/iam?c=gcp">Cancel</a><button class="btn primary">Confirm</button></form>{{end}}{{end}}
+{{define "drawer"}}{{with .Data}}<header><div class="eyebrow">IAM policy</div><div class="title"><h2 id="dtitle">Attach to {{.Principal}}</h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<div class="dbody">{{template "body" .}}</div>
+<footer><button class="btn" data-close>Cancel</button><button class="btn primary" hx-post="/_pogi/iam/gcp/attach?principal={{q .Principal}}&role={{.Role}}" hx-target="#drawer">Confirm</button></footer>{{end}}{{end}}

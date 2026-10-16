@@ -1,0 +1,32 @@
+# golangci-lint v2. A small, strict set: every finding is fixed or excluded below with a reason.
+version: "2"
+run:
+  timeout: 10m
+linters:
+  default: none
+  enable:
+    - govet
+    - staticcheck
+    - ineffassign
+    - unused
+  exclusions:
+    rules:
+      # pogi's job is to answer like the real cloud, including with fields and calls the cloud SDKs now mark
+      # deprecated. Tests use those old calls on purpose, and a few services serve them.
+      - linters: [staticcheck]
+        text: SA1019
+        path: (_test\.go|internal/azure/keyvault/keys\.go|internal/gcp/(gke/gke|iam/iam|logging/config|pubsub/pubsub)\.go)$
+      # Error texts are sent to clients and copy the cloud's own wording, so they keep its capital letters
+      # and full stops.
+      - linters: [staticcheck]
+        text: ST1005
+      # Suggestions to rewrite working conditions (De Morgan's law, tagged switch). The rewrite is often
+      # harder to read than the original.
+      - linters: [staticcheck]
+        text: QF100[123]
+formatters:
+  enable:
+    - gofmt
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

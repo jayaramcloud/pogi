@@ -1,0 +1,27 @@
+{{define "drawer"}}{{with .Data}}
+<header><div class="eyebrow">{{$.Eyebrow}}</div><div class="title"><h2 id="dtitle">{{.Name}}</h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<div class="dbody">{{template "lambdabody" .}}</div>
+<footer><button class="btn" data-close>Close</button></footer>
+{{end}}{{end}}
+
+{{define "content"}}{{with .Data}}
+<p class="crumbs"><a href="/_pogi/resources/lambda">functions</a> / {{.Name}} <span class="dim">({{.Account}} · {{.Region}})</span></p>
+{{template "lambdabody" .}}
+{{end}}{{end}}
+
+{{define "lambdabody"}}{{$u := printf "/_pogi/lambda/%s/%s/%s" .Account .Region (path .Name)}}
+<form hx-post="{{$u}}/invoke" hx-target="#result" hx-swap="innerHTML">
+  <div class="field"><label>Test invoke · payload</label><textarea class="input" name="payload" rows="6" placeholder='{"hello": "pogi"}'></textarea></div>
+  <div class="actions" style="justify-content:flex-end"><span class="dim htmx-indicator">running…</span><button class="btn primary">{{icon "play"}}Invoke</button></div>
+</form>
+<div id="result" style="margin:14px 0"></div>
+<h4 style="margin:0 0 6px">Recent logs</h4>
+<div id="logs" hx-get="{{$u}}" hx-select="#logs" data-poll="3000" data-poll-drawer hx-trigger="pogi-poll" hx-swap="outerHTML">
+<pre class="code logs">{{range .Logs}}{{.}}
+{{else}}No logs yet. Invoke the function.{{end}}</pre></div>
+<details class="more" style="margin-top:16px"><summary>Configuration</summary><pre class="code">{{json .Info}}</pre></details>
+{{end}}
+{{define "result"}}{{if .Error}}<div class="flash" role="alert">{{.Error}}</div>{{end}}{{with .Result}}
+<p>{{if .Error}}<span class="st bad">{{.Error}}</span>{{else}}<span class="st ok">success</span>{{end}} <span class="dim">{{.Elapsed}}</span></p>
+<h4 style="margin:0 0 6px">Response</h4><pre class="code" style="margin-bottom:10px">{{pretty .Payload}}</pre>
+<h4 style="margin:0 0 6px">Logs</h4><pre class="code">{{.Logs}}</pre>{{end}}{{end}}

@@ -1,0 +1,49 @@
+{{define "drawer"}}{{with .Data}}
+<header><div class="eyebrow">{{.Eyebrow}}</div><div class="title"><h2 id="dtitle">{{.Form.Title}}</h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<form id="dform" hx-post="{{.Root.Base}}" hx-target="#drawer" hx-encoding="multipart/form-data" style="display:contents">
+  <div class="dbody">{{template "formbody" .}}</div>
+  <div class="cli"><div class="lbl">{{icon "term"}}Same thing from the CLI<span class="spacer"></span><button type="button" class="btn sm ghost" data-copy="#cli">{{icon "copy"}}Copy</button></div>
+    <pre id="cli" hx-target="this" hx-post="/_pogi/cli/{{.Service}}/{{.Form.Op}}" hx-include="#dform" hx-encoding="application/x-www-form-urlencoded" hx-trigger="load, input from:#dform delay:250ms, change from:#dform delay:250ms" hx-swap="innerHTML"></pre></div>
+</form>
+<footer><button class="btn" data-close>Cancel</button><button class="btn primary" form="dform">{{.Form.Title}}</button></footer>
+{{end}}{{end}}
+
+{{define "content"}}{{with .Data}}
+<p class="crumbs"><a href="/_pogi/resources/{{.Service}}">{{.Service}}</a> / {{.Form.Title}}
+  <span class="dim">· as {{.Scope.Account}} {{.Scope.Region}}{{if ne .Scope.Project "*"}} {{.Scope.Project}}{{end}}</span></p>
+<form class="form" method="post" action="{{.Root.Base}}" enctype="multipart/form-data">
+  {{template "formbody" .}}
+  <div><button>{{.Form.Title}}</button></div>
+</form>
+{{end}}{{end}}
+
+{{define "formbody"}}{{if .Err}}<div class="flash" role="alert" id="apierr">{{.Err}}</div>{{end}}
+{{range .Required}}{{template "field" .}}{{end}}
+{{with .Optional}}<details class="more" {{if $.OptionalOpen}}open{{end}}><summary>Optional ({{len .}})</summary>{{range .}}{{template "field" .}}{{end}}</details>{{end}}
+{{end}}
+
+{{define "field"}}{{$n := .}}
+{{if eq .F.Kind "struct"}}
+  {{if .F.Required}}<fieldset class="grp"><legend>{{.F.Label}}<b class="req">*</b></legend>{{range .F.Fields}}{{template "field" ($n.Sub .)}}{{end}}</fieldset>
+  {{else}}<details class="grp" {{if .Open}}open{{end}}><summary>{{.F.Label}}</summary><div>{{range .F.Fields}}{{template "field" ($n.Sub .)}}{{end}}</div></details>{{end}}
+{{else if or (eq .F.Kind "list") (eq .F.Kind "map")}}
+  <fieldset class="grp rep"><legend>{{.F.Label}}{{if .Marker}}<b class="req">*</b>{{end}}</legend>
+  {{range .Items}}{{template "item" ($n.Item .)}}{{end}}
+  {{template "add" ($n.Add $n.Next)}}</fieldset>
+{{else}}
+  <div class="field"><label>{{.F.Label}}{{if .Marker}}<span class="req">*</span>{{end}}<span class="api">{{.F.Name}}</span></label>{{template "input" .}}{{with .F.Help}}<span class="help">{{.}}</span>{{end}}</div>
+{{end}}{{end}}
+
+{{define "item"}}{{$n := .}}<fieldset class="item"><legend><button type="button" class="btn sm ghost danger" hx-get="/_pogi/blank" hx-target="closest fieldset" hx-swap="delete">remove</button></legend>
+{{if eq .F.Kind "struct"}}{{range .F.Fields}}{{template "field" ($n.Sub .)}}{{end}}{{else}}{{template "field" .}}{{end}}</fieldset>{{end}}
+
+{{define "add"}}<button type="button" class="btn sm" style="align-self:flex-start" hx-get="{{.AddURL}}" hx-target="this" hx-swap="outerHTML">+ add</button>{{end}}
+
+{{define "added"}}{{template "item" (.Item .N)}}{{template "add" (.Add (add .N 1))}}{{end}}
+
+{{define "input"}}{{$v := .Val}}
+{{if eq .F.Kind "enum"}}<select class="input" name="{{.Name}}" {{if .Req}}required aria-required="true"{{end}}><option value=""></option>{{range .F.Enum}}<option {{if eq . $v}}selected{{end}}>{{.}}</option>{{end}}</select>
+{{else if eq .F.Kind "bool"}}<select class="input" name="{{.Name}}"><option value=""></option><option {{if eq $v "true"}}selected{{end}}>true</option><option {{if eq $v "false"}}selected{{end}}>false</option></select>
+{{else if eq .F.Kind "file"}}<input class="input" type="file" name="{{.Name}}" {{if eq .Name "ZipFile"}}data-code{{else}}data-upload{{end}} style="padding:4px" {{if .Req}}required aria-required="true"{{end}}>
+{{else if or (eq .F.Kind "json") (eq .F.Kind "text")}}<textarea class="input" name="{{.Name}}" rows="3" {{if eq .F.Kind "json"}}placeholder="JSON"{{end}} {{if .Req}}required aria-required="true"{{end}}>{{$v}}</textarea>
+{{else}}<input class="input" name="{{.Name}}" value="{{$v}}" {{if .Number}}type="number" step="{{.Step}}"{{end}} {{with .F.Pattern}}pattern="{{.}}" title="{{$.F.Help}}"{{end}} {{if .Req}}required aria-required="true"{{end}}>{{end}}{{end}}

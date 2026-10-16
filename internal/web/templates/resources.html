@@ -1,0 +1,70 @@
+{{define "head"}}{{with .Data}}
+<div class="crumbs"><a href="/_pogi/services">Services</a>{{icon "right"}}<span>{{.CloudName}}</span>{{icon "right"}}<span>{{.Title}}</span></div>
+<div class="ph"><div><h1><span class="dot {{.Cloud}}"></span>{{.Title}}{{if .Depth}} <span class="tag {{.DC}}">{{.Depth}}</span>{{end}}</h1><p class="sub">{{.Sub}}</p></div>
+  <div class="actions">
+    <button class="btn icon {{if .Pinned}}pinned{{else}}ghost{{end}}" data-pin="{{.Name}}" title="{{if .Pinned}}Unpin from the sidebar{{else}}Pin to the sidebar{{end}}" aria-pressed="{{if .Pinned}}true{{else}}false{{end}}" aria-label="{{if .Pinned}}Unpin{{else}}Pin{{end}}">{{icon "star"}}</button>
+    <button class="btn" data-menu="svc-menu" aria-label="More" aria-haspopup="menu" aria-expanded="false">{{icon "more"}}</button>
+    <div hidden>
+      <a href="/_pogi/resources/{{path .Name}}?tab=activity">{{icon "pulse"}}View activity</a>
+      <a href="/_pogi/resources/{{path .Name}}?tab=about">{{icon "file"}}What's supported</a>
+      <hr>
+      <button type="button" role="menuitem" class="danger" hx-post="/_pogi/reset" hx-vals="{{.ResetVals}}" hx-confirm="Delete every {{.Title}} resource? This can't be undone.">{{icon "reset"}}Reset {{.Title}}…</button>
+    </div>
+    {{template "createbtn" .Create}}
+  </div></div>
+{{end}}{{end}}
+
+{{define "createbtn"}}{{with .}}{{if .Menu}}<button class="btn primary" data-create data-menu="create-menu" aria-haspopup="menu" aria-expanded="false">{{icon "plus"}}{{.Label}}</button><div hidden>{{range .Menu}}{{if .Sep}}<hr>{{else}}<a href="{{.Href}}" data-drawer>{{.Title}}</a>{{end}}{{end}}</div>
+{{else}}<a class="btn primary" data-create data-drawer href="{{.Href}}">{{icon "plus"}}{{.Label}}</a>{{end}}{{end}}{{end}}
+
+{{define "content"}}{{with .Data}}
+<div class="tabs">{{range .Tabs}}<a href="{{.Href}}" class="{{if eq .Key $.Data.Tab}}on{{end}}">{{.Label}}{{if .Show}}<em>{{.Count}}</em>{{end}}</a>{{end}}</div>
+{{if .Table}}{{template "restab" .}}
+{{else if .Frag}}<div id="xtab" hx-get="{{.Frag}}" hx-trigger="load" hx-swap="outerHTML"><p class="faint">Loading…</p></div>
+{{else if eq .Tab "activity"}}{{template "acttab" .}}
+{{else}}{{template "abouttab" .}}{{end}}
+{{end}}{{end}}
+
+{{define "scopebar"}}<div class="scopebar">{{icon "lock"}} Showing <b class="mono">{{.Scope.Text}}</b><span class="spacer"></span><a role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" data-js="scope">Change scope</a>{{with .Scope.Vals}} · <a role="button" tabindex="0" hx-post="/_pogi/scope" hx-vals="{{.}}">{{$.Scope.AllLabel}}</a>{{end}}</div>{{end}}
+
+{{define "restab"}}{{$p := .}}{{with .Table}}{{$t := .}}
+{{if .Rows}}
+<form id="rows" hx-boost="false" data-nosubmit>
+<input type="hidden" name="back" value="{{$p.Back}}">
+<div class="toolbar"><div class="filter">{{icon "search"}}<input class="input" placeholder="Filter {{$p.Noun}}" aria-label="Filter" autocomplete="off" data-filter="rows"></div>
+  <span class="spacer"></span><a class="btn ghost" href="{{$p.Back}}">{{icon "reset"}}Refresh</a></div>
+<div class="tablecard">{{template "scopebar" $p}}
+<table class="dt"><thead><tr>{{if or .Del .Tag}}<th class="chk"><label><input type="checkbox" aria-label="Select all"></label></th>{{end}}{{range $i, $c := .Columns}}<th class="{{if $p.IsNum $i}}num{{end}}">{{$c}}</th>{{end}}<th></th></tr></thead>
+<tbody>{{range $r, $row := .Rows}}<tr data-drawer="{{link $p.Name $t.Name $row}}">
+  {{if or $t.Del $t.Tag}}<td class="chk"><label><input type="checkbox" name="row" value="{{index $t.Enc $r}}" aria-label="Select {{index $row 0}}"></label></td>{{end}}
+  {{range $i, $c := $row}}<td class="{{if eq $i 0}}name{{else if $p.IsNum $i}}num{{else}}dim{{end}}">{{if eq $i 0}}<a href="{{link $p.Name $t.Name $row}}" data-drawer>{{$c}}</a>{{else}}{{$c}}{{end}}</td>{{end}}
+  <td class="num"><button type="button" class="btn icon ghost sm" data-menu="row-{{$r}}" aria-label="Row actions" aria-haspopup="menu" aria-expanded="false">{{icon "more"}}</button>
+    <div hidden><button type="button" role="menuitem" data-drawer="{{$p.JSONURL $row}}">{{icon "file"}}View JSON</button><button type="button" role="menuitem" data-copy="{{index $row 0}}">{{icon "copy"}}Copy name</button>
+    {{if $t.Del}}<hr><button type="button" role="menuitem" class="danger" hx-post="/_pogi/bulk/{{$p.Name}}/{{path $t.Name}}" hx-vals="{{$p.RowVals (index $t.Enc $r)}}" hx-confirm="Delete {{index $row 0}}?">{{icon "trash"}}Delete</button>{{end}}</div></td></tr>{{end}}</tbody></table></div>
+{{if or .Del .Tag}}<div class="bulk" id="bulk"><span id="bulkN">0 selected</span>
+  {{if .Tag}}<button type="button" class="btn sm" hx-get="/_pogi/bulk/{{$p.Name}}/{{path .Name}}" hx-include="closest form" hx-target="#drawer">{{icon "tag"}}Tag</button>{{end}}
+  {{if .Del}}<button type="button" class="btn sm danger" hx-post="/_pogi/bulk/{{$p.Name}}/{{path .Name}}" hx-include="closest form" hx-vals='{"action":"delete"}' hx-confirm="Delete the selected {{$p.Noun}}?">{{icon "trash"}}Delete</button>{{end}}
+  <button type="button" class="btn sm icon" data-bulk-clear title="Clear selection" aria-label="Clear selection">{{icon "x"}}</button></div>{{end}}
+</form>
+{{else}}
+<div class="tablecard">{{template "scopebar" $p}}<div class="empty"><div class="ico">{{icon "box"}}</div><h2>No {{$p.Noun}} in {{$p.Scope.Text}}</h2>
+  <p>Create one here, or with your CLI, SDK or Terraform. It shows up live.</p>
+  <div class="actions" style="justify-content:center">{{template "createbtn" $p.Create}}{{with $p.Scope.Vals}}<button class="btn" hx-post="/_pogi/scope" hx-vals="{{.}}">{{$p.Scope.AllLabel}}</button>{{end}}</div>
+  {{with $p.CLI}}<pre class="code" style="text-align:left;max-width:520px;margin:18px auto 0">{{.}} help</pre>{{end}}</div></div>
+{{end}}{{end}}{{end}}
+
+{{define "acttab"}}<div class="tablecard"><table class="dt"><thead><tr><th>Time</th><th>Operation</th><th>Request</th><th>Status</th><th class="num">Latency</th></tr></thead><tbody>
+{{range .Activity}}<tr data-drawer="/_pogi/requests/{{.ID}}"><td class="mono dim">{{time .Time}}</td><td class="name"><a href="/_pogi/requests/{{.ID}}" data-drawer>{{.Op}}</a></td><td class="mono dim trunc">{{.Method}} {{.Path}}</td>
+  <td><span class="st {{if ge .Status 400}}bad{{else}}ok{{end}}">{{.Status}}{{with .Error}} {{.}}{{end}}</span></td><td class="num dim">{{printf "%.1f" .Ms}} ms</td></tr>
+{{else}}<tr><td colspan="5" class="empty-cell">No calls yet.</td></tr>{{end}}</tbody></table></div>{{end}}
+
+{{define "abouttab"}}
+<div class="grid2" style="grid-template-columns:1fr 1fr">
+  <section class="card"><header>What works</header><div class="body dim">{{with .Covered}}{{.}}{{else}}Nothing listed yet.{{end}}</div></section>
+  <section class="card"><header>Not yet</header><div class="body dim">{{with .NotYet}}{{.}}{{else}}Nothing known.{{end}}</div></section>
+</div>
+<section class="card" style="margin-bottom:16px"><header>Endpoint</header><div class="body"><div class="kvs">
+  <div>Endpoint</div><div class="mono">{{.Endpoint}}</div><div>Cloud</div><div>{{.CloudName}}</div>{{with .CLI}}<div>CLI</div><div class="mono">{{.}} …</div>{{end}}</div></div></section>
+<div class="danger-zone"><div><b>Reset {{.Title}}</b><span class="dim">Delete every {{.Title}} resource in every account and region. Other services are untouched.</span></div>
+  <button class="btn danger" hx-post="/_pogi/reset" hx-vals="{{.ResetVals}}" hx-confirm="Delete every {{.Title}} resource? This can't be undone.">{{icon "reset"}}Reset {{.Title}}…</button></div>
+{{end}}

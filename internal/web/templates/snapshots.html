@@ -1,0 +1,18 @@
+{{define "head"}}<div class="ph"><div><h1>Snapshots</h1><p class="sub">Save every service's state to a file and load it back later, or share it with your team.</p></div>
+  <div class="actions">
+    <form method="post" action="/_pogi/snapshots" enctype="multipart/form-data" hx-encoding="multipart/form-data"><label class="btn">{{icon "upload"}}Import…<input type="file" name="file" accept=".json" hidden data-autosubmit></label></form>
+    <form method="post" action="/_pogi/snapshots" class="actions"><input class="input" aria-label="Snapshot name" name="name" placeholder="name (default: timestamp)" style="width:200px"><button class="btn primary" data-create>{{icon "camera"}}Save snapshot</button></form></div></div>{{end}}
+
+{{define "content"}}{{with .Data}}
+{{if .Persist}}<div class="banner">{{icon "check"}}Persistence is on: state is kept in <code>{{.DataDir}}</code> and survives a restart. Snapshots are files in <code>{{.DataDir}}/snapshots</code>.</div>
+{{else}}<div class="banner">{{icon "lock"}}State lives in memory and is lost on restart. Start with <code>pogi start --persist</code> to keep it in <code>~/.pogi</code>.</div>{{end}}
+<div class="tablecard"><table class="dt"><thead><tr><th>Name</th><th>Saved</th><th class="num">Size</th><th></th></tr></thead><tbody>
+{{range .Snapshots}}<tr><td class="name mono">{{.Name}}</td><td class="dim">{{ago .Saved}}</td><td class="num dim">{{size .Size}}</td>
+  <td class="num"><div class="actions" style="justify-content:flex-end">
+    <form method="post" action="/_pogi/snapshots/{{path .Name}}/load" hx-confirm="Replace the current state with {{.Name}}?"><button class="btn sm">Load</button></form>
+    <a class="btn sm ghost" href="/_pogi/api/snapshots/{{path .Name}}" hx-boost="false" download title="Download">{{icon "download"}}</a>
+    <form method="post" action="/_pogi/snapshots/{{path .Name}}/delete" hx-confirm="Delete snapshot {{.Name}}?"><button class="btn sm ghost danger" title="Delete">{{icon "trash"}}</button></form></div></td></tr>
+{{else}}<tr><td colspan="4"><div class="empty"><div class="ico">{{icon "camera"}}</div><h2>No snapshots yet</h2><p>Save one to get back to this exact state later.</p></div></td></tr>{{end}}
+</tbody></table></div>
+<form method="post" action="/_pogi/reset" hx-confirm="Delete ALL state in every service?" style="margin-top:18px;display:flex;gap:12px;align-items:center"><button class="btn danger">{{icon "reset"}}Reset everything</button> <span class="faint">Empties every service. Save a snapshot first if you want it back.</span></form>
+{{end}}{{end}}

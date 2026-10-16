@@ -1,0 +1,43 @@
+{{define "head"}}{{with .Data}}{{if .One}}
+<div class="ph"><div><div class="crumbs"><a href="/_pogi/flows">Flows</a>{{icon "right"}}<span class="mono">{{.One.Trace}}</span></div>
+  <h1>{{.One.Trigger}}</h1><p class="sub">{{date .One.Start}} · {{len .One.Steps}} steps · {{.One.Duration}}</p></div>
+  <div class="actions">{{template "result" .One}}<a class="btn sm" href="/_pogi/map?trace={{q .One.Trace}}">{{icon "map"}}On map</a></div></div>
+{{else}}
+<div class="ph"><div><h1>Activity</h1><p class="sub">A flow is everything one call set off, across services and clouds: notifications, subscriptions, triggers, retries and dead-letters.</p></div>
+  <div class="actions"><label class="switch"><input type="checkbox" id="live" checked><i></i>Live</label></div></div>
+{{end}}{{end}}{{end}}
+
+{{define "result"}}{{if .Failed}}<span class="st bad">failed</span>{{else}}<span class="st ok">ok</span>{{end}}{{end}}
+{{define "path"}}<span class="path">{{range $i, $c := .}}{{if $i}}{{icon "right"}}{{end}}<span class="{{if $c.Err}}err{{end}}"><span class="dot {{$c.Cloud}}"></span>{{$c.Name}}</span>{{end}}</span>{{end}}
+
+{{define "content"}}{{with .Data}}{{if .One}}{{template "waterfall" .One}}{{else}}
+<form id="flt" class="toolbar" action="/_pogi/flows" data-nosubmit>
+  <div class="seg"><a href="/_pogi/requests">{{icon "pulse"}}Requests</a><a class="on" href="/_pogi/flows">{{icon "map"}}Flows</a></div>
+  <div class="filter">{{icon "search"}}<input class="input" id="fq" aria-label="Filter flows" name="q" value="{{.Q}}" placeholder="Filter flows by service, resource or trace ID" autocomplete="off"></div>
+  <input type="hidden" name="f" value="{{.F}}">
+  <a class="chip {{if not .F}}on{{end}}" href="/_pogi/flows">All</a><a class="chip {{if eq .F "failed"}}on{{end}}" href="/_pogi/flows?f=failed">Failed</a><a class="chip {{if eq .F "slow"}}on{{end}}" href="/_pogi/flows?f=slow">Slow (&gt; 1 s)</a>
+  <span class="spacer"></span><span class="faint">{{len .Flows}} flows</span>
+</form>
+<div class="tablecard"><table class="dt"><thead><tr><th>Started</th><th>Trigger</th><th>Path</th><th class="num">Steps</th><th class="num">Duration</th><th>Result</th></tr></thead>
+<tbody id="flowrows" hx-get="/_pogi/flows?frag=1" hx-include="#flt" hx-swap="innerHTML"
+  data-poll="3000" data-poll-live hx-trigger="pogi-poll, keyup changed delay:300ms from:#fq">{{template "rows" .}}</tbody></table></div>
+{{end}}{{end}}{{end}}
+
+{{define "rows"}}{{range .Flows}}
+<tr data-drawer="/_pogi/flows/{{path .Trace}}"><td class="mono faint">{{time .Start}}</td><td class="name"><span class="dot {{.Cloud}}"></span> <a href="/_pogi/flows/{{path .Trace}}" data-drawer>{{.Trigger}}</a></td>
+<td>{{template "path" .Path}}</td><td class="num">{{len .Steps}}</td><td class="num mono dim">{{.Duration}}</td><td>{{template "result" .}}</td></tr>
+{{else}}<tr><td colspan="6" class="empty">{{if .NotShown}}No flow matches.{{else}}No flows yet. A flow appears when one call sets off another: a publish that reaches a queue, an upload that triggers a function.{{end}}</td></tr>{{end}}{{end}}
+
+{{define "waterfall"}}
+{{if .Failed}}<div class="banner warn">{{icon "x"}}<span>{{.Why}}</span></div>{{end}}
+<div class="toolbar" style="margin-bottom:14px">{{template "path" .Path}}</div>
+<div class="wf">{{range .Steps}}
+  <div class="lbl" {{if .ReqID}}data-drawer="/_pogi/requests/{{.ReqID}}" role="link" tabindex="0"{{end}} title="{{.Service}} · {{.Op}}{{with .Hint}} {{.}}{{end}}{{with .Err}} · {{.}}{{end}}"><span class="ind">{{.Indent}}</span><span class="dot {{.Cloud}}"></span> {{.Service}} <span class="dim">{{.Op}}</span></div>
+  <div class="track"><div class="bar {{if .Err}}err{{else}}{{.Cloud}}{{end}}" style="left:{{.Left}}%;width:{{.Width}}%"><em>{{.Dur}}</em></div></div>
+{{end}}
+  <div class="axis">{{range .Axis}}<span>{{.}}</span>{{end}}</div></div>
+<p class="faint" style="margin-top:16px">Click a step for its request and response. Steps are linked by the trace ID pogi passes along deliveries and into Lambda, so SDK calls your code makes join the same flow.</p>
+{{end}}
+
+{{define "drawer"}}{{with .Data}}<header><div class="eyebrow">{{$.Eyebrow}}</div><div class="title"><h2 id="dtitle">{{.One.Trigger}}</h2>{{template "result" .One}}<a class="btn sm" href="/_pogi/map?trace={{q .One.Trace}}">{{icon "map"}}On map</a><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<div class="dbody">{{template "waterfall" .One}}</div>{{end}}{{end}}

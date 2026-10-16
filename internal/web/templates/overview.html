@@ -1,0 +1,87 @@
+{{define "head"}}{{with .Data}}{{if .FirstRun}}<div class="ph"><div><h1>Welcome to pogi</h1><p class="sub">{{.Services}} AWS, Google Cloud and Azure services are running on <code>{{.Endpoint}}</code>. Point a tool at it and its calls show up here live.</p></div></div>
+{{else}}<div class="ph"><div><h1>Home</h1><p class="sub">{{.InUse}} of {{.Services}} services in use · {{.Resources}} resources · scope <span class="mono">{{if eq .Cloud "gcp"}}{{.Scope.Project}}{{else if eq .Cloud "azure"}}{{.Scope.Subscription}}{{else}}{{.Scope.Account}} / {{.Scope.Region}}{{end}}</span></p></div>
+  <div class="actions"><button class="btn" hx-post="/_pogi/snapshots" hx-swap="none">{{icon "camera"}}Save snapshot</button>
+    <button class="btn" data-menu="home-more" title="More" aria-label="More" aria-haspopup="menu" aria-expanded="false">{{icon "more"}}</button>
+    <div hidden><a href="/_pogi/snapshots">{{icon "camera"}}Snapshots…</a><hr>
+      <button type="button" role="menuitem" class="danger" hx-post="/_pogi/reset" hx-vals='{"back":"/_pogi/"}' hx-confirm="Delete ALL state in every service?">{{icon "reset"}}Reset all state…</button></div></div></div>
+{{end}}{{end}}{{end}}
+
+{{define "quick"}}{{range .}}<a {{if .Href}}href="{{.Href}}" data-drawer{{else}}href="/_pogi/snapshots"{{end}}><span class="ico">{{icon .Icon}}</span><span>{{.Title}}<small>{{.Sub}}</small></span><span class="go">{{icon "right"}}</span></a>{{end}}{{end}}
+
+{{define "feed"}}<tbody id="feed" hx-get="/_pogi/" data-poll="2000" data-poll-live hx-trigger="pogi-poll" hx-select="#feed" hx-target="#feed" hx-swap="outerHTML">
+{{range .Feed}}<tr data-drawer="/_pogi/requests/{{.ID}}"><td class="mono faint">{{time .Time}}</td><td><span class="dot {{.Cloud}}"></span> {{title .Service}}</td><td class="name"><a href="/_pogi/requests/{{.ID}}" data-drawer>{{.Op}}</a></td>
+<td><span class="st {{stc .Status}}">{{.Status}}{{if .Error}} {{.Error}}{{end}}</span>{{if .Chaos}} <span class="st warn">chaos</span>{{end}}</td>
+<td class="num mono dim"><span class="lat" style="width:{{lat .Ms}}px"></span>{{ms .Ms}}</td></tr>
+{{end}}</tbody>{{end}}
+
+{{define "content"}}{{with .Data}}
+{{if .FirstRun}}
+<div class="grid2">
+  <section class="card"><header>{{icon "plug"}} Connect a tool <span class="dim">· one line, then use your usual CLI, SDK or Terraform</span></header>
+    <div class="body" data-tabs>
+      <div class="seg" role="tablist" aria-label="Connect a tool" style="margin-bottom:10px;flex-wrap:wrap">
+        <button type="button" role="tab" aria-selected="true" class="on" data-tab="shell">Shell</button><button type="button" role="tab" aria-selected="false" data-tab="cli">AWS CLI</button><button type="button" role="tab" aria-selected="false" data-tab="tf">Terraform</button><button type="button" role="tab" aria-selected="false" data-tab="sdk">SDKs</button><button type="button" role="tab" aria-selected="false" data-tab="gcp">Google Cloud</button><button type="button" role="tab" aria-selected="false" data-tab="azure">Azure</button></div>
+      <div class="codewrap" data-pane="shell"><pre class="code" id="snip-shell">eval "$(pogi env)"
+
+# then use your tools as usual
+aws s3 mb s3://demo
+gcloud storage ls
+az storage container list</pre><button class="btn sm copy" data-copy="#snip-shell">{{icon "copy"}}Copy</button></div>
+      <div class="codewrap" data-pane="cli"><pre class="code" id="snip-cli">pogi aws s3 mb s3://demo
+pogi aws sqs create-queue --queue-name jobs
+
+# or any aws CLI
+aws --endpoint-url {{.Endpoint}} s3 ls</pre><button class="btn sm copy" data-copy="#snip-cli">{{icon "copy"}}Copy</button></div>
+      <div class="codewrap" data-pane="tf"><pre class="code" id="snip-tf">pogi tf > pogi_override.tf          # AWS provider block
+pogi tf --cloud gcp > pogi_override.tf
+pogi tf --cloud azure > pogi_override.tf
+terraform apply</pre><button class="btn sm copy" data-copy="#snip-tf">{{icon "copy"}}Copy</button></div>
+      <div class="codewrap" data-pane="sdk"><pre class="code" id="snip-sdk">import boto3
+s3 = boto3.client("s3", endpoint_url="{{.Endpoint}}",
+                  region_name="{{.Region}}",
+                  aws_access_key_id="test", aws_secret_access_key="test")</pre><button class="btn sm copy" data-copy="#snip-sdk">{{icon "copy"}}Copy</button></div>
+      <div class="codewrap" data-pane="gcp"><pre class="code" id="snip-gcp">export STORAGE_EMULATOR_HOST={{.Endpoint}}
+export PUBSUB_EMULATOR_HOST={{hostport .Endpoint}}
+export FIRESTORE_EMULATOR_HOST={{hostport .Endpoint}}</pre><button class="btn sm copy" data-copy="#snip-gcp">{{icon "copy"}}Copy</button></div>
+      <div class="codewrap" data-pane="azure"><pre class="code" id="snip-azure"># Storage on Azurite ports 10000-10002
+export AZURE_STORAGE_CONNECTION_STRING="…"   # from pogi env
+
+# Cosmos DB and Key Vault use HTTPS: trust pogi's CA once
+pogi cert</pre><button class="btn sm copy" data-copy="#snip-azure">{{icon "copy"}}Copy</button></div>
+      <div class="banner" style="margin:14px 0 0" hx-get="/_pogi/?wait=1" data-poll="3000" hx-trigger="pogi-poll" hx-swap="none"><span class="dot live"></span>Waiting for the first request…<span class="spacer"></span><a class="btn sm" href="/_pogi/connect">More ways to connect</a></div>
+    </div></section>
+  <section class="card"><header>Or create something here</header><div class="qa">{{template "quick" .Quick}}</div></section>
+</div>
+<section class="card"><header>Popular services <a class="more" href="/_pogi/services">All {{.Services}} →</a></header><div class="body"><div class="tiles">
+  {{range .Tiles}}<a class="tile" href="/_pogi/resources/{{.Name}}"><span class="dot {{.Cloud}}"></span><span class="nm">{{.Title}}</span><span class="tag {{.Depth}}">{{.Depth}}</span><span class="cnt"></span>
+    <span class="pin {{if .Pinned}}on{{end}}" role="button" tabindex="0" aria-pressed="{{if .Pinned}}true{{else}}false{{end}}" aria-label="{{if .Pinned}}Unpin {{.Title}}{{else}}Pin {{.Title}} to sidebar{{end}}" data-pin="{{.Name}}" title="{{if .Pinned}}Unpin{{else}}Pin to sidebar{{end}}">{{icon "star"}}</span></a>{{end}}
+</div></div></section>
+{{else}}
+<div class="metrics">
+  <a class="metric" href="/_pogi/services"><span class="k">Resources</span><span class="v">{{.Resources}}</span><span class="d">across {{.InUse}} services</span></a>
+  <a class="metric" href="/_pogi/requests"><span class="k">Requests {{.ReqSpark}}</span><span class="v">{{.Total}}</span><span class="d">{{.PerMin}} / min now</span></a>
+  <a class="metric" href="/_pogi/requests?errors=1"><span class="k">Errors {{.ErrSpark}}</span><span class="v" {{if .Errors}}style="color:var(--bad)"{{end}}>{{.Errors}}</span><span class="d">{{.ErrPct}}% of requests · view</span></a>
+  {{if .Cost}}<a class="metric" href="/_pogi/cost"><span class="k">Real-cloud cost {{icon "dollar"}}</span><span class="v">{{.Cost}}<span style="font-size:14px;color:var(--dim)">/mo</span></span><span class="d">estimate from resources and traffic</span></a>
+  {{else}}<a class="metric" href="/_pogi/chaos"><span class="k">Chaos rules {{icon "bolt"}}</span><span class="v">{{.Chaos}}</span><span class="d">{{if .Chaos}}faults are being injected{{else}}none active · add one{{end}}</span></a>{{end}}
+</div>
+<div class="grid2">
+  <section class="card"><header>In use <span class="dim">· services holding resources</span><a class="more" href="/_pogi/services">Browse all services →</a></header>
+    <table class="dt"><thead><tr><th>Service</th><th class="num">Resources</th><th class="num">Requests</th><th class="num">Errors</th><th>Last call</th><th></th></tr></thead><tbody>
+    {{range .Rows}}<tr><td><a href="/_pogi/resources/{{.Name}}"><span class="dot {{.Cloud}}"></span> <span class="name">{{.Title}}</span></a></td><td class="num">{{.Resources}}</td><td class="num">{{.Requests}}</td>
+      <td class="num" {{if .Errors}}style="color:var(--bad)"{{end}}>{{if .Errors}}{{.Errors}}{{else}}–{{end}}</td><td class="dim">{{if .Last.IsZero}}–{{else}}{{ago .Last}}{{end}}</td><td class="num faint"><a href="/_pogi/resources/{{.Name}}" title="Open">{{icon "right"}}</a></td></tr>
+    {{else}}<tr><td colspan="6" class="empty">No service holds resources yet.</td></tr>{{end}}
+    </tbody></table></section>
+  <section class="card"><header>Quick actions</header><div class="qa">{{template "quick" .Quick}}</div></section>
+</div>
+<div class="grid2">
+  <section class="card"><header><span class="dot live"></span> Live activity <label class="switch" style="margin-left:8px;font-weight:400"><input type="checkbox" id="live" checked><i></i>Live</label><a class="more" href="/_pogi/requests">Open Activity →</a></header>
+    <table class="dt">{{template "feed" .}}</table></section>
+  <section class="card"><header>Recent errors <a class="more" href="/_pogi/requests?errors=1">All →</a></header>
+    <table class="dt"><tbody>
+    {{range .Recent}}<tr data-drawer="/_pogi/requests/{{.ID}}"><td><span class="dot {{.Cloud}}"></span> <a href="/_pogi/requests/{{.ID}}" data-drawer>{{.Op}}</a><div class="faint" style="font-size:11.5px;line-height:1">{{time .Time}}</div></td>
+      <td style="text-align:right"><span class="st {{stc .Status}}">{{.Status}}{{if .Error}} {{.Error}}{{end}}</span>{{if .Chaos}} <span class="st warn">chaos</span>{{end}}</td></tr>
+    {{else}}<tr><td class="empty">{{if .OtherErrors}}No errors in {{cloudName .Cloud}} · <span class="cloudnote"><form method="post" action="/_pogi/cloud" hx-boost="false"><input type="hidden" name="back" value="/_pogi/"><button name="cloud" value="">{{.OtherErrors}} in other clouds</button></form></span>{{else}}No errors. Nice.{{end}}</td></tr>{{end}}
+    </tbody></table></section>
+</div>
+{{end}}
+{{end}}{{end}}

@@ -1,0 +1,33 @@
+{{define "head"}}<div class="ph"><div><h1>Logs</h1><p class="sub">Logs Insights, KQL and Cloud Logging filters across clouds.</p></div></div>{{end}}
+
+{{define "content"}}{{with .Data}}
+<div class="tabs" style="margin-bottom:14px">
+  <a href="/_pogi/logs?kind=cwl" class="{{if eq .Kind "cwl"}}on{{end}}">CloudWatch Logs</a>
+  <a href="/_pogi/logs?kind=kql" class="{{if eq .Kind "kql"}}on{{end}}">Azure Monitor (KQL)</a>
+  <a href="/_pogi/logs?kind=gcp" class="{{if eq .Kind "gcp"}}on{{end}}">Cloud Logging</a>
+</div>
+{{$v := .V}}
+<form method="get" action="/_pogi/logs" data-run>
+  <input type="hidden" name="run" value="1"><input type="hidden" name="kind" value="{{.Kind}}">
+  <div class="card" style="margin-bottom:12px"><div class="body">
+  {{if eq .Kind "gcp"}}
+    <div class="toolbar"><input class="input mono" name="project" value="{{$v.Get "project"}}" placeholder="project (default)" style="width:220px">
+      <input class="input mono" name="filter" value="{{$v.Get "filter"}}" placeholder='severity>=ERROR AND textPayload:"timeout"' style="flex:1;min-width:260px">
+      <input class="input" name="limit" type="number" min="1" value="{{$v.Get "limit"}}" placeholder="limit" style="width:90px">
+      <button class="btn primary">{{icon "play"}}Run <span class="kbd">⌘↵</span></button></div>
+  {{else}}
+    <div class="toolbar"><select class="input" name="target" style="width:320px" title="{{if eq .Kind "kql"}}Workspace{{else}}Log group{{end}}">{{$t := $v.Get "target"}}{{range .Targets}}<option value="{{.Value}}" {{if eq .Value $t}}selected{{end}}>{{.Label}}</option>{{else}}<option value="">(none yet)</option>{{end}}</select>
+      {{if eq .Kind "cwl"}}<select class="input" name="mode" style="width:150px"><option value="insights">Logs Insights</option><option value="filter" {{if eq ($v.Get "mode") "filter"}}selected{{end}}>Filter pattern</option></select>
+      <input class="input" name="minutes" type="number" min="1" value="{{$v.Get "minutes"}}" placeholder="last 1440 min" style="width:140px">{{end}}
+      <span class="spacer"></span><button class="btn primary">{{icon "play"}}Run <span class="kbd">⌘↵</span></button></div>
+    <textarea class="input" name="query" style="min-height:90px" placeholder="{{if eq .Kind "kql"}}Custom_CL | where Level == 'error' | take 20{{else}}fields @timestamp, @message | filter @message like /error/ | sort @timestamp desc | limit 50{{end}}">{{$v.Get "query"}}</textarea>
+  {{end}}
+  </div></div>
+</form>
+{{if .Err}}<div class="flash" role="alert">{{.Err}}</div>{{end}}
+{{with .Res}}{{if .Note}}<p class="faint">{{.Note}}</p>{{end}}
+{{if .Cols}}<div class="tablecard"><div class="scopebar">{{len .Rows}} {{if eq (len .Rows) 1}}row{{else}}rows{{end}}</div><div style="overflow:auto"><table class="dt"><thead><tr>{{range .Cols}}<th>{{.}}</th>{{end}}</tr></thead><tbody>
+  {{range .Rows}}<tr>{{range .}}<td class="mono">{{.}}</td>{{end}}</tr>{{end}}</tbody></table></div></div>
+{{else if not .Note}}<div class="card"><div class="empty" style="padding:28px">No rows.</div></div>{{end}}
+{{if .Raw}}<details style="margin-top:10px"><summary class="dim">JSON</summary><pre class="code">{{.Raw}}</pre></details>{{end}}{{end}}
+{{end}}{{end}}

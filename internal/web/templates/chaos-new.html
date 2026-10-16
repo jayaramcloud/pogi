@@ -1,0 +1,16 @@
+{{define "fields"}}<div class="field"><label>Start from</label><div class="seg">
+  <button type="button" data-preset="400,ThrottlingException,20,0" class="{{if eq .Preset "throttle"}}on{{end}}">Throttle</button><button type="button" data-preset="503,ServiceUnavailable,100,0" class="{{if eq .Preset "outage"}}on{{end}}">Outage</button>
+  <button type="button" data-preset=",,100,800" class="{{if eq .Preset "slow"}}on{{end}}">Slow</button><button type="button" data-preset=",,100,0" class="{{if eq .Preset "custom"}}on{{end}}">Custom</button></div></div>
+<div class="row2"><div class="field"><label>Service</label><select class="input" name="service" data-k="svc"><option value="">Any service</option>{{$s := .F.Service}}{{range .Services}}<option {{if eq . $s}}selected{{end}}>{{.}}</option>{{end}}</select></div>
+  <div class="field"><label>Operation</label><input class="input mono" name="op" data-k="op" value="{{.F.Op}}" placeholder="any, e.g. Put*"></div></div>
+<div class="field"><label>Probability · <b id="pv">{{.F.Pct}}%</b></label><input type="range" name="pct" data-k="p" min="1" max="100" value="{{.F.Pct}}" style="accent-color:var(--accent);width:100%"></div>
+<div class="row2"><div class="field"><label>HTTP status</label><input class="input" name="status" data-k="st" value="{{.F.Status}}" placeholder="e.g. 503"></div>
+  <div class="field"><label>Error code</label><input class="input mono" name="code" data-k="code" value="{{.F.Code}}" placeholder="e.g. ThrottlingException"></div></div>
+<div class="field"><label>Extra latency (ms)</label><input class="input" name="latency" data-k="lat" type="number" min="0" value="{{.F.Latency}}"></div>{{end}}
+{{define "cli"}}<div class="cli"><div class="lbl">{{icon "term"}}Same thing from the CLI<span class="spacer"></span><button type="button" class="btn sm ghost" data-copy="#cli">{{icon "copy"}}Copy</button></div><pre id="cli">{{.Cmd}}</pre></div>{{end}}
+
+{{define "content"}}{{with .Data}}<form method="post" action="/_pogi/chaos" data-cli>{{template "fields" .}}{{template "cli" .}}<div class="actions" style="margin-top:12px"><a class="btn" href="/_pogi/chaos">Cancel</a><button class="btn primary">Add rule</button></div></form>{{end}}{{end}}
+
+{{define "drawer"}}{{with .Data}}<header><div class="eyebrow">Chaos</div><div class="title"><h2 id="dtitle">Add rule</h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<div class="dbody" data-cli>{{template "fields" .}}</div>{{template "cli" .}}
+<footer><button class="btn" data-close>Cancel</button><button class="btn primary" hx-post="/_pogi/chaos" hx-include="#drawer .dbody" hx-target="#drawer">Add rule</button></footer>{{end}}{{end}}

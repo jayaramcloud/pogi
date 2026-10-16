@@ -1,0 +1,17 @@
+{{define "head"}}<div class="ph"><div><h1>Inbox</h1><p class="sub">Email, SMS and push messages your apps sent through SES, SNS, Azure Email and Firebase Auth. pogi captures them here instead of delivering them.</p></div><div class="actions"><button class="btn danger" hx-post="/_pogi/inbox/clear" hx-confirm="Clear every captured message?">{{icon "trash"}}Clear inbox</button></div></div>{{end}}
+
+{{define "content"}}{{with .Data}}{{$sel := .Mail.N}}
+<div class="mail"><div class="list">{{range .List}}<a href="/_pogi/inbox/{{.N}}" class="{{if eq .N $sel}}on{{end}}"><b>{{or .Subject "(no subject)"}}<small>{{ago .Time}}</small></b><span>{{.Kind}} · {{.Service}} → {{.To}}</span></a>{{end}}</div>
+<div class="view"><div class="ph" style="margin-bottom:10px"><div><h1 style="font-size:16px">{{or .Mail.Subject "(no subject)"}}</h1><p class="sub">{{.Mail.Service}} · {{.Mail.Kind}} → <span class="mono">{{.Mail.To}}</span> · {{date .Mail.Time}}</p></div></div>
+<p class="faint" style="margin:0 0 8px">Scripts, forms, frames, event handlers and remote images are removed, and the frame is sandboxed.</p>
+<iframe class="mailframe" sandbox="allow-popups" referrerpolicy="no-referrer" srcdoc="{{.Doc}}" title="Message preview"></iframe>
+{{with .Parsed}}
+<h2>Parts</h2>
+<div class="tablecard"><table class="dt"><thead><tr><th>Part</th><th>Type</th><th>Name</th><th class="num">Size</th></tr></thead><tbody>
+{{range .Parts}}<tr><td class="mono">{{.Path}}</td><td>{{.Type}}</td><td>{{.Name}}</td><td class="num">{{size .Size}}</td></tr>{{end}}</tbody></table></div>
+<h2>Headers</h2>
+<div class="kvs">{{range .Headers}}<div>{{index . 0}}</div><div class="mono">{{index . 1}}</div>{{end}}</div>
+{{end}}
+<h2>Source</h2>
+<pre class="code" style="max-height:300px;overflow:auto">{{if .Mail.Raw}}{{.Mail.Raw}}{{else}}{{.Mail.Body}}{{end}}</pre></div></div>
+{{end}}{{end}}

@@ -1,0 +1,13 @@
+# Used by goreleaser: the binary is already built for the target platform.
+# A minimal Alpine with Python and Node.js, so functions run natively and init scripts run (see Dockerfile).
+FROM alpine:3.22
+ARG TARGETPLATFORM
+RUN apk upgrade --no-cache && apk add --no-cache ca-certificates python3 nodejs
+COPY $TARGETPLATFORM/pogi /usr/local/bin/pogi
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ENV POGI_HOST=0.0.0.0 POGI_ALLOW_EXTERNAL=1 POGI_DATA_DIR=/var/lib/pogi
+VOLUME /var/lib/pogi
+EXPOSE 7644 4510 1883 2222 2525 5672 10000 10001 10002
+HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["pogi", "wait", "--timeout", "2s", "--endpoint", "http://127.0.0.1:7644"]
+ENTRYPOINT ["docker-entrypoint.sh"]

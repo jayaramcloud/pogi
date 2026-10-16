@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"{{with .Theme}} data-theme="{{.}}"{{end}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="pogi-upload-mb" content="{{.UploadMB}}">
+<meta name="pogi-code-mb" content="{{.CodeMB}}">
+<title>{{.Title}} · pogi</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23ff8cc6'/><text x='16' y='23' font-size='20' text-anchor='middle' fill='%233d0a26' font-family='sans-serif' font-weight='700'>p</text></svg>">
+<link rel="stylesheet" href="/_pogi/static/pogi.css">
+<script src="/_pogi/static/htmx.min.js"></script>
+<script src="/_pogi/static/pogi.js" defer></script>
+</head>
+<body hx-boost="true">
+<a class="skip" href="#main">Skip to content</a>
+<div class="app {{.Side}}" id="app">
+  <header class="top">
+    <a class="logo" href="/_pogi/"><span class="mark">p</span><span class="txt">pogi</span> <small>v{{.Version}}</small></a>
+    <button class="search" data-js="palette" aria-label="Search services, resources and actions" aria-keyshortcuts="Control+K Meta+K">{{icon "search"}}<span>Search services, resources and actions…</span><span class="kbd">⌘K</span></button>
+    <div class="spacer"></div>
+    {{with (index .Nav.Badges "chaos").Text}}<a class="pill chaos" id="chaosPill" href="/_pogi/chaos" title="Chaos rules are injecting faults">{{icon "bolt"}}<span class="txt">Chaos: {{.}}</span></a>{{end}}
+    <button class="pill" id="scopeBtn" data-js="scope" aria-haspopup="dialog" aria-expanded="false" aria-controls="pop" title="Which cloud, account, region, project and subscription the console shows and creates in">
+      {{if not .Cloud}}<span class="dot aws"></span><span class="dot gcp"></span><span class="dot azure"></span>All clouds{{end}}
+      {{if eq .Cloud "aws"}}<span class="dot aws"></span>AWS · {{.Scope.Account}} · {{.Scope.Region}}{{end}}
+      {{if eq .Cloud "gcp"}}<span class="dot gcp"></span>Google Cloud · {{.Scope.Project}}{{end}}
+      {{if eq .Cloud "azure"}}<span class="dot azure"></span>Azure · {{printf "%.8s" .Scope.Subscription}}…{{end}}{{icon "chev"}}
+    </button>
+    <button class="pill" id="endpointPill" data-copy="{{.Endpoint}}" title="Copy endpoint" aria-label="Copy endpoint {{.Endpoint}}"><span class="dot live"></span><span class="mono">{{trimScheme .Endpoint}}</span>{{icon "copy"}}</button>
+    <button class="btn icon ghost" id="bellBtn" data-js="bell" title="Notifications (n)" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false" aria-controls="bell">{{icon "bell"}}<span class="badge-dot" id="bellN"></span></button>
+    <button class="btn icon ghost" data-js="keys" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" aria-haspopup="dialog" aria-expanded="false" aria-controls="keys">{{icon "help"}}</button>
+    <button class="btn icon ghost" id="themeBtn" data-js="theme" title="Switch theme" aria-label="Switch theme">{{icon "sun"}}</button>
+  </header>
+  <aside class="side">
+    <nav class="nav">
+      {{template "navlink" (navlink "/_pogi/" "home" "Home" "" .Active "overview" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/requests" "pulse" "Activity" "" .Active "requests" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/services" "grid" "Services" "" .Active "services" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/map" "map" "Map" "" .Active "map" .Nav.Badges)}}
+      <h6>In use <span>{{len .Nav.InUse}}</span></h6>
+      {{range .Nav.InUse}}<a href="/_pogi/resources/{{.Name}}" title="{{.Full}}" aria-label="{{.Full}}" class="{{if eq $.Active .Name}}on{{end}}"><span class="dot {{.Cloud}}"></span><b class="ab" style="--c:var(--{{.Cloud}})">{{.Abbr}}</b><span>{{.Title}}</span><em>{{.Resources}}</em></a>
+      {{else}}<div class="hint">Services show up here once they hold resources.</div>{{end}}
+      {{with .Nav.Pinned}}<h6>Pinned</h6>{{range .}}<a href="/_pogi/resources/{{.Name}}" title="{{.Full}}" aria-label="{{.Full}}" class="{{if eq $.Active .Name}}on{{end}}"><span class="dot {{.Cloud}}"></span><b class="ab" style="--c:var(--{{.Cloud}})">{{.Abbr}}</b><span>{{.Title}}</span></a>{{end}}{{end}}
+      <h6>Tools</h6>
+      {{template "navlink" (navlink "/_pogi/sql" "db" "SQL editor" "" .Active "sql" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/logs" "logs" "Logs" "" .Active "logs" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/secrets" "key" "Secrets" "" .Active "secrets" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/iam" "lock" "IAM policy" "" .Active "iam" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/cost" "dollar" "Cost" "" .Active "cost" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/inbox" "mail" "Inbox" "" .Active "inbox" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/chaos" "bolt" "Chaos" "" .Active "chaos" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/snapshots" "camera" "Snapshots" "" .Active "snapshots" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/connect" "plug" "Connect" "" .Active "connect" .Nav.Badges)}}
+    </nav>
+    <div class="foot"><span>{{.Foot}}</span><span>{{.Nav.Total}} services · <a class="mono" href="/_pogi/connect" style="color:var(--accent)">pogi env</a></span>
+      <button class="collapse" data-js="side" title="Collapse sidebar (⌘B)"><span class="lc">« Collapse <span class="kbd">⌘B</span></span><span class="le">»</span></button></div>
+  </aside>
+  <main id="main" tabindex="-1"><div class="page">
+    {{if .Error}}<div class="flash" role="alert">{{.Error}}</div>{{end}}
+    {{block "head" .}}<div class="ph"><div><h1>{{.Title}}</h1></div></div>{{end}}
+    {{if .Note}}{{template "cloudnote" .}}{{end}}
+    {{template "content" .}}
+  </div><footer class="credit">Built by <a href="https://nrnx.dev" target="_blank" rel="noopener">nrnxdev</a> <span aria-label="with love">❤️</span></footer></main>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle" tabindex="-1" hx-boost="false"></aside>
+<div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="Search">
+  <div class="q">{{icon "search"}}<input id="pq" role="combobox" aria-label="Search services, resources and actions" aria-expanded="false" aria-controls="pres" aria-autocomplete="list" aria-activedescendant="" placeholder="Jump to a service, resource or action…" autocomplete="off"><span class="kbd">esc</span></div>
+  <div class="res" id="pres" role="listbox" aria-label="Results"></div>
+  <footer><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try a service, a resource name or “create”</span></footer>
+</div>
+<div class="pop" id="pop" role="dialog" aria-labelledby="pop-title" hx-boost="false"><h2 class="sr" id="pop-title">Cloud and scope</h2>
+  <form method="post" action="/_pogi/cloud"><input type="hidden" name="back" value="{{.Back}}">
+    <div class="seg" role="tablist" aria-label="Cloud">
+      <button name="cloud" value="" class="{{if not .Cloud}}on{{end}}" role="tab" aria-selected="{{if not .Cloud}}true{{else}}false{{end}}">All</button>
+      <button name="cloud" value="aws" class="{{if eq .Cloud "aws"}}on{{end}}" role="tab" aria-selected="{{if eq .Cloud "aws"}}true{{else}}false{{end}}"><span class="dot aws"></span>AWS</button>
+      <button name="cloud" value="gcp" class="{{if eq .Cloud "gcp"}}on{{end}}" role="tab" aria-selected="{{if eq .Cloud "gcp"}}true{{else}}false{{end}}"><span class="dot gcp"></span>GCP</button>
+      <button name="cloud" value="azure" class="{{if eq .Cloud "azure"}}on{{end}}" role="tab" aria-selected="{{if eq .Cloud "azure"}}true{{else}}false{{end}}"><span class="dot azure"></span>Azure</button>
+    </div>
+  </form>
+  <form method="post" action="/_pogi/scope">
+  <input type="hidden" name="back" value="{{.Back}}">
+  <div class="grp" {{if and .Cloud (ne .Cloud "aws")}}hidden{{end}}><h3><span class="dot aws"></span>AWS</h3>
+    <div class="row2"><div class="field"><label for="sc-account">Account</label><input class="input mono" id="sc-account" name="account" value="{{.Scope.Account}}"></div>
+    <div class="field"><label for="sc-region">Region</label><select class="input" id="sc-region" name="region">{{$r := .Scope.Region}}{{range .Scope.Regions}}<option value="{{.}}" {{if eq . $r}}selected{{end}}>{{if eq . "*"}}* (all regions){{else}}{{.}}{{end}}</option>{{end}}</select></div></div></div>
+  <div class="grp" {{if and .Cloud (ne .Cloud "gcp")}}hidden{{end}}><h3><span class="dot gcp"></span>Google Cloud</h3><div class="field"><label for="sc-project">Project</label><input class="input mono" id="sc-project" name="project" value="{{.Scope.Project}}"></div></div>
+  <div class="grp" {{if and .Cloud (ne .Cloud "azure")}}hidden{{end}}><h3><span class="dot azure"></span>Azure</h3><div class="field"><label for="sc-sub">Subscription</label><input class="input mono" id="sc-sub" name="subscription" value="{{.Scope.Subscription}}"></div></div>
+  <p class="faint" style="margin:0 0 10px;font-size:11.5px">Tables show this scope, and new resources are created in it. Use * to show everything.</p>
+  <div class="actions" style="justify-content:flex-end"><button type="submit" class="btn primary">Apply</button></div>
+</form>
+</div>
+<div class="menu" id="menu" role="menu" aria-label="Actions"></div>
+<div class="pop bellpop" id="bell" role="dialog" aria-label="Notifications"></div>
+<div class="keys" id="keys" role="dialog" aria-modal="true" aria-labelledby="keys-title" tabindex="-1"><header><h2 id="keys-title" style="margin:0;font-size:inherit">Keyboard shortcuts</h2><button class="btn icon ghost" data-close aria-label="Close" title="Close (esc)">{{icon "x"}}</button></header><div class="grid">
+  <h3>Navigate</h3>
+  <div class="k"><span>Home</span><span><span class="kbd">g</span><span class="kbd">h</span></span></div><div class="k"><span>Activity</span><span><span class="kbd">g</span><span class="kbd">a</span></span></div>
+  <div class="k"><span>Flows</span><span><span class="kbd">g</span><span class="kbd">f</span></span></div><div class="k"><span>Services</span><span><span class="kbd">g</span><span class="kbd">s</span></span></div>
+  <div class="k"><span>Map</span><span><span class="kbd">g</span><span class="kbd">m</span></span></div><div class="k"><span>IAM policy</span><span><span class="kbd">g</span><span class="kbd">i</span></span></div>
+  <div class="k"><span>Cost</span><span><span class="kbd">g</span><span class="kbd">c</span></span></div><div class="k"><span>Chaos</span><span><span class="kbd">g</span><span class="kbd">x</span></span></div>
+  <h3>Actions</h3>
+  <div class="k"><span>Search and run anything</span><span><span class="kbd">⌘</span><span class="kbd">K</span></span></div><div class="k"><span>Search</span><span><span class="kbd">/</span></span></div>
+  <div class="k"><span>Create (on a service page)</span><span><span class="kbd">c</span></span></div><div class="k"><span>Filter the table</span><span><span class="kbd">f</span></span></div>
+  <div class="k"><span>Collapse the sidebar</span><span><span class="kbd">⌘</span><span class="kbd">B</span></span></div><div class="k"><span>Switch theme</span><span><span class="kbd">t</span></span></div>
+  <div class="k"><span>Notifications</span><span><span class="kbd">n</span></span></div><div class="k"><span>Close drawer or dialog</span><span><span class="kbd">esc</span></span></div>
+  <div class="k"><span>This list</span><span><span class="kbd">?</span></span></div>
+</div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{{template "icons"}}
+</body>
+</html>
+{{define "navlink"}}<a href="{{.Href}}" title="{{.Label}}" class="{{if .On}}on{{end}} {{with .Badge}}{{.Kind}}b{{end}}" {{with .Badge}}{{if .Kind}}data-badge{{end}}{{end}}>{{icon .Icon}}<span>{{.Label}}</span>{{with .Badge}}<em class="{{.Kind}}">{{.Text}}</em>{{end}}</a>{{end}}
+{{define "drawer-shell"}}<header><div class="eyebrow">{{.Eyebrow}}</div><div class="title"><h2 id="dtitle">{{.Title}}</h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<div class="dbody">{{if .Error}}<div class="flash" role="alert">{{.Error}}</div>{{end}}{{template "content" .}}</div>{{end}}
+{{define "cloudnote"}}<div class="banner cloudnote"><span class="dot {{.Cloud}}"></span><span>{{if .Foreign}}This service is on {{.Foreign}}; the console is showing <b>{{cloudName .Cloud}}</b> only{{else}}Showing <b>{{cloudName .Cloud}}</b> only{{end}} · <form method="post" action="/_pogi/cloud" hx-boost="false"><input type="hidden" name="back" value="{{.Back}}"><button name="cloud" value="">Show all clouds</button></form></span></div>{{end}}

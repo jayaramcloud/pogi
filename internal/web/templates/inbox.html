@@ -1,0 +1,7 @@
+{{define "head"}}<div class="ph"><div><h1>Inbox</h1><p class="sub">Email, SMS and push messages your apps sent through SES, SNS, Azure Email and Firebase Auth. pogi captures them here instead of delivering them.</p></div><div class="actions"><button class="btn danger" hx-post="/_pogi/inbox/clear" hx-confirm="Clear every captured message?">{{icon "trash"}}Clear inbox</button></div></div>{{end}}
+
+{{define "content"}}{{with .Data}}
+{{if .Mail}}<div class="mail"><div class="list">{{range .Mail}}<a href="/_pogi/inbox/{{.N}}"><b>{{or .Subject "(no subject)"}}<small>{{ago .Time}}</small></b><span>{{.Kind}} · {{.Service}} → {{.To}}</span></a>{{end}}</div>
+  <div class="view"><div class="empty"><div class="ico">{{icon "mail"}}</div><h2>Select a message</h2><p>Its preview, headers and source show here.</p></div></div></div>
+{{else}}<div class="card"><div class="empty"><div class="ico">{{icon "mail"}}</div><h2>Nothing sent yet</h2><p>Try <code>pogi aws sns publish --phone-number +15550100 --message hi</code> or <code>pogi aws ses send-email …</code></p></div></div>{{end}}
+{{end}}{{end}}

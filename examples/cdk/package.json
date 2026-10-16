@@ -1,0 +1,9 @@
+{
+  "name": "pogi-cdk-example",
+  "private": true,
+  "dependencies": {
+    "aws-cdk": "^2.1000.0",
+    "aws-cdk-lib": "^2.200.0",
+    "constructs": "^10.4.0"
+  }
+}

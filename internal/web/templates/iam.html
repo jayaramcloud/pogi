@@ -1,0 +1,30 @@
+{{define "head"}}{{template "iam-head" .Data}}{{end}}
+
+{{define "content"}}{{with .Data}}
+<div class="banner {{if eq .Mode "strict"}}warn{{end}}">{{icon "lock"}}{{.Banner}}</div>
+{{with .Attached}}<div class="banner" style="justify-content:space-between"><span>{{icon "check"}}Attached {{.Version}} of {{.Policy}}</span>
+  <form method="post" action="/_pogi/iam/undo" class="actions"><input type="hidden" name="principal" value="{{.Principal}}"><input type="hidden" name="policy" value="{{.Policy}}"><input type="hidden" name="arn" value="{{.Arn}}">
+    <input type="hidden" name="attached" value="{{.Version}}"><input type="hidden" name="prev" value="{{.Prev}}"><input type="hidden" name="linked" value="{{if .Linked}}1{{end}}">
+    <button class="btn sm">Undo</button></form></div>
+<form method="post" action="/_pogi/iam/mode" class="actions" style="margin-bottom:12px"><input type="hidden" name="mode" value="strict"><input type="hidden" name="to" value="/_pogi/requests?show=iam">
+  <button class="btn">{{icon "pulse"}}Switch to strict and watch</button><span class="faint">then Activity shows what is still denied</span></form>{{end}}
+
+{{if .Principals}}
+<div class="toolbar"><form method="get" action="/_pogi/iam"><select class="input mono" name="principal" style="width:360px" data-autosubmit>{{$s := .Selected}}{{range .Principals}}<option value="{{.ARN}}" {{if eq .ARN $s}}selected{{end}}>{{index $.Data.Labels .ARN}}</option>{{end}}</select></form>
+  <span class="faint">{{.Calls}} calls recorded since {{.Since}}</span><span class="spacer"></span>
+  <form method="post" action="/_pogi/iam/restart"><input type="hidden" name="principal" value="{{.Selected}}"><button class="btn">{{icon "reset"}}Restart recording</button></form></div>
+<div class="grid2" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start">
+  <section class="card"><header>Called actions <span class="dim">· {{len .Rows}}</span></header>
+    <table class="dt"><thead><tr><th>Action</th><th>Resource</th><th class="num">Calls</th><th>Strict mode</th></tr></thead><tbody>
+    {{range .Rows}}<tr><td class="mono name"><a href="/_pogi/requests?q={{q .Op}}">{{.Action}}</a></td><td class="mono dim trunc" style="max-width:160px" title="{{.Full}}">{{.Resource}}</td><td class="num">{{.Count}}</td>
+      <td>{{if eq .Verdict "allowed"}}<span class="st ok">allowed</span>{{else}}<span class="st warn" title="{{.Reason}}">would deny</span>{{end}}</td></tr>{{end}}
+    </tbody></table></section>
+  <section class="card"><header>Generated policy <form method="get" action="/_pogi/iam" class="seg" style="margin-left:auto;font-weight:400"><input type="hidden" name="principal" value="{{.Selected}}">
+      <button name="fmt" value="json" class="{{if eq .Format "json"}}on{{end}}">JSON</button><button name="fmt" value="tf" class="{{if eq .Format "tf"}}on{{end}}">Terraform</button></form></header>
+    <div class="body"><div class="codewrap"><pre class="code" id="policy" style="max-height:360px;white-space:pre-wrap;word-break:break-all">{{.Doc}}</pre><button class="btn sm copy" data-copy="#policy">{{icon "copy"}}Copy</button></div>
+      <p class="faint" style="margin:10px 0">Resources are narrowed to the ARNs actually used. {{if .Missing}}{{.Missing}} {{if eq .Missing 1}}action is{{else}}actions are{{end}} missing from the current policies.{{else}}The current policies already allow every recorded call.{{end}}</p>
+      <div class="actions">{{if .Missing}}<a class="btn primary" href="/_pogi/iam/attach?principal={{q .Selected}}" data-drawer>{{icon "plus"}}Attach to {{.Label}}</a>{{else}}<button class="btn primary" disabled>Nothing to attach</button>{{end}}
+        <a class="btn" href="/_pogi/iam/policy?principal={{q .Selected}}&fmt={{.Format}}" download>{{icon "download"}}Download</a></div></div></section></div>
+{{else}}<div class="card"><div class="empty"><div class="ico">{{icon "lock"}}</div><h2>No calls recorded yet</h2>
+  <p>pogi records calls signed with an IAM user's access key or an assumed role. Root and the default test credentials are never recorded.</p></div></div>{{end}}
+{{end}}{{end}}

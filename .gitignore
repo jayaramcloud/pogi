@@ -1,0 +1,8 @@
+/pogi
+/dist/
+*.test
+*.out
+.DS_Store
+.claude/
+/scan-results/
+/test-results/

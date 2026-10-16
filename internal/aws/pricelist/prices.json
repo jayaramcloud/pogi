@@ -1,0 +1,63 @@
+{
+ "published": "2024-06-01T00:00:00Z",
+ "regions": {
+  "us-east-1": {"name": "US East (N. Virginia)", "prefix": "", "mult": 1},
+  "us-east-2": {"name": "US East (Ohio)", "prefix": "USE2", "mult": 1},
+  "us-west-2": {"name": "US West (Oregon)", "prefix": "USW2", "mult": 1},
+  "eu-west-1": {"name": "EU (Ireland)", "prefix": "EUW1", "mult": 1.1},
+  "eu-central-1": {"name": "EU (Frankfurt)", "prefix": "EUC1", "mult": 1.15},
+  "ap-south-1": {"name": "Asia Pacific (Mumbai)", "prefix": "APS3", "mult": 1.05},
+  "ap-southeast-1": {"name": "Asia Pacific (Singapore)", "prefix": "APS1", "mult": 1.2}
+ },
+ "services": [
+  {"code": "AmazonEC2", "name": "Amazon Elastic Compute Cloud - Compute", "family": "Compute Instance", "unit": "Hrs",
+   "attrs": {"operatingSystem": "Linux", "tenancy": "Shared", "preInstalledSw": "NA", "capacitystatus": "Used", "licenseModel": "No License required", "networkPerformance": "Up to 5 Gigabit", "storage": "EBS only"},
+   "products": [
+    {"usagetype": "BoxUsage:t2.micro", "operation": "RunInstances", "price": 0.0116, "attrs": {"instanceType": "t2.micro", "vcpu": "1", "memory": "1 GiB"}, "desc": "$0.0116 per On Demand Linux t2.micro Instance Hour"},
+    {"usagetype": "BoxUsage:t3.micro", "operation": "RunInstances", "price": 0.0104, "attrs": {"instanceType": "t3.micro", "vcpu": "2", "memory": "1 GiB"}, "desc": "$0.0104 per On Demand Linux t3.micro Instance Hour"},
+    {"usagetype": "BoxUsage:t3.small", "operation": "RunInstances", "price": 0.0208, "attrs": {"instanceType": "t3.small", "vcpu": "2", "memory": "2 GiB"}, "desc": "$0.0208 per On Demand Linux t3.small Instance Hour"},
+    {"usagetype": "BoxUsage:t3.medium", "operation": "RunInstances", "price": 0.0416, "attrs": {"instanceType": "t3.medium", "vcpu": "2", "memory": "4 GiB"}, "desc": "$0.0416 per On Demand Linux t3.medium Instance Hour"},
+    {"usagetype": "BoxUsage:t3.large", "operation": "RunInstances", "price": 0.0832, "attrs": {"instanceType": "t3.large", "vcpu": "2", "memory": "8 GiB"}, "desc": "$0.0832 per On Demand Linux t3.large Instance Hour"},
+    {"usagetype": "BoxUsage:m5.large", "operation": "RunInstances", "price": 0.096, "attrs": {"instanceType": "m5.large", "vcpu": "2", "memory": "8 GiB"}, "desc": "$0.096 per On Demand Linux m5.large Instance Hour"},
+    {"usagetype": "BoxUsage:m5.xlarge", "operation": "RunInstances", "price": 0.192, "attrs": {"instanceType": "m5.xlarge", "vcpu": "4", "memory": "16 GiB"}, "desc": "$0.192 per On Demand Linux m5.xlarge Instance Hour"},
+    {"usagetype": "BoxUsage:m5.2xlarge", "operation": "RunInstances", "price": 0.384, "attrs": {"instanceType": "m5.2xlarge", "vcpu": "8", "memory": "32 GiB"}, "desc": "$0.384 per On Demand Linux m5.2xlarge Instance Hour"},
+    {"usagetype": "BoxUsage:c5.large", "operation": "RunInstances", "price": 0.085, "attrs": {"instanceType": "c5.large", "vcpu": "2", "memory": "4 GiB"}, "desc": "$0.085 per On Demand Linux c5.large Instance Hour"},
+    {"usagetype": "BoxUsage:c5.xlarge", "operation": "RunInstances", "price": 0.17, "attrs": {"instanceType": "c5.xlarge", "vcpu": "4", "memory": "8 GiB"}, "desc": "$0.17 per On Demand Linux c5.xlarge Instance Hour"},
+    {"usagetype": "BoxUsage:r5.large", "operation": "RunInstances", "price": 0.126, "attrs": {"instanceType": "r5.large", "vcpu": "2", "memory": "16 GiB"}, "desc": "$0.126 per On Demand Linux r5.large Instance Hour"},
+    {"usagetype": "BoxUsage:r5.xlarge", "operation": "RunInstances", "price": 0.252, "attrs": {"instanceType": "r5.xlarge", "vcpu": "4", "memory": "32 GiB"}, "desc": "$0.252 per On Demand Linux r5.xlarge Instance Hour"}
+   ]},
+  {"code": "AmazonS3", "name": "Amazon Simple Storage Service", "family": "Storage",
+   "products": [
+    {"usagetype": "TimedStorage-ByteHrs", "operation": "StandardStorage", "price": 0.023, "unit": "GB-Mo", "attrs": {"storageClass": "General Purpose", "volumeType": "Standard"}, "desc": "$0.023 per GB - first 50 TB / month of storage used"},
+    {"usagetype": "TimedStorage-SIA-ByteHrs", "operation": "StandardIAStorage", "price": 0.0125, "unit": "GB-Mo", "attrs": {"storageClass": "Infrequent Access", "volumeType": "Standard - Infrequent Access"}, "desc": "$0.0125 per GB - infrequent access storage used"},
+    {"usagetype": "Requests-Tier1", "operation": "PutObject", "family": "API Request", "price": 0.000005, "unit": "Requests", "attrs": {"group": "S3-API-Tier1", "groupDescription": "PUT, COPY, POST, or LIST requests"}, "desc": "$0.005 per 1,000 PUT, COPY, POST, or LIST requests"},
+    {"usagetype": "Requests-Tier2", "operation": "GetObject", "family": "API Request", "price": 0.0000004, "unit": "Requests", "attrs": {"group": "S3-API-Tier2", "groupDescription": "GET and all other requests"}, "desc": "$0.0004 per 1,000 GET and all other requests"}
+   ]},
+  {"code": "AWSLambda", "name": "AWS Lambda", "family": "Serverless",
+   "products": [
+    {"usagetype": "Request", "operation": "Invoke", "price": 0.0000002, "unit": "Requests", "attrs": {"group": "AWS-Lambda-Requests", "groupDescription": "Lambda requests"}, "desc": "AWS Lambda - Total Requests - $0.20 per 1M requests"},
+    {"usagetype": "Lambda-GB-Second", "operation": "Invoke", "price": 0.0000166667, "unit": "Lambda-GB-Second", "attrs": {"group": "AWS-Lambda-Duration", "groupDescription": "Lambda duration"}, "desc": "AWS Lambda - Compute Free Tier - $0.0000166667 per GB-second"}
+   ]},
+  {"code": "AmazonDynamoDB", "name": "Amazon DynamoDB", "family": "Amazon DynamoDB PayPerRequest Throughput",
+   "products": [
+    {"usagetype": "WriteRequestUnits", "operation": "PayPerRequestThroughput", "price": 0.00000125, "unit": "WriteRequestUnits", "attrs": {"group": "DDB-WriteUnits", "groupDescription": "DynamoDB write request units"}, "desc": "$1.25 per million write request units"},
+    {"usagetype": "ReadRequestUnits", "operation": "PayPerRequestThroughput", "price": 0.00000025, "unit": "ReadRequestUnits", "attrs": {"group": "DDB-ReadUnits", "groupDescription": "DynamoDB read request units"}, "desc": "$0.25 per million read request units"},
+    {"usagetype": "TimedStorage-ByteHrs", "operation": "StandardStorage", "family": "Database Storage", "price": 0.25, "unit": "GB-Mo", "attrs": {"group": "DDB-StorageUsage", "groupDescription": "DynamoDB storage"}, "desc": "$0.25 per GB-Month of storage used beyond free tier"}
+   ]},
+  {"code": "AmazonRDS", "name": "Amazon Relational Database Service", "family": "Database Instance", "unit": "Hrs",
+   "attrs": {"deploymentOption": "Single-AZ", "licenseModel": "No license required"},
+   "products": [
+    {"usagetype": "InstanceUsage:db.t3.micro", "operation": "CreateDBInstance:0002", "price": 0.017, "attrs": {"instanceType": "db.t3.micro", "databaseEngine": "MySQL", "vcpu": "2", "memory": "1 GiB"}, "desc": "$0.017 per RDS db.t3.micro Single-AZ instance hour running MySQL"},
+    {"usagetype": "InstanceUsage:db.t3.small", "operation": "CreateDBInstance:0002", "price": 0.034, "attrs": {"instanceType": "db.t3.small", "databaseEngine": "MySQL", "vcpu": "2", "memory": "2 GiB"}, "desc": "$0.034 per RDS db.t3.small Single-AZ instance hour running MySQL"},
+    {"usagetype": "InstanceUsage:db.t3.medium", "operation": "CreateDBInstance:0002", "price": 0.068, "attrs": {"instanceType": "db.t3.medium", "databaseEngine": "MySQL", "vcpu": "2", "memory": "4 GiB"}, "desc": "$0.068 per RDS db.t3.medium Single-AZ instance hour running MySQL"},
+    {"usagetype": "InstanceUsage:db.m5.large", "operation": "CreateDBInstance:0002", "price": 0.171, "attrs": {"instanceType": "db.m5.large", "databaseEngine": "MySQL", "vcpu": "2", "memory": "8 GiB"}, "desc": "$0.171 per RDS db.m5.large Single-AZ instance hour running MySQL"},
+    {"usagetype": "InstanceUsage:db.t3.micro", "operation": "CreateDBInstance:0014", "price": 0.018, "attrs": {"instanceType": "db.t3.micro", "databaseEngine": "PostgreSQL", "vcpu": "2", "memory": "1 GiB"}, "desc": "$0.018 per RDS db.t3.micro Single-AZ instance hour running PostgreSQL"},
+    {"usagetype": "InstanceUsage:db.t3.medium", "operation": "CreateDBInstance:0014", "price": 0.073, "attrs": {"instanceType": "db.t3.medium", "databaseEngine": "PostgreSQL", "vcpu": "2", "memory": "4 GiB"}, "desc": "$0.073 per RDS db.t3.medium Single-AZ instance hour running PostgreSQL"}
+   ]},
+  {"code": "AWSQueueService", "name": "Amazon Simple Queue Service", "family": "API Request",
+   "products": [
+    {"usagetype": "Requests", "operation": "", "price": 0.0000004, "unit": "Requests", "attrs": {"queueType": "Standard", "group": "SQS-APIRequest-Tier1", "groupDescription": "Standard queue requests"}, "desc": "$0.40 per million requests (standard queue)"},
+    {"usagetype": "Requests-FIFO", "operation": "", "price": 0.0000005, "unit": "Requests", "attrs": {"queueType": "FIFO", "group": "SQS-APIRequest-Tier1", "groupDescription": "FIFO queue requests"}, "desc": "$0.50 per million requests (FIFO queue)"}
+   ]}
+ ]
+}

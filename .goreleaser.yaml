@@ -1,0 +1,83 @@
+# Release with: git tag v0.x.y && git push --tags (the release workflow runs goreleaser).
+version: 2
+project_name: pogi
+builds:
+  - main: ./cmd/pogi
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X github.com/nrndev/pogi.Version={{.Version}}"]
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [LICENSE, README.md]
+# Linux packages for apt/dpkg and dnf/rpm users: sudo apt install ./pogi_<version>_linux_amd64.deb.
+# The binary is static, so the packages depend on nothing.
+nfpms:
+  - package_name: pogi
+    file_name_template: "{{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [deb, rpm]
+    bindir: /usr/bin
+    vendor: nrndev
+    maintainer: nrndev <nrndev@users.noreply.github.com>
+    homepage: https://github.com/nrndev/pogi
+    description: AWS, Google Cloud and Azure emulators in one binary, with a CLI, TUI and web console
+    license: MIT
+    section: devel
+checksum:
+  name_template: checksums.txt
+# Keyless signatures with GitHub's identity (the release job's OIDC token): no keys to keep.
+# checksums.txt covers every archive and package; verify with cosign verify-blob --bundle checksums.txt.sigstore.json.
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args: ["sign-blob", "--bundle=${signature}", "${artifact}", "--yes"]
+    artifacts: checksum
+# The images built by dockers_v2 (each already carries an SBOM); verify with cosign verify.
+docker_signs:
+  - args: ["sign", "${artifact}@${digest}", "--yes"]
+# One CycloneDX SBOM (list of parts) per archive, made with syft.
+sboms:
+  - artifacts: archive
+    cmd: syft
+    args: ["$artifact", "--output", "cyclonedx-json=$document"]
+    documents: ["${artifact}.sbom.cdx.json"]
+dockers_v2:
+  # A minimal Alpine with Python and Node.js (see Dockerfile.release).
+  - images: ["ghcr.io/nrndev/pogi"]
+    tags: ["{{.Version}}", latest]
+    dockerfile: Dockerfile.release
+    platforms: [linux/amd64, linux/arm64]
+    extra_files: [scripts/docker-entrypoint.sh]
+# A Homebrew Cask (GoReleaser's replacement for formulas) for macOS: brew install nrndev/tap/pogi.
+# Linux users get the .deb and .rpm packages instead; casks on Linux Homebrew are not something we promise.
+homebrew_casks:
+  - repository:
+      owner: nrndev
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://github.com/nrndev/pogi
+    description: AWS, Google Cloud and Azure emulators in one binary, with a CLI, TUI and web console
+    binaries: [pogi]
+    # The binary is not notarized by Apple, so macOS would block a quarantined download.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/pogi"]
+          end
+scoops:
+  - repository:
+      owner: nrndev
+      name: scoop-bucket
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://github.com/nrndev/pogi
+    description: AWS, Google Cloud and Azure emulators in one binary, with a CLI, TUI and web console
+    license: MIT
+changelog:
+  sort: asc
+  filters:
+    exclude: ["^docs:", "^test:"]

@@ -1,0 +1,5 @@
+{{define "iam-head"}}<div class="ph"><div><h1>IAM policy</h1><p class="sub">{{.Sub}}</p></div>
+  <form class="actions" method="post" action="/_pogi/iam/mode"><input type="hidden" name="principal" value="{{.Selected}}"><input type="hidden" name="c" value="{{.View}}"><span class="dim">Enforcement</span>
+    <div class="seg">{{$m := .Mode}}
+      <button name="mode" value="off" class="{{if eq $m "off"}}on{{end}}">Off</button><button name="mode" value="soft" class="{{if eq $m "soft"}}on{{end}}">Soft</button><button name="mode" value="strict" class="{{if eq $m "strict"}}on{{end}}">Strict</button></div></form></div>
+{{if .Tabs}}<div class="seg iamtabs" style="margin-bottom:14px">{{$v := .View}}<a href="/_pogi/iam?c=aws" class="{{if eq $v "aws"}}on{{end}}"><span class="dot aws"></span>AWS</a><a href="/_pogi/iam?c=gcp" class="{{if eq $v "gcp"}}on{{end}}"><span class="dot gcp"></span>Google Cloud</a><a href="/_pogi/iam?c=azure" class="{{if eq $v "azure"}}on{{end}}"><span class="dot azure"></span>Azure</a></div>{{end}}{{end}}

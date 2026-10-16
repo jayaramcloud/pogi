@@ -1,0 +1,23 @@
+name: Feature request
+description: A service, an operation or a console feature you want.
+labels: [enhancement]
+body:
+  - type: input
+    id: what
+    attributes:
+      label: Cloud and service
+      description: For example "AWS Step Functions, Map state with ItemReader" or "Console, filter requests by status".
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What you are trying to do
+      description: The test, tool or workflow this would unblock.
+    validations:
+      required: true
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Links to the cloud's docs, or how LocalStack or the official emulator behaves.

@@ -1,0 +1,1646 @@
+{
+ "categories": [
+  "Storage",
+  "Databases",
+  "Messaging \u0026 events",
+  "Compute \u0026 containers",
+  "Networking",
+  "Security \u0026 identity",
+  "Observability",
+  "Integration \u0026 workflow",
+  "Analytics \u0026 AI",
+  "Developer tools",
+  "Management \u0026 governance"
+ ],
+ "services": {
+  "accessanalyzer": {
+   "title": "Security services",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
+   "not_yet": "no findings, no request filtering"
+  },
+  "account": {
+   "title": "Security services",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
+   "not_yet": "no findings, no request filtering"
+  },
+  "acm": {
+   "title": "ACM, Route 53, EC2 network, Tagging",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Thin",
+   "docker": false,
+   "covered": "certificates, hosted zones and records, VPCs/subnets/security groups with a default VPC, route tables and routes, internet and egress-only gateways, Elastic IPs, NAT gateways (with their Elastic IP and network interface), network interfaces (instances show theirs), VPC endpoints (gateway routes, interface addresses), AWS and managed prefix lists, network ACLs and entries, tagging across services (queues, log groups, rules, API keys, functions, tables and more)",
+   "not_yet": "ACM certificates are issued at once, also with EMAIL validation (no approval step); network ACL and route rules do not filter traffic; DescribeVpcEndpointServices, peering connections as resources"
+  },
+  "amp": {
+   "title": "Config, Managed Prometheus, RUM, OAM",
+   "cloud": "aws",
+   "category": "Observability",
+   "depth": "Core",
+   "docker": false,
+   "covered": "Config recorders, rules and evaluations; Prometheus remote write with a PromQL subset (selectors, rate, sum by)",
+   "not_yet": "binary operators, custom Config rules"
+  },
+  "apigateway": {
+   "title": "API Gateway v1 + v2",
+   "cloud": "aws",
+   "category": "Integration \u0026 workflow",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "REST and HTTP APIs, Lambda proxy (payload 1.0/2.0), HTTP proxy, mock, `AWS` integrations to Lambda and to other services (SQS, SNS, DynamoDB, Kinesis, Step Functions, S3 and more, with path and action URIs, request parameters and `selectionPattern` by status code), mapping templates in VTL (`#set`, `#if`, `#foreach`, `$input`, `$util`, `$context`, `$stageVariables`), custom domain names and base path mappings (REST, and HTTP with API mappings) reached by Host header or `*.localhost`, stage method settings (`~1` and `~0` paths), Lambda/JWT/Cognito authorizers, API keys and usage plans, CORS, OpenAPI import (API key security, warnings, `failonwarnings`)",
+   "not_yet": "WebSocket invoke, VTL `#macro`, the role of an `AWS` integration (`credentials`) is not assumed, custom domain certificates are not checked and domains answer over HTTP only; `AWS_IAM` routes need a SigV4-signed request but the signature and the caller's permissions are not checked; a RestApi resource policy is enforced for `Deny` statements only (no implicit deny)"
+  },
+  "apim": {
+   "title": "API Management",
+   "cloud": "azure",
+   "category": "Integration \u0026 workflow",
+   "depth": "Core",
+   "docker": false,
+   "covered": "the management plane (services, APIs with operations, policies and schemas, backends, products with their APIs and policies, subscriptions with primary and secondary keys and `listSecrets`, named values, the service-level policy) and the gateway at `\u003cservice\u003e.azure-api.localhost:7644/\u003capi path\u003e` or `/_azure/apim/\u003cservice\u003e/…`: API and operation matching by path, method and URL template, subscription keys, policies in order service → product → API → operation with `\u003cbase/\u003e`, forwarding to the backend; policies `set-header`, `set-query-parameter`, `rewrite-uri`, `set-backend-service`, `rate-limit`, `rate-limit-by-key`, `validate-jwt` (pogi's Entra tokens work), `return-response`, `mock-response`, `cors`, `set-body`",
+   "not_yet": "OpenAPI and WSDL import, the C# policy expression language (a few `context.Request.Headers` forms only), other policies (`choose`, `send-request`, `quota`, caching, `retry`) are skipped, `on-error` sections, rate limits are a fixed window kept in memory"
+  },
+  "appconfig": {
+   "title": "AppConfig",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "applications, environments, profiles, hosted versions with JSON Schema validators, deployments and strategies, the data plane (`StartConfigurationSession` and `GetLatestConfiguration`, as Ion text when `Accept` asks for it), feature flags, extensions",
+   "not_yet": "growth is not simulated"
+  },
+  "appintegrations": {
+   "title": "Amazon AppIntegrations Service",
+   "cloud": "aws",
+   "category": "Integration \u0026 workflow",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "application-autoscaling": {
+   "title": "Auto Scaling + Application Auto Scaling",
+   "cloud": "aws",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "groups that keep their capacity, simple/step/target-tracking policies driven by CloudWatch alarms, scheduled actions, target-group registration; scalable targets for ECS, DynamoDB and Lambda",
+   "not_yet": "lifecycle hooks pause nothing, cooldowns"
+  },
+  "appsync": {
+   "title": "AppSync",
+   "cloud": "aws",
+   "category": "Integration \u0026 workflow",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "GraphQL APIs with API key, Cognito, IAM, OIDC and Lambda auth; Lambda, DynamoDB, HTTP, NONE and RDS data sources; VTL and APPSYNC_JS resolvers, pipelines; subscriptions over the real-time WebSocket protocol with argument filters; introspection",
+   "not_yet": "sibling fields resolve serially, no caching, enhanced filters"
+  },
+  "arm": {
+   "title": "Resource Manager, Entra ID, Managed Identity, Graph",
+   "cloud": "azure",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, async operations, deployments as metadata, generic resources); Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups",
+   "not_yet": "templates are not run (a deployment whose template holds an unknown resource type ends Failed), a PUT of a resource type pogi does not know is refused (`InvalidResourceType`, or `NoRegisteredProviderFound` for an unknown namespace), Graph covers what `azuread` and `az ad` use"
+  },
+  "artifactregistry": {
+   "title": "Artifact Registry",
+   "cloud": "gcp",
+   "category": "Developer tools",
+   "depth": "Core",
+   "docker": true,
+   "covered": "v1 (gRPC and REST): repositories (create, get, list, update, delete, IAM) and Docker images on ECR's OCI registry: `docker push` and `pull` at `localhost:4510/\u003cproject\u003e/\u003crepo\u003e/\u003cimage\u003e`, and `\u003cregion\u003e-docker.pkg.dev/\u003cproject\u003e/\u003crepo\u003e/\u003cimage\u003e` references run by Cloud Run, ACI and the like are pulled from it; without Docker, metadata only",
+   "not_yet": "formats other than Docker (stored as metadata), packages, versions, tags, files and rules, `dockerImages.get`"
+  },
+  "athena": {
+   "title": "Glue + Athena",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": true,
+   "covered": "Data Catalog databases, tables, partitions, crawlers (CSV/JSON schema inference), the Schema Registry (registries, schemas, versions that ignore custom Avro attributes, version metadata); Athena workgroups, named queries, prepared statements, DDL into Glue, and SELECTs run on DuckDB over the tables' S3 data, with results written to S3",
+   "not_yet": "data is copied per query, no CTAS/INSERT/views, Parquet crawling"
+  },
+  "autoscaling": {
+   "title": "Auto Scaling + Application Auto Scaling",
+   "cloud": "aws",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "groups that keep their capacity, simple/step/target-tracking policies driven by CloudWatch alarms, scheduled actions, target-group registration; scalable targets for ECS, DynamoDB and Lambda",
+   "not_yet": "lifecycle hooks pause nothing, cooldowns"
+  },
+  "azaci": {
+   "title": "Container Instances",
+   "cloud": "azure",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "ARM `Microsoft.ContainerInstance/containerGroups`: containers in Docker with image, command, environment, ports, CPU and memory limits and restart policy; the group's IP address and `dnsNameLabel` served at `\u003clabel\u003e.\u003clocation\u003e.azurecontainer.localhost:7644` and `/_azure/aci/\u003cgroup\u003e/…`; `instanceView` states, `start`, `stop`, `restart` and container logs; without Docker, groups stay Pending",
+   "not_yet": "exec and attach, volumes, probes, GPUs, virtual networks, init containers, identities"
+  },
+  "azacr": {
+   "title": "Container Registry",
+   "cloud": "azure",
+   "category": "Developer tools",
+   "depth": "Core",
+   "docker": true,
+   "covered": "ARM `Microsoft.ContainerRegistry/registries` on ECR's OCI registry: `\u003cname\u003e.azurecr.localhost:4510` or `localhost:4510/\u003cname\u003e/…`, `docker push` and `pull`, `listCredentials`, and the sign-in endpoints of `az acr login` and `/oauth2/exchange`; ACI and Container Apps pull images from it; without ECR, metadata only",
+   "not_yet": "credentials are issued but never checked (the registry accepts any, anonymous included)"
+  },
+  "azaks": {
+   "title": "Kubernetes Service",
+   "cloud": "azure",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "ARM `Microsoft.ContainerService/managedClusters` and `agentPools`: each cluster is a real k3s API server, Creating until its node is Ready, with `fqdn`; `listClusterUserCredential` and `listClusterAdminCredential` return a kubeconfig whose token the API server accepts (the `armcontainerservice` client and `az aks get-credentials`); without Docker, Succeeded at once with no API server",
+   "not_yet": "agent pools are metadata and add no nodes, one Kubernetes version, a static bearer token instead of Entra tokens (no kubelogin)"
+  },
+  "azappconfig": {
+   "title": "App Configuration",
+   "cloud": "azure",
+   "category": "Developer tools",
+   "depth": "Core",
+   "docker": false,
+   "covered": "key-values with labels, filters, ETags, locks, revisions, snapshots, feature flags; HMAC auth",
+   "not_yet": ""
+  },
+  "azblob": {
+   "title": "Blob Storage",
+   "cloud": "azure",
+   "category": "Storage",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "containers, block, append and page blobs, block lists, ranges, metadata, copy, leases, tags (Azurite port 10000)",
+   "not_yet": ""
+  },
+  "azcompute": {
+   "title": "Virtual Machines",
+   "cloud": "azure",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "ARM `Microsoft.Compute/virtualMachines`, `disks`, `availabilitySets` and `sshPublicKeys`: VMs as containers of the base image their image reference names (Ubuntu, Debian), `customData` run at first boot (a cloud-config `runcmd` subset or a script), `instanceView` power state, `start`, `powerOff`, `deallocate` and `restart`, NIC private IPs from the Virtual Network service, and the instance metadata service (`/metadata/instance` and identity tokens) reachable from inside; Windows and other images, and Docker-less runs, are metadata only",
+   "not_yet": "extensions, scale sets, images, snapshots, run commands, ssh into the VM, other cloud-config modules, `GET …/instanceView` (the view is part of every GET)"
+  },
+  "azcontainerapps": {
+   "title": "Container Apps",
+   "cloud": "azure",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "ARM `Microsoft.App/managedEnvironments`, `containerApps` (with revisions) and `jobs` (with executions): apps as containers behind ingress at `\u003capp\u003e.\u003cenv\u003e.azurecontainerapps.localhost:7644`, started on the first request like Cloud Run; a revision per template change, traffic weights in Multiple mode; secrets and env; jobs run on the `start` action with parallelism, retries and timeouts; without Docker, metadata only",
+   "not_yet": "the first container of a template only (no sidecars or init containers), one replica per revision and no scaling (settings are stored), volumes, probes, Dapr, custom domains, schedule and event triggers of jobs never fire"
+  },
+  "azdatabases": {
+   "title": "Azure SQL, PostgreSQL, MySQL, MariaDB, Cache for Redis",
+   "cloud": "azure",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": true,
+   "covered": "servers, databases and firewall rules as real engines in containers; Redis keys that work as AUTH passwords",
+   "not_yet": "configurations are not applied, no TLS"
+  },
+  "azemail": {
+   "title": "SignalR, Communication Services email",
+   "cloud": "azure",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": false,
+   "covered": "SignalR negotiate, WebSocket JSON hub protocol and server REST API (users, groups, connections); Communication Services email into the console inbox",
+   "not_yet": "SignalR upstreams, SSE and MessagePack"
+  },
+  "azfunctions": {
+   "title": "Azure Functions",
+   "cloud": "azure",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "apps run by the real Functions host (Core Tools or the official image) on pogi's Storage: HTTP, timer, queue and Event Grid triggers, zip deploy",
+   "not_yet": "Kudu beyond zip deploy, `requirements.txt` in containers"
+  },
+  "azmonitor": {
+   "title": "Azure Monitor",
+   "cloud": "azure",
+   "category": "Observability",
+   "depth": "Core",
+   "docker": false,
+   "covered": "Log Analytics workspaces, data collection rules and endpoints, the Logs Ingestion API with KQL transforms, the query API with a KQL subset (where, project, extend, summarize, order, top, let and more), Application Insights requests and traces",
+   "not_yet": "joins, unions and parse, real metrics"
+  },
+  "aznetwork": {
+   "title": "Virtual Network",
+   "cloud": "azure",
+   "category": "Networking",
+   "depth": "Core",
+   "docker": false,
+   "covered": "virtual networks and subnets with address checks, NSGs and rules, public IPs, NICs with private IP allocation, route tables, NAT gateways, private DNS zones",
+   "not_yet": "no traffic, peerings or service endpoints"
+  },
+  "azqueue": {
+   "title": "Queue Storage",
+   "cloud": "azure",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": false,
+   "covered": "messages: put, get, peek, update, delete, visibility, TTL (port 10001)",
+   "not_yet": ""
+  },
+  "aztable": {
+   "title": "Table Storage",
+   "cloud": "azure",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": false,
+   "covered": "entities with typed properties, upsert/merge/replace, `$filter/$select/$top`, continuation, `$batch` (port 10002)",
+   "not_yet": "`$filter` functions, Atom payloads"
+  },
+  "backup": {
+   "title": "AWS Backup",
+   "cloud": "aws",
+   "category": "Storage",
+   "depth": "Core",
+   "docker": false,
+   "covered": "vaults, plans, selections, tags; backup jobs that run to COMPLETED and make recovery points (in any account, resumed after a restart), vault notifications to SNS",
+   "not_yet": "scheduled plan runs, restore jobs, cross-account copy"
+  },
+  "batch": {
+   "title": "Batch",
+   "cloud": "aws",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "compute environments, queues, job definitions, jobs as containers with retries, timeouts, arrays and dependencies, logs to CloudWatch",
+   "not_yet": "multi-node and EKS jobs"
+  },
+  "bcm-data-exports": {
+   "title": "Cost services",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "an embedded price list (Pricing API); Cost Explorer and Budgets computed from what pogi actually ran, with budget alerts to SNS; CUR and data exports written to S3; Pricing Calculator; Marketplace metering",
+   "not_yet": "storage and Lambda-duration billing"
+  },
+  "bcm-pricing-calculator": {
+   "title": "Cost services",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "an embedded price list (Pricing API); Cost Explorer and Budgets computed from what pogi actually ran, with budget alerts to SNS; CUR and data exports written to S3; Pricing Calculator; Marketplace metering",
+   "not_yet": "storage and Lambda-duration billing"
+  },
+  "bedrock": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "bedrock-agent": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "bedrock-agent-runtime": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "bedrock-agentcore": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "bedrock-agentcore-control": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "bedrock-runtime": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "bigquery": {
+   "title": "BigQuery",
+   "cloud": "gcp",
+   "category": "Analytics \u0026 AI",
+   "depth": "Core",
+   "docker": true,
+   "covered": "datasets, tables with nested and repeated schemas, partitioning and clustering (stored), views, streaming inserts, `tabledata.list`, jobs (query, load from Cloud Storage as CSV, JSON lines and Parquet, extract, copy); SQL on DuckDB in a container (GoogleSQL translated: backtick names, `SAFE_CAST`, `STRUCT`/`ARRAY`, `UNNEST`, common functions, DML, DDL, scripts)",
+   "not_yet": "needs Docker for queries; no `WITH OFFSET`, wildcard tables, `INFORMATION_SCHEMA`, ML, Storage API, partition pseudo-columns"
+  },
+  "budgets": {
+   "title": "Cost services",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "an embedded price list (Pricing API); Cost Explorer and Budgets computed from what pogi actually ran, with budget alerts to SNS; CUR and data exports written to S3; Pricing Calculator; Marketplace metering",
+   "not_yet": "storage and Lambda-duration billing"
+  },
+  "ce": {
+   "title": "Cost services",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "an embedded price list (Pricing API); Cost Explorer and Budgets computed from what pogi actually ran, with budget alerts to SNS; CUR and data exports written to S3; Pricing Calculator; Marketplace metering",
+   "not_yet": "storage and Lambda-duration billing"
+  },
+  "cloudcontrol": {
+   "title": "Cloud Control API",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "create, read, update (JSON Patch) and delete through CloudFormation's own resource handlers, or the generated engine's",
+   "not_yet": "ListResources finds resources made outside Cloud Control only for queues and log groups; other types list what Cloud Control made"
+  },
+  "cloudformation": {
+   "title": "CloudFormation",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "stacks, change sets, YAML/JSON, every intrinsic, conditions, rules, SSM parameter types, dynamic references, exports, nested stacks, custom resources, `AWS::Include`, the SAM transform (functions with Api, HttpApi, SQS, SNS, S3, Schedule, DynamoDB, Kinesis and EventBridge events, aliases, Globals, APIs, HTTP APIs, simple tables, layers, state machines), rollback that reverts in-place changes and keeps replaced resources until the update works, about 250 resource types (networking and EC2 instances, volumes and launch templates, ECS, load balancers, Auto Scaling, RDS and DocumentDB/Neptune clusters, ElastiCache, MemoryDB, Redshift, OpenSearch, Route 53, CloudFront, API Gateway, Cognito, AppSync, Glue, Athena, Backup, CodeBuild/CodePipeline/CodeDeploy, IoT, MQ, MSK, EKS and more, each created in its own service), plus any type an embedded service manages through Cloud Control (EFS, WAF, Config and others); a template with any other type is refused with a clear error; `cdk bootstrap`/`deploy`/`destroy` work",
+   "not_yet": "SAM connectors, applications and deployment preferences, StackSets and macros, drift detection (always in sync), types whose service has no API for them yet (SES receipt rules, RDS proxies, Logs resource policies and destinations, ECR replication, API Gateway accounts and VPC links, Glue workflows, VPN and peering connections)"
+  },
+  "cloudfront": {
+   "title": "CloudFront",
+   "cloud": "aws",
+   "category": "Networking",
+   "depth": "Core",
+   "docker": false,
+   "covered": "distributions served at `\u003cid\u003e.cloudfront.localhost` with behaviors, S3 and custom origins, cache and origin-request policies, functions (cloudfront-js), invalidations, OAC",
+   "not_yet": "signed URLs, viewer protocol policy"
+  },
+  "cloudfunctions": {
+   "title": "Cloud Functions",
+   "cloud": "gcp",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "v2 API (gRPC and REST): Python functions on the Functions Framework (native or in Docker), HTTP and Pub/Sub triggers, `generateUploadUrl`, `Hub.Deliver` target for Eventarc",
+   "not_yet": "Node, Go and other runtimes, repository sources, IAM"
+  },
+  "cloudhsmv2": {
+   "title": "Security services",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
+   "not_yet": "no findings, no request filtering"
+  },
+  "cloudkms": {
+   "title": "Cloud KMS",
+   "cloud": "gcp",
+   "category": "Security \u0026 identity",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "key rings, keys and versions with real cryptography: AES-GCM with AAD and CRC32C, RSA and EC signing, RSA decryption, HMAC, rotation, scheduled destruction, `generateRandomBytes`",
+   "not_yet": "raw encryption, import jobs, ED25519 and post-quantum keys"
+  },
+  "cloudscheduler": {
+   "title": "Cloud Scheduler",
+   "cloud": "gcp",
+   "category": "Integration \u0026 workflow",
+   "depth": "Core",
+   "docker": false,
+   "covered": "jobs on unix-cron schedules with time zones, HTTP (with OIDC/OAuth) and Pub/Sub targets, retries, pause/resume/run",
+   "not_yet": "App Engine targets, cron macros"
+  },
+  "cloudtasks": {
+   "title": "Cloud Tasks",
+   "cloud": "gcp",
+   "category": "Integration \u0026 workflow",
+   "depth": "Core",
+   "docker": false,
+   "covered": "queues with rate limits and retry config, HTTP tasks with OIDC/OAuth tokens, dispatch with backoff, pause/resume/purge, `RunTask`, task-name tombstones",
+   "not_yet": "App Engine tasks, queue-level HTTP overrides"
+  },
+  "cloudtrail": {
+   "title": "CloudTrail",
+   "cloud": "aws",
+   "category": "Observability",
+   "depth": "Core",
+   "docker": false,
+   "covered": "LookupEvents over every API call pogi serves, trails delivering gzipped logs to S3 and CloudWatch Logs, event selectors",
+   "not_yet": "events kept in memory only"
+  },
+  "cloudwatch": {
+   "title": "CloudWatch Metrics",
+   "cloud": "aws",
+   "category": "Observability",
+   "depth": "Core",
+   "docker": false,
+   "covered": "metric data, statistics, metric math (basic), alarms with SNS/Lambda actions, CBOR/JSON/Query",
+   "not_yet": "composite alarm evaluation"
+  },
+  "codeartifact": {
+   "title": "CodeArtifact",
+   "cloud": "aws",
+   "category": "Developer tools",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "codebuild": {
+   "title": "CodeBuild",
+   "cloud": "aws",
+   "category": "Developer tools",
+   "depth": "Core",
+   "docker": true,
+   "covered": "projects and builds that run real buildspecs in containers (phases, env from SSM and Secrets Manager, S3 sources, artifacts to S3, logs to CloudWatch)",
+   "not_yet": "privileged mode, caches, secondary sources, batch builds"
+  },
+  "codedeploy": {
+   "title": "CodeDeploy + CodePipeline",
+   "cloud": "aws",
+   "category": "Developer tools",
+   "depth": "Core",
+   "docker": false,
+   "covered": "Lambda deployments with linear/canary traffic shifting, hooks and rollback; pipelines with S3 sources (a source with `PollForSourceChanges` set to `true` starts a run when the object changes), CodeBuild, CloudFormation, Lambda and approvals",
+   "not_yet": "change-set modes, ECS blue/green"
+  },
+  "codeguru-reviewer": {
+   "title": "Amazon CodeGuru Reviewer",
+   "cloud": "aws",
+   "category": "Developer tools",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "codepipeline": {
+   "title": "CodeDeploy + CodePipeline",
+   "cloud": "aws",
+   "category": "Developer tools",
+   "depth": "Core",
+   "docker": false,
+   "covered": "Lambda deployments with linear/canary traffic shifting, hooks and rollback; pipelines with S3 sources (a source with `PollForSourceChanges` set to `true` starts a run when the object changes), CodeBuild, CloudFormation, Lambda and approvals",
+   "not_yet": "change-set modes, ECS blue/green"
+  },
+  "cognito-identity": {
+   "title": "Cognito identity pools",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "GetId, credentials for authenticated (user pools, OIDC, developer) and unauthenticated identities, role mappings, GetOpenIdToken",
+   "not_yet": "SAML and social tokens trusted unverified"
+  },
+  "cognito-idp": {
+   "title": "Cognito user pools",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "pools, clients, groups, users, sign-up/confirm/forgot flows, USER_PASSWORD, SRP, REFRESH (with token rotation) and CUSTOM auth, choice-based USER_AUTH (password and email/SMS one-time codes), software token MFA with MFA_SETUP and a real TOTP check, identity providers shown on the login page, RS256 JWTs with JWKS and OpenID discovery, OAuth2 endpoints, Lambda triggers, password policy with history, account recovery setting, token validity limits",
+   "not_yet": "signing in through an external identity provider, passkeys (WEB_AUTHN), hosted-UI sign-up; a user whose MFA method was only switched on has no authenticator, so the code 123456 passes"
+  },
+  "comprehend": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "compute": {
+   "title": "Compute Engine",
+   "cloud": "gcp",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "the REST API at `/compute/v1/projects/\u003cp\u003e/…` (`google.golang.org/api/compute/v1`, `cloud.google.com/go/compute/apiv1`, gcloud, Terraform): zones, regions, machine types and images as static lists; instances (insert, get, list, delete, start, stop, reset, setMetadata, setLabels), disks, networks, subnetworks, firewalls and addresses; operations are DONE when returned; instances run as containers of their boot image (debian, ubuntu, cos) with `startup-script` metadata run at every boot, and the metadata server at `/computeMetadata/v1/` (project, zone, attributes, service-account tokens, `?recursive` and `?alt=json`) reached through `GCE_METADATA_HOST`; without Docker, metadata only",
+   "not_yet": "live migration, snapshots, instance templates, groups, load balancing, custom images; networks carry no traffic and firewall rules are only stored; `startup-script-url` and shutdown scripts; instances share the host's ports on engines without a VM"
+  },
+  "config": {
+   "title": "Config, Managed Prometheus, RUM, OAM",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "Config recorders, rules and evaluations; Prometheus remote write with a PromQL subset (selectors, rate, sum by)",
+   "not_yet": "binary operators, custom Config rules"
+  },
+  "connect": {
+   "title": "Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect",
+   "cloud": "aws",
+   "category": "Integration \u0026 workflow",
+   "depth": "Core",
+   "docker": false,
+   "covered": "lifecycles that settle (Launching → Ready, STARTING → WAITING, ...), Lake Formation permissions and LF-tags; with Docker, MWAA runs the official apache/airflow image (standalone, DAGs synced from the S3 path, configuration options, requirements.txt, plugins zip and startup script applied, UpdateEnvironment runs it again with the new settings) behind the web server host and the Airflow CLI endpoint, and Managed Flink runs the application's JAR from S3 on a real apache/flink cluster with the runtime properties, AWS credentials and the pogi endpoint (the application is READY again when its job ends by itself); with saved state, Flink applications that were RUNNING and MWAA environments that were up start again after a pogi restart",
+   "not_yet": "without Docker nothing runs (statuses only; the CLI endpoint says so); older Flink versions run under emulation on Apple Silicon (only 1.20 has an arm64 image); the Airflow web UI has no login; installing requirements needs internet access in the container; the requirements.txt object version is not used (the latest object is read); the other services here run nothing"
+  },
+  "container": {
+   "title": "Kubernetes Engine",
+   "cloud": "gcp",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "container.googleapis.com v1 and v1beta1 (gRPC and REST): clusters and node pools with GKE's own operations; each cluster is a real k3s API server, PROVISIONING until its node is Ready, with `endpoint` and `masterAuth.clusterCaCertificate`; `kubectl` works with a kubeconfig from `pogi kubeconfig gke \u003ccluster\u003e` or `gcloud container clusters get-credentials` (the API server accepts pogi's own `ya29.pogi-…` tokens); without Docker, metadata only",
+   "not_yet": "node pools are metadata and add no nodes, one Kubernetes version (the k3s one), every valid token is cluster-admin, lists are one page"
+  },
+  "controlcatalog": {
+   "title": "AWS Control Catalog",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "controltower": {
+   "title": "Security services",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
+   "not_yet": "no findings, no request filtering"
+  },
+  "cosmos": {
+   "title": "Cosmos DB (NoSQL)",
+   "cloud": "azure",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": false,
+   "covered": "databases, containers, items, patch, the SQL dialect (joins, subqueries, GROUP BY, functions), transactional batch, change feed, TTL, offers",
+   "not_yet": "stored procedures run nothing, .NET binary batches, spatial/vector functions"
+  },
+  "cur": {
+   "title": "Cost services",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "an embedded price list (Pricing API); Cost Explorer and Budgets computed from what pogi actually ran, with budget alerts to SNS; CUR and data exports written to S3; Pricing Calculator; Marketplace metering",
+   "not_yet": "storage and Lambda-duration billing"
+  },
+  "datastore": {
+   "title": "Firestore (Datastore mode)",
+   "cloud": "gcp",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": false,
+   "covered": "gRPC and REST: lookups, queries (filters, composite AND/OR, orders, projections, distinct on, ancestors, namespaces, cursors, offset, limit), count/sum/avg aggregations, optimistic transactions, property masks and transforms, `allocateIds`, `reserveIds`, `POST /reset`; `DATASTORE_EMULATOR_HOST`",
+   "not_yet": "GQL, `read_time`, metadata queries (`__kind__`), index checks"
+  },
+  "datasync": {
+   "title": "Transfer Family, DataSync, S3 Tables",
+   "cloud": "aws",
+   "category": "Storage",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a real SFTP server (port 2222) on S3 with key auth and home-directory mappings; DataSync tasks that copy between S3 locations with filters; Iceberg table buckets with real metadata files and version tokens",
+   "not_yet": "FTPS, NFS/SMB transfers, the Iceberg REST catalog"
+  },
+  "detective": {
+   "title": "Security services",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
+   "not_yet": "no findings, no request filtering"
+  },
+  "dlm": {
+   "title": "Amazon Data Lifecycle Manager",
+   "cloud": "aws",
+   "category": "Storage",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "dms": {
+   "title": "Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect",
+   "cloud": "aws",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": false,
+   "covered": "lifecycles that settle (Launching → Ready, STARTING → WAITING, ...), Lake Formation permissions and LF-tags; with Docker, MWAA runs the official apache/airflow image (standalone, DAGs synced from the S3 path, configuration options, requirements.txt, plugins zip and startup script applied, UpdateEnvironment runs it again with the new settings) behind the web server host and the Airflow CLI endpoint, and Managed Flink runs the application's JAR from S3 on a real apache/flink cluster with the runtime properties, AWS credentials and the pogi endpoint (the application is READY again when its job ends by itself); with saved state, Flink applications that were RUNNING and MWAA environments that were up start again after a pogi restart",
+   "not_yet": "without Docker nothing runs (statuses only; the CLI endpoint says so); older Flink versions run under emulation on Apple Silicon (only 1.20 has an arm64 image); the Airflow web UI has no login; installing requirements needs internet access in the container; the requirements.txt object version is not used (the latest object is read); the other services here run nothing"
+  },
+  "dynamodb": {
+   "title": "DynamoDB + Streams",
+   "cloud": "aws",
+   "category": "Databases",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "every expression type, GSI/LSI (GSI keys with up to four HASH and four RANGE attributes), Query/Scan with paging, transactions, batches, TTL, streams with Lambda triggers, exact numbers, on-demand backups and restore (also to a point in time, from the current items), global table replicas that copy writes between regions",
+   "not_yet": "PartiQL, import/export; redundant parentheses in an expression are accepted (AWS refuses some)"
+  },
+  "ec2": {
+   "title": "EC2 transit gateways, flow logs, hosts and images",
+   "cloud": "aws",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "transit gateways with VPC and peering attachments (peerings wait for accept) and the default route table links Terraform reads, flow logs with their `LogFormat`, dedicated hosts, EBS encryption by default (applied to new and root volumes), `CreateImage` (a docker commit of the instance container) and `DeregisterImage`, IAM instance profile associations, `AssociateVpcCidrBlock` (extra blocks take subnets), `DescribeInstanceTypeOfferings`",
+   "not_yet": "flow logs write no records, instances do not run on dedicated hosts, transit gateway route tables and routes, created images keep no snapshots (pogi has no EBS snapshots), IPv6 CIDR blocks on VPCs"
+  },
+  "ecr": {
+   "title": "ECR",
+   "cloud": "aws",
+   "category": "Developer tools",
+   "depth": "Deep",
+   "docker": true,
+   "covered": "repositories and the image APIs on a real OCI registry: `docker login`/`push`/`pull` at `localhost:4510` (a forwarding container on Docker Desktop, OrbStack and Colima), layer-upload APIs, lifecycle policies, canned scans; `\u003caccount\u003e.dkr.ecr.\u003cregion\u003e.amazonaws.com/…` images pull from it",
+   "not_yet": "one registry host for all accounts, blob garbage collection"
+  },
+  "ecs": {
+   "title": "ECS",
+   "cloud": "aws",
+   "category": "Compute \u0026 containers",
+   "depth": "Deep",
+   "docker": true,
+   "covered": "clusters, capacity providers, task definitions, tasks as containers (awsvpc via a shared network namespace, secrets from SSM/Secrets Manager, task-role credentials and metadata endpoints, awslogs to CloudWatch Logs, task volumes: host paths, shared Docker volumes and volumesFrom), services that keep their desired count, rolling deployments with `aws.ecs` events on the default bus, the deployment circuit breaker (a deployment whose tasks keep failing to start FAILS, with optional rollback), ALB registration",
+   "not_yet": "CPU shares, task sets, ECS Exec, EFS and FSx volumes"
+  },
+  "efs": {
+   "title": "Amazon Elastic File System",
+   "cloud": "aws",
+   "category": "Storage",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "eks": {
+   "title": "EKS",
+   "cloud": "aws",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "clusters as k3s containers: `aws eks update-kubeconfig` and `kubectl` work, with EKS-style token authentication and access entries; node groups, Fargate profiles, add-ons and pod identity as metadata",
+   "not_yet": "node groups add no nodes, version upgrades, a cluster endpoint other machines can reach (it is always `https://127.0.0.1:\u003cport\u003e`; pogi publishes container ports on loopback only)"
+  },
+  "elasticache": {
+   "title": "RDS / ElastiCache",
+   "cloud": "aws",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": true,
+   "covered": "instances, clusters, subnet and parameter groups; real Postgres, MySQL, MariaDB, Redis, Valkey and Memcached containers with Docker",
+   "not_yet": "snapshot restore, read replicas, parameters applied to engines"
+  },
+  "elasticbeanstalk": {
+   "title": "Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect",
+   "cloud": "aws",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": false,
+   "covered": "lifecycles that settle (Launching → Ready, STARTING → WAITING, ...), Lake Formation permissions and LF-tags; with Docker, MWAA runs the official apache/airflow image (standalone, DAGs synced from the S3 path, configuration options, requirements.txt, plugins zip and startup script applied, UpdateEnvironment runs it again with the new settings) behind the web server host and the Airflow CLI endpoint, and Managed Flink runs the application's JAR from S3 on a real apache/flink cluster with the runtime properties, AWS credentials and the pogi endpoint (the application is READY again when its job ends by itself); with saved state, Flink applications that were RUNNING and MWAA environments that were up start again after a pogi restart",
+   "not_yet": "without Docker nothing runs (statuses only; the CLI endpoint says so); older Flink versions run under emulation on Apple Silicon (only 1.20 has an arm64 image); the Airflow web UI has no login; installing requirements needs internet access in the container; the requirements.txt object version is not used (the latest object is read); the other services here run nothing"
+  },
+  "elb": {
+   "title": "Elastic Load Balancing",
+   "cloud": "aws",
+   "category": "Networking",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "elbv2": {
+   "title": "ELB v2",
+   "cloud": "aws",
+   "category": "Networking",
+   "depth": "Deep",
+   "docker": true,
+   "covered": "ALB/NLB/GWLB control plane; ALBs answer at `http://\u003cdns-name\u003e:7644` (and on their listener port when free) with every rule condition, weighted and sticky forwards, redirects, fixed responses, Lambda targets and health checks; NLBs proxy TCP",
+   "not_yet": "`authenticate-*` actions, UDP, TLS termination on NLBs"
+  },
+  "emr": {
+   "title": "Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Core",
+   "docker": false,
+   "covered": "lifecycles that settle (Launching → Ready, STARTING → WAITING, ...), Lake Formation permissions and LF-tags; with Docker, MWAA runs the official apache/airflow image (standalone, DAGs synced from the S3 path, configuration options, requirements.txt, plugins zip and startup script applied, UpdateEnvironment runs it again with the new settings) behind the web server host and the Airflow CLI endpoint, and Managed Flink runs the application's JAR from S3 on a real apache/flink cluster with the runtime properties, AWS credentials and the pogi endpoint (the application is READY again when its job ends by itself); with saved state, Flink applications that were RUNNING and MWAA environments that were up start again after a pogi restart",
+   "not_yet": "without Docker nothing runs (statuses only; the CLI endpoint says so); older Flink versions run under emulation on Apple Silicon (only 1.20 has an arm64 image); the Airflow web UI has no login; installing requirements needs internet access in the container; the requirements.txt object version is not used (the latest object is read); the other services here run nothing"
+  },
+  "emr-serverless": {
+   "title": "Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Core",
+   "docker": false,
+   "covered": "lifecycles that settle (Launching → Ready, STARTING → WAITING, ...), Lake Formation permissions and LF-tags; with Docker, MWAA runs the official apache/airflow image (standalone, DAGs synced from the S3 path, configuration options, requirements.txt, plugins zip and startup script applied, UpdateEnvironment runs it again with the new settings) behind the web server host and the Airflow CLI endpoint, and Managed Flink runs the application's JAR from S3 on a real apache/flink cluster with the runtime properties, AWS credentials and the pogi endpoint (the application is READY again when its job ends by itself); with saved state, Flink applications that were RUNNING and MWAA environments that were up start again after a pogi restart",
+   "not_yet": "without Docker nothing runs (statuses only; the CLI endpoint says so); older Flink versions run under emulation on Apple Silicon (only 1.20 has an arm64 image); the Airflow web UI has no login; installing requirements needs internet access in the container; the requirements.txt object version is not used (the latest object is read); the other services here run nothing"
+  },
+  "entra": {
+   "title": "Resource Manager, Entra ID, Managed Identity, Graph",
+   "cloud": "azure",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, async operations, deployments as metadata, generic resources); Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups",
+   "not_yet": "templates are not run (a deployment whose template holds an unknown resource type ends Failed), a PUT of a resource type pogi does not know is refused (`InvalidResourceType`, or `NoRegisteredProviderFound` for an unknown namespace), Graph covers what `azuread` and `az ad` use"
+  },
+  "eventarc": {
+   "title": "Eventarc",
+   "cloud": "gcp",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": false,
+   "covered": "triggers on Cloud Storage object events and Pub/Sub messages, delivering CloudEvents to Cloud Run, Cloud Functions and HTTP endpoints",
+   "not_yet": "audit-log triggers, retries of failed deliveries, Workflows destinations"
+  },
+  "eventgrid": {
+   "title": "Event Grid",
+   "cloud": "azure",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": false,
+   "covered": "custom topics, domains, Blob system topics; subscriptions with filters delivering to webhooks (with the validation handshake), Service Bus, Event Hubs, Storage queues and Functions in Event Grid or CloudEvents schema; retries and dead-letter to Blob",
+   "not_yet": "hybrid connections, input schema mapping"
+  },
+  "eventhubs": {
+   "title": "Event Hubs",
+   "cloud": "azure",
+   "category": "Messaging \u0026 events",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "AMQP with the official SDK: partitions, keys, start positions, epochs, `$management` properties, the Processor with Blob checkpoints; a Kafka endpoint on Redpanda with Docker",
+   "not_yet": "AMQP and Kafka are separate logs, fixed partition count"
+  },
+  "events": {
+   "title": "EventBridge + Scheduler",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "buses, the full pattern syntax, targets, input transformers, archives and replay, connections and API destinations, schedules (at/rate/cron), Scheduler universal targets (`aws-sdk:\u003cservice\u003e:\u003caction\u003e`)",
+   "not_yet": "EventBridge Pipes; a schedule with no Input delivers `{}` (AWS sends a default notification)"
+  },
+  "firebaseauth": {
+   "title": "Firebase Auth",
+   "cloud": "gcp",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "the Identity Toolkit and emulator APIs: email/password, anonymous, custom-token and fake-IdP sign-in, refresh, custom claims, OOB codes in the console inbox; Admin SDK `VerifyIDToken` in emulator mode",
+   "not_yet": "tenants, MFA, email-link sign-in"
+  },
+  "firehose": {
+   "title": "Kinesis / Firehose",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": false,
+   "covered": "streams, shards, records, iterators, legacy CBOR, consumers with SubscribeToShard event streams (enhanced fan-out); Firehose buffering into S3",
+   "not_yet": ""
+  },
+  "firestore": {
+   "title": "Firestore (Native)",
+   "cloud": "gcp",
+   "category": "Databases",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "documents, subcollections, queries with cursors and collection groups, aggregations, transactions, batches, transforms, realtime listeners, `read_time`",
+   "not_yet": "vector search, security rules"
+  },
+  "fis": {
+   "title": "Fault Injection Service",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "templates and experiments injecting throttling, errors and latency per service, operation, role or Lambda function; stop conditions on CloudWatch alarms",
+   "not_yet": "target filters"
+  },
+  "gcpiam": {
+   "title": "IAM, IAM Credentials, OAuth2, STS",
+   "cloud": "gcp",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "service accounts with real key files (`token_uri` pointing at pogi), custom and predefined roles, policies; access and ID tokens, `signBlob`/`signJwt`, public keys at the metadata endpoints and `/oauth2/v3/certs`; the token endpoint for key files, user ADC and workload identity federation",
+   "not_yet": "IAM is not enforced, a sample of predefined roles"
+  },
+  "gcpoauth": {
+   "title": "IAM, IAM Credentials, OAuth2, STS",
+   "cloud": "gcp",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "service accounts with real key files (`token_uri` pointing at pogi), custom and predefined roles, policies; access and ID tokens, `signBlob`/`signJwt`, public keys at the metadata endpoints and `/oauth2/v3/certs`; the token endpoint for key files, user ADC and workload identity federation",
+   "not_yet": "IAM is not enforced, a sample of predefined roles"
+  },
+  "gcs": {
+   "title": "Cloud Storage",
+   "cloud": "gcp",
+   "category": "Storage",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "buckets, objects, media/multipart/resumable uploads, generations and preconditions, compose/rewrite/copy, signed URLs, notifications to Pub/Sub",
+   "not_yet": "IAM conditions, retention policies"
+  },
+  "globalaccelerator": {
+   "title": "AWS Global Accelerator",
+   "cloud": "aws",
+   "category": "Networking",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "glue": {
+   "title": "Glue + Athena",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": true,
+   "covered": "Data Catalog databases, tables, partitions, crawlers (CSV/JSON schema inference), the Schema Registry (registries, schemas, versions that ignore custom Avro attributes, version metadata); Athena workgroups, named queries, prepared statements, DDL into Glue, and SELECTs run on DuckDB over the tables' S3 data, with results written to S3",
+   "not_yet": "data is copied per query, no CTAS/INSERT/views, Parquet crawling"
+  },
+  "graph": {
+   "title": "Resource Manager, Entra ID, Managed Identity, Graph",
+   "cloud": "azure",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, async operations, deployments as metadata, generic resources); Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups",
+   "not_yet": "templates are not run (a deployment whose template holds an unknown resource type ends Failed), a PUT of a resource type pogi does not know is refused (`InvalidResourceType`, or `NoRegisteredProviderFound` for an unknown namespace), Graph covers what `azuread` and `az ad` use"
+  },
+  "guardduty": {
+   "title": "Amazon GuardDuty",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "iam": {
+   "title": "IAM",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "users, groups, roles, managed and inline policies, keys, instance profiles, OIDC/SAML providers, policy simulation, SSH public keys, service last-accessed reports, and **enforcement** (`--iam soft/strict`) of identity policies and permissions boundaries",
+   "not_yet": "resource-based policies other than S3 bucket policies and API Gateway resource policies, credential reports"
+  },
+  "iamcredentials": {
+   "title": "IAM, IAM Credentials, OAuth2, STS",
+   "cloud": "gcp",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "service accounts with real key files (`token_uri` pointing at pogi), custom and predefined roles, policies; access and ID tokens, `signBlob`/`signJwt`, public keys at the metadata endpoints and `/oauth2/v3/certs`; the token endpoint for key files, user ADC and workload identity federation",
+   "not_yet": "IAM is not enforced, a sample of predefined roles"
+  },
+  "identitystore": {
+   "title": "IAM Identity Center",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "`aws sso login` (device code and PKCE) with real portal credentials, permission sets and account assignments that create `AWSReservedSSO_` roles, Identity Store users and groups",
+   "not_yet": ""
+  },
+  "inspector2": {
+   "title": "Security services",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
+   "not_yet": "no findings, no request filtering"
+  },
+  "iot": {
+   "title": "IoT Core",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": false,
+   "covered": "things, groups, certificates, policies; an MQTT broker (TCP 1883 and WebSocket `/mqtt`), device shadows (classic and named), rules (SQL subset) to SQS, SNS, Lambda, DynamoDB, Kinesis, S3 and republish; the iotdata API",
+   "not_yet": "TLS client certificates, other rule actions"
+  },
+  "iotdata": {
+   "title": "IoT Core",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": false,
+   "covered": "things, groups, certificates, policies; an MQTT broker (TCP 1883 and WebSocket `/mqtt`), device shadows (classic and named), rules (SQL subset) to SQS, SNS, Lambda, DynamoDB, Kinesis, S3 and republish; the iotdata API",
+   "not_yet": "TLS client certificates, other rule actions"
+  },
+  "kafka": {
+   "title": "MSK",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": true,
+   "covered": "provisioned and serverless clusters on Redpanda, bootstrap brokers for host and container clients, configurations and revisions, cluster operations",
+   "not_yet": "updates change metadata only, TLS/SCRAM/IAM listeners point at the plaintext one"
+  },
+  "keyvault": {
+   "title": "Key Vault",
+   "cloud": "azure",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "secrets (versions, soft delete, recover, purge, backup) and keys (RSA/EC/oct crypto, wrap, sign, rotate); self-signed certificates",
+   "not_yet": "certificate issuers, key release"
+  },
+  "kinesis": {
+   "title": "Kinesis / Firehose",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": false,
+   "covered": "streams, shards, records, iterators, legacy CBOR, consumers with SubscribeToShard event streams (enhanced fan-out); Firehose buffering into S3",
+   "not_yet": ""
+  },
+  "kinesisanalyticsv2": {
+   "title": "Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Core",
+   "docker": false,
+   "covered": "lifecycles that settle (Launching → Ready, STARTING → WAITING, ...), Lake Formation permissions and LF-tags; with Docker, MWAA runs the official apache/airflow image (standalone, DAGs synced from the S3 path, configuration options, requirements.txt, plugins zip and startup script applied, UpdateEnvironment runs it again with the new settings) behind the web server host and the Airflow CLI endpoint, and Managed Flink runs the application's JAR from S3 on a real apache/flink cluster with the runtime properties, AWS credentials and the pogi endpoint (the application is READY again when its job ends by itself); with saved state, Flink applications that were RUNNING and MWAA environments that were up start again after a pogi restart",
+   "not_yet": "without Docker nothing runs (statuses only; the CLI endpoint says so); older Flink versions run under emulation on Apple Silicon (only 1.20 has an arm64 image); the Airflow web UI has no login; installing requirements needs internet access in the container; the requirements.txt object version is not used (the latest object is read); the other services here run nothing"
+  },
+  "kms": {
+   "title": "KMS",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "symmetric, RSA, ECC (incl. secp256k1 and Ed25519), ML-DSA and HMAC keys, aliases, encrypt/decrypt with context, data keys, sign/verify, MAC, rotation",
+   "not_yet": "grants, imported key material, multi-region keys"
+  },
+  "lakeformation": {
+   "title": "Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Core",
+   "docker": false,
+   "covered": "lifecycles that settle (Launching → Ready, STARTING → WAITING, ...), Lake Formation permissions and LF-tags; with Docker, MWAA runs the official apache/airflow image (standalone, DAGs synced from the S3 path, configuration options, requirements.txt, plugins zip and startup script applied, UpdateEnvironment runs it again with the new settings) behind the web server host and the Airflow CLI endpoint, and Managed Flink runs the application's JAR from S3 on a real apache/flink cluster with the runtime properties, AWS credentials and the pogi endpoint (the application is READY again when its job ends by itself); with saved state, Flink applications that were RUNNING and MWAA environments that were up start again after a pogi restart",
+   "not_yet": "without Docker nothing runs (statuses only; the CLI endpoint says so); older Flink versions run under emulation on Apple Silicon (only 1.20 has an arm64 image); the Airflow web UI has no login; installing requirements needs internet access in the container; the requirements.txt object version is not used (the latest object is read); the other services here run nothing"
+  },
+  "lambda": {
+   "title": "Lambda",
+   "cloud": "aws",
+   "category": "Compute \u0026 containers",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "CRUD, versions, aliases, layers, sync/async invoke, native Python/Node.js/custom runtimes or Docker, container images with ImageConfig, warm pool, reserved and provisioned concurrency with throttling, event source mappings (SQS, Kinesis, DynamoDB, and Amazon MSK clusters by ARN, and self-managed Kafka on any reachable broker) with batching windows, partial batch responses, bisecting and S3, SQS or SNS failure destinations, function URLs, hot reload, logs to CloudWatch, execution-role credentials, the Extensions API (INVOKE and SHUTDOWN events; extensions in a layer's `extensions/` folder start with native and Docker runtimes)",
+   "not_yet": "Java/.NET/Ruby run only in Docker, code signing, SnapStart; Kafka and MSK mappings use plain or SASL connections (no TLS settings), and an MSK mapping needs its cluster ACTIVE with Docker; extensions do not delay an invocation and the Logs and Telemetry APIs are not served, and a container image's own `/opt/extensions` do not start; `Architectures` is stored but native functions run on the host architecture; failed async invokes retry after 1 and 2 seconds, where AWS waits 1 and 2 minutes, so tests stay fast; `ListLayers` refuses a `CompatibleRuntime` of an unknown family but accepts a mistyped version such as `python3.99`"
+  },
+  "lambda-microvms": {
+   "title": "Lambda MicroVMs",
+   "cloud": "aws",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "lightsail": {
+   "title": "Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect",
+   "cloud": "aws",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": false,
+   "covered": "lifecycles that settle (Launching → Ready, STARTING → WAITING, ...), Lake Formation permissions and LF-tags; with Docker, MWAA runs the official apache/airflow image (standalone, DAGs synced from the S3 path, configuration options, requirements.txt, plugins zip and startup script applied, UpdateEnvironment runs it again with the new settings) behind the web server host and the Airflow CLI endpoint, and Managed Flink runs the application's JAR from S3 on a real apache/flink cluster with the runtime properties, AWS credentials and the pogi endpoint (the application is READY again when its job ends by itself); with saved state, Flink applications that were RUNNING and MWAA environments that were up start again after a pogi restart",
+   "not_yet": "without Docker nothing runs (statuses only; the CLI endpoint says so); older Flink versions run under emulation on Apple Silicon (only 1.20 has an arm64 image); the Airflow web UI has no login; installing requirements needs internet access in the container; the requirements.txt object version is not used (the latest object is read); the other services here run nothing"
+  },
+  "logging": {
+   "title": "Cloud Logging",
+   "cloud": "gcp",
+   "category": "Observability",
+   "depth": "Core",
+   "docker": false,
+   "covered": "write, list (the query language: severity, resource, labels, payload fields, regex, time, AND/OR/NOT), tail, logs; sinks to Pub/Sub, Cloud Storage and BigQuery; exclusions; log-based metrics (stored); buckets; Cloud Run, Cloud Functions and Run jobs output",
+   "not_yet": "views, links, analytics, log scopes"
+  },
+  "logs": {
+   "title": "CloudWatch Logs",
+   "cloud": "aws",
+   "category": "Observability",
+   "depth": "Core",
+   "docker": false,
+   "covered": "groups, streams, events, filter patterns, subscriptions, metric filters that publish to CloudWatch (a numeric or JSON `$.field` value, `defaultValue`, dimensions, unit; alarms on them fire), retention, Lambda logs, Insights (`fields/filter/sort/limit`)",
+   "not_yet": "Insights `stats/parse`; metric filters read JSON fields only (not space-delimited `$name`), and `defaultValue` is published per batch of ingested events, not per minute"
+  },
+  "macie2": {
+   "title": "Security services",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
+   "not_yet": "no findings, no request filtering"
+  },
+  "managedkafka": {
+   "title": "Managed Kafka",
+   "cloud": "gcp",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": true,
+   "covered": "clusters (one Redpanda broker each with Docker), topics, consumer groups read from the broker; the local bootstrap address in the `pogi-bootstrap` label",
+   "not_yet": "ACLs, replication"
+  },
+  "marketplace-catalog": {
+   "title": "AWS Marketplace Catalog Service",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "marketplace-entitlement": {
+   "title": "AWS Marketplace Entitlement Service",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "memorydb": {
+   "title": "ElastiCache users / MemoryDB",
+   "cloud": "aws",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": true,
+   "covered": "users, user groups and ACLs applied to Redis/Valkey with `ACL SETUSER`; IAM authentication tokens through a RESP proxy; MemoryDB clusters on Valkey",
+   "not_yet": "MemoryDB IAM sign-in, TLS"
+  },
+  "meteringmarketplace": {
+   "title": "Cost services",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "an embedded price list (Pricing API); Cost Explorer and Budgets computed from what pogi actually ran, with budget alerts to SNS; CUR and data exports written to S3; Pricing Calculator; Marketplace metering",
+   "not_yet": "storage and Lambda-duration billing"
+  },
+  "monitoring": {
+   "title": "Cloud Monitoring",
+   "cloud": "gcp",
+   "category": "Observability",
+   "depth": "Core",
+   "docker": false,
+   "covered": "custom metric descriptors, `CreateTimeSeries`, `ListTimeSeries` with filters, alignment and cross-series reduction; resource descriptors; alert policies, notification channels and uptime checks (stored only)",
+   "not_yet": "MQL/PromQL, groups, services and SLOs, snoozes, built-in metrics"
+  },
+  "mq": {
+   "title": "Amazon MQ",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": true,
+   "covered": "RabbitMQ and ActiveMQ brokers in containers with their users, consoles and endpoints, configurations and revisions, reboots",
+   "not_yet": "configuration data is not applied, no TLS endpoints"
+  },
+  "mwaa": {
+   "title": "Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect",
+   "cloud": "aws",
+   "category": "Integration \u0026 workflow",
+   "depth": "Core",
+   "docker": false,
+   "covered": "lifecycles that settle (Launching → Ready, STARTING → WAITING, ...), Lake Formation permissions and LF-tags; with Docker, MWAA runs the official apache/airflow image (standalone, DAGs synced from the S3 path, configuration options, requirements.txt, plugins zip and startup script applied, UpdateEnvironment runs it again with the new settings) behind the web server host and the Airflow CLI endpoint, and Managed Flink runs the application's JAR from S3 on a real apache/flink cluster with the runtime properties, AWS credentials and the pogi endpoint (the application is READY again when its job ends by itself); with saved state, Flink applications that were RUNNING and MWAA environments that were up start again after a pogi restart",
+   "not_yet": "without Docker nothing runs (statuses only; the CLI endpoint says so); older Flink versions run under emulation on Apple Silicon (only 1.20 has an arm64 image); the Airflow web UI has no login; installing requirements needs internet access in the container; the requirements.txt object version is not used (the latest object is read); the other services here run nothing"
+  },
+  "network-firewall": {
+   "title": "Security services",
+   "cloud": "aws",
+   "category": "Networking",
+   "depth": "Core",
+   "docker": false,
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
+   "not_yet": "no findings, no request filtering"
+  },
+  "oam": {
+   "title": "Config, Managed Prometheus, RUM, OAM",
+   "cloud": "aws",
+   "category": "Observability",
+   "depth": "Core",
+   "docker": false,
+   "covered": "Config recorders, rules and evaluations; Prometheus remote write with a PromQL subset (selectors, rate, sum by)",
+   "not_yet": "binary operators, custom Config rules"
+  },
+  "opensearch": {
+   "title": "OpenSearch Service",
+   "cloud": "aws",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": true,
+   "covered": "OpenSearch and legacy Elasticsearch domains in containers, reached at `\u003cdomain\u003e.\u003cregion\u003e.opensearch.localhost:7644` with SigV4 stripped; config, versions, tags",
+   "not_yet": "upgrades, access policies, multi-node clusters"
+  },
+  "operations": {
+   "title": "Long-running operations",
+   "cloud": "gcp",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "the shared `google.longrunning.Operations` service every GCP method that returns an Operation uses: get, list, wait, cancel and delete, over gRPC and REST (`/v1|v2/projects/p/locations/l/operations/o`)",
+   "not_yet": "operations are in memory only and never expire"
+  },
+  "organizations": {
+   "title": "Organizations + SCPs, Verified Permissions, Resource Explorer",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "organizations, OUs, accounts, policies and their attachment; Cedar policy stores, schemas, templates and IsAuthorized (with Cognito tokens); indexes, views and search",
+   "not_yet": "SCPs don't restrict root; list operations return one page"
+  },
+  "pipes": {
+   "title": "EventBridge Pipes",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "SQS, Kinesis and DynamoDB Streams sources with filters, Lambda/Step Functions/API destination enrichment, every async target, input templates, retries of failed batches",
+   "not_yet": "stream DLQs and partial batch failures, `HttpParameters`"
+  },
+  "pricing": {
+   "title": "Cost services",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "an embedded price list (Pricing API); Cost Explorer and Budgets computed from what pogi actually ran, with budget alerts to SNS; CUR and data exports written to S3; Pricing Calculator; Marketplace metering",
+   "not_yet": "storage and Lambda-duration billing"
+  },
+  "pubsub": {
+   "title": "Pub/Sub",
+   "cloud": "gcp",
+   "category": "Messaging \u0026 events",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "gRPC and REST, pull, streaming pull, push, ack deadlines, ordering keys, filters, dead-letter, retry, seek and snapshots, schemas that topics enforce on publish (Avro and Protocol Buffers, JSON or binary encoding; `ValidateMessage` uses the same check)",
+   "not_yet": "exactly-once, BigQuery/GCS subscriptions; the schema check says only that a message failed validation, Avro JSON ignores fields the schema does not name, and Protocol Buffers definitions cannot import other files"
+  },
+  "ram": {
+   "title": "Security services",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
+   "not_yet": "no findings, no request filtering"
+  },
+  "rds": {
+   "title": "RDS / ElastiCache",
+   "cloud": "aws",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": true,
+   "covered": "instances, clusters, subnet and parameter groups; real Postgres, MySQL, MariaDB, Redis, Valkey and Memcached containers with Docker",
+   "not_yet": "snapshot restore, read replicas, parameters applied to engines"
+  },
+  "rds-data": {
+   "title": "RDS extras",
+   "cloud": "aws",
+   "category": "Databases",
+   "depth": "Deep",
+   "docker": true,
+   "covered": "the Data API (typed parameters, JSON records, batches, real transactions) for Aurora PostgreSQL and MySQL; IAM database authentication through a Postgres/MySQL proxy that checks `generate-db-auth-token` tokens; snapshot copy (also from another region), snapshot modify, and point-in-time restore from dumps; TLS on the IAM proxy for Postgres with a leaf certificate from the local CA; DocumentDB (`mongo:7`), Neptune (Gremlin Server) and SQL Server engines",
+   "not_yet": "point-in-time restore uses current data, no TLS on MySQL (or on endpoints without IAM auth), MySQL IAM logins run as the master user, Data API arrays that hold NULL come back as text, Neptune openCypher/SPARQL"
+  },
+  "redshift": {
+   "title": "Redshift + Data API + Serverless",
+   "cloud": "aws",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": true,
+   "covered": "clusters and serverless workgroups on Postgres, the Data API (async statements, typed results, batches, catalog listing) with Redshift DDL clauses rewritten, temporary credentials that really log in; snapshot copy settings, copy grants and snapshot schedules as settings (nothing is copied or taken on a schedule)",
+   "not_yet": "parameters not applied, snapshots as metadata"
+  },
+  "redshift-data": {
+   "title": "Redshift + Data API + Serverless",
+   "cloud": "aws",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": true,
+   "covered": "clusters and serverless workgroups on Postgres, the Data API (async statements, typed results, batches, catalog listing) with Redshift DDL clauses rewritten, temporary credentials that really log in; snapshot copy settings, copy grants and snapshot schedules as settings (nothing is copied or taken on a schedule)",
+   "not_yet": "parameters not applied, snapshots as metadata"
+  },
+  "redshift-serverless": {
+   "title": "Redshift + Data API + Serverless",
+   "cloud": "aws",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": true,
+   "covered": "clusters and serverless workgroups on Postgres, the Data API (async statements, typed results, batches, catalog listing) with Redshift DDL clauses rewritten, temporary credentials that really log in; snapshot copy settings, copy grants and snapshot schedules as settings (nothing is copied or taken on a schedule)",
+   "not_yet": "parameters not applied, snapshots as metadata"
+  },
+  "rekognition": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "resource-explorer-2": {
+   "title": "Organizations + SCPs, Verified Permissions, Resource Explorer",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "organizations, OUs, accounts, policies and their attachment; Cedar policy stores, schemas, templates and IsAuthorized (with Cognito tokens); indexes, views and search",
+   "not_yet": "SCPs don't restrict root; list operations return one page"
+  },
+  "resourcegroupstaggingapi": {
+   "title": "ACM, Route 53, EC2 network, Tagging",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Thin",
+   "docker": false,
+   "covered": "certificates, hosted zones and records, VPCs/subnets/security groups with a default VPC, route tables and routes, internet and egress-only gateways, Elastic IPs, NAT gateways (with their Elastic IP and network interface), network interfaces (instances show theirs), VPC endpoints (gateway routes, interface addresses), AWS and managed prefix lists, network ACLs and entries, tagging across services (queues, log groups, rules, API keys, functions, tables and more)",
+   "not_yet": "ACM certificates are issued at once, also with EMAIL validation (no approval step); network ACL and route rules do not filter traffic; DescribeVpcEndpointServices, peering connections as resources"
+  },
+  "resourcemanager": {
+   "title": "Resource Manager, Service Usage",
+   "cloud": "gcp",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "projects (v1 and v3), folders and organizations (read-only), project IAM policies; enabling and listing services",
+   "not_yet": "bookkeeping only"
+  },
+  "route53": {
+   "title": "ACM, Route 53, EC2 network, Tagging",
+   "cloud": "aws",
+   "category": "Networking",
+   "depth": "Thin",
+   "docker": false,
+   "covered": "certificates, hosted zones and records, VPCs/subnets/security groups with a default VPC, route tables and routes, internet and egress-only gateways, Elastic IPs, NAT gateways (with their Elastic IP and network interface), network interfaces (instances show theirs), VPC endpoints (gateway routes, interface addresses), AWS and managed prefix lists, network ACLs and entries, tagging across services (queues, log groups, rules, API keys, functions, tables and more)",
+   "not_yet": "ACM certificates are issued at once, also with EMAIL validation (no approval step); network ACL and route rules do not filter traffic; DescribeVpcEndpointServices, peering connections as resources"
+  },
+  "route53resolver": {
+   "title": "Amazon Route 53 Resolver",
+   "cloud": "aws",
+   "category": "Networking",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "rum": {
+   "title": "Config, Managed Prometheus, RUM, OAM",
+   "cloud": "aws",
+   "category": "Observability",
+   "depth": "Core",
+   "docker": false,
+   "covered": "Config recorders, rules and evaluations; Prometheus remote write with a PromQL subset (selectors, rate, sum by)",
+   "not_yet": "binary operators, custom Config rules"
+  },
+  "run": {
+   "title": "Cloud Run",
+   "cloud": "gcp",
+   "category": "Compute \u0026 containers",
+   "depth": "Core",
+   "docker": true,
+   "covered": "v2 API (gRPC and REST): services, revisions, traffic splits and tags, jobs and executions; containers on `\u003csvc\u003e.run.localhost`, started on the first request; `Hub.Deliver` target",
+   "not_yet": "worker pools, tasks API, sidecars, scaling, secrets and volumes"
+  },
+  "s3": {
+   "title": "S3",
+   "cloud": "aws",
+   "category": "Storage",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "buckets, objects, versioning, multipart, copy, tagging, ranges, conditional writes, presigned URLs and POST uploads, CORS, every Terraform `GetBucket*`, checksums (CRC32, CRC32C, CRC64NVME, SHA) and aws-chunked uploads, notifications to SQS, SNS, Lambda and EventBridge, bucket policies in enforcement (Allow and Deny, same and cross account, copy sources) and for anonymous callers, lifecycle rules applied by a sweep (current and noncurrent expiry, expired delete markers, aborted uploads, `x-amz-expiration`), Object Lock retention, legal hold and default retention enforced on delete and overwrite, static website hosting on `\u003cbucket\u003e.s3-website.localhost` (index and error documents)",
+   "not_yet": "stored replication settings are not acted on; lifecycle transitions are ignored; website routing rules are not applied; S3 Select; uploads over 10 MiB are refused unless `--max-upload-mb` is raised, because object bodies are held in memory (also in persistent mode)"
+  },
+  "s3tables": {
+   "title": "Transfer Family, DataSync, S3 Tables",
+   "cloud": "aws",
+   "category": "Storage",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a real SFTP server (port 2222) on S3 with key auth and home-directory mappings; DataSync tasks that copy between S3 locations with filters; Iceberg table buckets with real metadata files and version tokens",
+   "not_yet": "FTPS, NFS/SMB transfers, the Iceberg REST catalog"
+  },
+  "s3vectors": {
+   "title": "S3 Vectors",
+   "cloud": "aws",
+   "category": "Storage",
+   "depth": "Core",
+   "docker": false,
+   "covered": "vector buckets, indexes, put/get/list/delete vectors, metadata filters, cosine and euclidean query",
+   "not_yet": "exact k-NN only"
+  },
+  "sagemaker": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "sagemaker-runtime": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "scheduler": {
+   "title": "EventBridge + Scheduler",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "buses, the full pattern syntax, targets, input transformers, archives and replay, connections and API destinations, schedules (at/rate/cron), Scheduler universal targets (`aws-sdk:\u003cservice\u003e:\u003caction\u003e`)",
+   "not_yet": "EventBridge Pipes; a schedule with no Input delivers `{}` (AWS sends a default notification)"
+  },
+  "secretmanager": {
+   "title": "Secret Manager",
+   "cloud": "gcp",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "secrets, versions (enable, disable, destroy), aliases, checksums, etags",
+   "not_yet": "rotation and notifications (stored only)"
+  },
+  "secretsmanager": {
+   "title": "Secrets Manager",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "versions and stages, rotation through Lambda, random passwords, batch get",
+   "not_yet": "replication (metadata only)"
+  },
+  "securityhub": {
+   "title": "Security services",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
+   "not_yet": "no findings, no request filtering"
+  },
+  "service-quotas": {
+   "title": "Service Quotas",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "servicebus": {
+   "title": "Service Bus",
+   "cloud": "azure",
+   "category": "Messaging \u0026 events",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "AMQP (port 5672) with the official SDK: queues, topics, subscriptions with SQL and correlation rules and actions, peek-lock and receive-and-delete, sessions with state, dead-letter, defer, schedule, lock renewal, duplicate detection, forwarding, TTL; the admin (ATOM) API",
+   "not_yet": "auto-delete-on-idle and max size are stored only"
+  },
+  "servicecatalog": {
+   "title": "AWS Service Catalog",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "servicediscovery": {
+   "title": "Cloud Map",
+   "cloud": "aws",
+   "category": "Networking",
+   "depth": "Core",
+   "docker": false,
+   "covered": "namespaces (private DNS ones create Route 53 zones with A/SRV records), services, instances, `DiscoverInstances` with filters, custom health; ECS service registries",
+   "not_yet": "Route 53 health checks"
+  },
+  "serviceusage": {
+   "title": "Resource Manager, Service Usage",
+   "cloud": "gcp",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": false,
+   "covered": "projects (v1 and v3), folders and organizations (read-only), project IAM policies; enabling and listing services",
+   "not_yet": "bookkeeping only"
+  },
+  "ses": {
+   "title": "SES v1 + v2",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": false,
+   "covered": "simple, raw and templated email, identities, outbox at `/_aws/ses` and in the console, configuration sets (v1 and v2) with event destinations to SNS, EventBridge (default bus) and CloudWatch (`AWS/SES`) that get Send, Delivery, Bounce and Complaint events, using the mailbox simulator addresses",
+   "not_yet": "Open, Click and Reject events; Firehose and Pinpoint destinations are stored but get nothing; the sandbox rule that a sender must be verified (any sender is accepted, on purpose)"
+  },
+  "signalr": {
+   "title": "SignalR, Communication Services email",
+   "cloud": "azure",
+   "category": "Messaging \u0026 events",
+   "depth": "Core",
+   "docker": false,
+   "covered": "SignalR negotiate, WebSocket JSON hub protocol and server REST API (users, groups, connections); Communication Services email into the console inbox",
+   "not_yet": "SignalR upstreams, SSE and MessagePack"
+  },
+  "sns": {
+   "title": "SNS",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "standard and FIFO topics; SQS, Lambda, HTTP, email and SMS (outbox) subscriptions; filter policies; raw delivery; platform applications",
+   "not_yet": ""
+  },
+  "sqladmin": {
+   "title": "Cloud SQL",
+   "cloud": "gcp",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": true,
+   "covered": "v1beta4 and v1 REST API: instances on real PostgreSQL, MySQL and SQL Server containers, databases and users created in the engine, SSL certs, operations, flags, tiers, clone, SQL export/import through Cloud Storage, `connectSettings`, `generateEphemeralCert`; the address is `127.0.0.1:\u003cport\u003e`",
+   "not_yet": "Auth Proxy, TLS and IAM database auth, CSV/BAK, replicas, backups, failover"
+  },
+  "sqs": {
+   "title": "SQS",
+   "cloud": "aws",
+   "category": "Messaging \u0026 events",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "standard and FIFO, JSON and Query protocols, visibility, long polling, delays, DLQs and redrive (incl. message move tasks), batches, tags, attribute MD5s",
+   "not_yet": ""
+  },
+  "ssm": {
+   "title": "Systems Manager (SSM)",
+   "cloud": "aws",
+   "category": "Management \u0026 governance",
+   "depth": "Core",
+   "docker": true,
+   "covered": "Parameter Store (String, StringList and SecureString types, paths, history, labels, public AMI parameters, `/aws/reference/secretsmanager/\u003cid\u003e`), documents with versions, permissions and tags, associations, service settings, and Run Command (`SendCommand` runs shell documents with `docker exec` in the containers of running pogi EC2 instances, with statuses and `GetCommandInvocation`)",
+   "not_yet": "parameter policies; associations run once when made, not on their schedule; Run Command targets InstanceIds only (no tag targets), has one output stream, and runs `aws:runShellScript` steps only; Automation, Session Manager, Inventory and Patch Manager"
+  },
+  "sso": {
+   "title": "IAM Identity Center",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "`aws sso login` (device code and PKCE) with real portal credentials, permission sets and account assignments that create `AWSReservedSSO_` roles, Identity Store users and groups",
+   "not_yet": ""
+  },
+  "sso-admin": {
+   "title": "IAM Identity Center",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "`aws sso login` (device code and PKCE) with real portal credentials, permission sets and account assignments that create `AWSReservedSSO_` roles, Identity Store users and groups",
+   "not_yet": ""
+  },
+  "sso-oidc": {
+   "title": "IAM Identity Center",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "`aws sso login` (device code and PKCE) with real portal credentials, permission sets and account assignments that create `AWSReservedSSO_` roles, Identity Store users and groups",
+   "not_yet": ""
+  },
+  "stepfunctions": {
+   "title": "Step Functions",
+   "cloud": "aws",
+   "category": "Integration \u0026 workflow",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "all state types, Retry/Catch, Map and Parallel, intrinsics, integrations with Lambda, SQS, SNS, DynamoDB, EventBridge and `aws-sdk:*`, callbacks, activities, `.sync` child executions, history, JSONata (`Arguments`, `Output`, `Assign`, `Condition`, `$states`, the built-in functions and the Step Functions ones, parsed at create) and state variables, JSONPath filters and `..`, state machine versions and aliases",
+   "not_yet": "distributed Map, redrive; Map `ToleratedFailure*` fields are checked at create but not applied (one failed item fails the Map); JSONata: `$eval`, `$formatInteger`, `$parseInteger`, the `%`, `@` and `#` operators, and picture strings in `$toMillis`; by design, every real sleep (a Wait state or a Retry backoff) is cut to at most 60 seconds so local runs stay fast, so a Wait of an hour ends after one minute"
+  },
+  "sts": {
+   "title": "STS",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "GetCallerIdentity, AssumeRole (multi-account; the role must exist in IAM), web identity (an expired token is refused), session and federation tokens (DurationSeconds 900 or more; with signature checking on, expired credentials are refused)",
+   "not_yet": "trust policies are not checked, web identity tokens are not verified"
+  },
+  "swf": {
+   "title": "Amazon Simple Workflow Service",
+   "cloud": "aws",
+   "category": "Integration \u0026 workflow",
+   "depth": "Core",
+   "docker": false,
+   "covered": "16 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+  },
+  "textract": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "timestream-influxdb": {
+   "title": "Timestream for InfluxDB",
+   "cloud": "aws",
+   "category": "Databases",
+   "depth": "Core",
+   "docker": true,
+   "covered": "DB instances on InfluxDB 2 with the admin token in Secrets Manager",
+   "not_yet": ""
+  },
+  "transcribe": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "transfer": {
+   "title": "Transfer Family, DataSync, S3 Tables",
+   "cloud": "aws",
+   "category": "Storage",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a real SFTP server (port 2222) on S3 with key auth and home-directory mappings; DataSync tasks that copy between S3 locations with filters; Iceberg table buckets with real metadata files and version tokens",
+   "not_yet": "FTPS, NFS/SMB transfers, the Iceberg REST catalog"
+  },
+  "translate": {
+   "title": "Bedrock and the AI services",
+   "cloud": "aws",
+   "category": "Analytics \u0026 AI",
+   "depth": "Deep",
+   "docker": false,
+   "covered": "a local model gateway (any OpenAI-compatible endpoint, else stable canned answers): Bedrock InvokeModel in every common body format, Converse and both streaming APIs, embeddings, agents and knowledge bases; SageMaker endpoints; Comprehend and Translate through the model; Textract, Transcribe and Rekognition with deterministic results",
+   "not_yet": "guardrails are not evaluated, agents don't call action groups"
+  },
+  "verifiedpermissions": {
+   "title": "Organizations + SCPs, Verified Permissions, Resource Explorer",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "organizations, OUs, accounts, policies and their attachment; Cedar policy stores, schemas, templates and IsAuthorized (with Cognito tokens); indexes, views and search",
+   "not_yet": "SCPs don't restrict root; list operations return one page"
+  },
+  "wafv2": {
+   "title": "Security services",
+   "cloud": "aws",
+   "category": "Security \u0026 identity",
+   "depth": "Core",
+   "docker": false,
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
+   "not_yet": "no findings, no request filtering"
+  }
+ }
+}

@@ -1,0 +1,14 @@
+{{define "head"}}{{with .Data}}<div class="ph"><div><h1>Services</h1>
+  <p class="sub">{{.Total}} emulated services. Star one to pin it to the sidebar. <span class="tag deep">Deep</span> real behaviour and wiring · <span class="tag core">Core</span> main API · <span class="tag">Thin</span> enough for IaC.</p></div></div>{{end}}{{end}}
+{{define "content"}}{{with .Data}}{{$d := .}}
+<div class="toolbar">
+  <div class="filter">{{icon "search"}}<input class="input" placeholder="Filter services" aria-label="Filter services" autocomplete="off" data-filter="tiles"></div>
+  <a class="switch {{if .UseOnly}}on{{end}}" href="{{.Href (not .UseOnly)}}"><i></i>In use only</a>
+</div>
+{{range .Groups}}<div class="cat"><h2>{{.Name}} <span>{{len .Tiles}}</span></h2><div class="tiles">
+  {{range .Tiles}}<div class="tile" data-q="{{.Q}}"><span class="dot {{.Cloud}}"></span><span class="nm"><a href="/_pogi/resources/{{.Name}}">{{.Title}}</a></span>
+    {{if .Depth}}<span class="tag {{.DC}}">{{.Depth}}</span>{{end}}<span class="cnt {{if .Used}}use{{end}}">{{if .Used}}{{.Res}}{{end}}</span>
+    <span class="pin {{if .Pinned}}on{{end}}" role="button" tabindex="0" aria-pressed="{{if .Pinned}}true{{else}}false{{end}}" aria-label="{{if .Pinned}}Unpin {{.Title}}{{else}}Pin {{.Title}} to sidebar{{end}}" data-pin="{{.Name}}" title="{{if .Pinned}}Unpin{{else}}Pin to sidebar{{end}}">{{icon "star"}}</span></div>{{end}}
+</div></div>
+{{else}}<div class="tablecard"><div class="empty"><div class="ico">{{icon "grid"}}</div><h2>No services match</h2><p>{{if .UseOnly}}Nothing is in use yet. Create something, or turn off “In use only”.{{else}}Try another cloud or “All”.{{end}}</p></div></div>{{end}}
+{{end}}{{end}}

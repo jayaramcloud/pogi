@@ -1,0 +1,10 @@
+{{define "drawer"}}{{with .Data}}
+<header><div class="eyebrow">{{$.Eyebrow}}</div><div class="title"><h2 id="dtitle">Add tags</h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<form id="tagf" hx-post="/_pogi/bulk/{{.Service}}/{{path .Table}}" hx-target="#drawer" style="display:contents">
+  <input type="hidden" name="action" value="tag"><input type="hidden" name="back" value="{{.Back}}">{{range .Rows}}<input type="hidden" name="row" value="{{.}}">{{end}}
+  <div class="dbody"><div class="field"><label>Tags</label><input class="input mono" name="tags" placeholder="env=dev, team=core" autofocus required>
+    <span class="help">Merged into each resource's existing tags.</span></div></div>
+</form>
+<footer><button class="btn" data-close>Cancel</button><button class="btn primary" form="tagf">Apply tags</button></footer>
+{{end}}{{end}}
+{{define "content"}}<p class="empty">Tick rows on a service page, then choose Tag.</p>{{end}}

@@ -1,0 +1,9 @@
+{{define "body"}}<div class="kvs" style="margin-bottom:16px"><div>Policy</div><div class="mono">{{.Policy}} <span class="faint">· customer managed</span></div>
+  <div>Version</div><div>{{.Version}} becomes the default{{if not .Exists}} <span class="faint">· new policy</span>{{end}}</div>
+  <div>Adds</div><div>{{if .Diff}}+{{len .Diff}} {{if eq (len .Diff) 1}}action{{else}}actions{{end}}: {{range $i, $d := .Diff}}{{if $i}}, {{end}}<span class="mono">{{$d}}</span>{{end}}{{else}}nothing: the policies already allow every recorded call{{end}}</div></div>
+<p class="faint" style="margin:0 0 8px">The new version allows everything recorded for this principal, and keeps what the previous version allowed.</p>
+<pre class="code" style="max-height:300px;overflow:auto">{{.Doc}}</pre>{{end}}
+{{define "content"}}{{with .Data}}{{template "body" .}}<form method="post" action="/_pogi/iam/attach" class="actions" style="margin-top:12px"><input type="hidden" name="principal" value="{{.Principal}}"><a class="btn" href="/_pogi/iam">Cancel</a><button class="btn primary">Confirm</button></form>{{end}}{{end}}
+{{define "drawer"}}{{with .Data}}<header><div class="eyebrow">IAM policy</div><div class="title"><h2 id="dtitle">Attach to {{.Label}}</h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<div class="dbody">{{template "body" .}}</div>
+<footer><button class="btn" data-close>Cancel</button><button class="btn primary" hx-post="/_pogi/iam/attach?principal={{q .Principal}}" hx-target="#drawer">Confirm</button></footer>{{end}}{{end}}

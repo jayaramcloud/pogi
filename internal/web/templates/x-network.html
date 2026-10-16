@@ -1,0 +1,18 @@
+{{define "inst"}}<li><a href="/_pogi/resources/ec2/Instances/{{path .ID}}" data-drawer class="mono">{{.ID}}</a> <span class="state {{.State}}">{{.State}}</span> <span class="dim">{{.Type}}{{if .IP}} · {{.IP}}{{end}}</span></li>{{end}}
+{{define "content"}}{{with .Data}}<div class="x" id="xtab">{{template "xcss"}}
+<h2>Instances</h2>
+<table><thead><tr><th>instance</th><th>state</th><th>type</th><th>image</th><th>private IP</th></tr></thead><tbody>
+{{range .Instances}}<tr><td><a href="/_pogi/resources/ec2/Instances/{{path .ID}}" data-drawer class="mono">{{.ID}}</a></td><td><span class="state {{.State}}">{{.State}}</span></td><td>{{.Type}}</td><td class="mono">{{.Image}}</td><td class="mono">{{.IP}}</td></tr>
+{{else}}<tr><td colspan="5" class="empty">No instances yet.</td></tr>{{end}}</tbody></table>
+<h2>VPCs</h2>
+<ul class="tree top">
+{{range .VPCs}}<li><b class="mono">{{.ID}}</b> <span class="dim">{{.CIDR}} · {{.Region}}{{if .Default}} · default{{end}}</span>
+  <ul class="tree">
+  {{range .Subnets}}<li>subnet <a href="/_pogi/resources/ec2/Subnets/{{path .ID}}" data-drawer class="mono">{{.ID}}</a> <span class="dim">{{.CIDR}} · {{.Zone}}</span>
+    {{if .Instances}}<ul class="tree">{{range .Instances}}{{template "inst" .}}{{end}}</ul>{{end}}</li>{{end}}
+  {{range .Groups}}<li>security group <a href="/_pogi/resources/ec2/Security%20groups/{{path (index . 0)}}" data-drawer class="mono">{{index . 0}}</a> <span class="dim">{{index . 1}}</span></li>{{end}}
+  {{range .Loose}}{{template "inst" .}}{{end}}
+  </ul></li>
+{{else}}<li class="empty">No VPCs yet.</li>{{end}}
+</ul>
+</div>{{end}}{{end}}

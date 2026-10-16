@@ -1,0 +1,34 @@
+{{define "drawer"}}{{with .Data}}
+<header><div class="eyebrow">{{$.Eyebrow}}</div><div class="title"><h2 id="dtitle">Create resource</h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<form id="dform" hx-post="/_pogi/arm/new" hx-target="#drawer" style="display:contents">
+  <div class="dbody">
+    <p class="dim" style="margin-top:0">Azure resources are JSON: pick a type for a starting body, fill in the ID, edit, and send. pogi reads the resource back to check it.</p>
+    {{if .Err}}<div class="flash" role="alert" id="apierr">{{.Err}}</div>{{end}}
+    <div class="field"><label>Resource type</label><select class="input" name="type" hx-get="/_pogi/arm/new" hx-trigger="change" hx-target="#drawer">{{$t := .Type}}{{range .Types}}<option {{if eq . $t}}selected{{end}}>{{.}}</option>{{end}}</select></div>
+    <div class="field"><label>Resource ID <span class="req">*</span></label><input class="input mono" name="path" value="{{.Path}}" required></div>
+    <div class="field"><label>Body (PUT) <span class="req">*</span></label><textarea class="input" name="body" rows="14" required>{{.Body}}</textarea></div>
+  </div>
+  <div class="cli"><div class="lbl">{{icon "term"}}Same thing from the CLI<span class="spacer"></span><button type="button" class="btn sm ghost" data-copy="#cli">{{icon "copy"}}Copy</button></div>
+    <pre id="cli" hx-target="this" hx-post="/_pogi/cli/arm/new" hx-include="#dform" hx-trigger="load, input from:#dform delay:250ms, change from:#dform delay:250ms" hx-swap="innerHTML"></pre></div>
+</form>
+<footer><button class="btn" data-close>Cancel</button><button class="btn primary" form="dform">Create or update</button></footer>
+{{end}}{{end}}
+
+{{define "content"}}{{with .Data}}
+<p class="crumbs"><a href="/_pogi/resources/arm">Resource Manager</a> / new resource
+  <span class="dim">· subscription {{.Scope.Subscription}}</span></p>
+<p>Azure resources are JSON: pick a type for a starting body, fill in the ID, edit, and send. pogi reads the resource back to check it.</p>
+{{if .Err}}<div class="flash" role="alert" id="apierr">{{.Err}}</div>{{end}}
+<div id="edit">
+<form class="stack" method="get" action="/_pogi/arm/new" hx-get="/_pogi/arm/new" hx-trigger="change" hx-target="#edit" hx-select="#edit" hx-swap="outerHTML">
+  <label class="fld"><span>Resource type</span><select name="type">{{$t := .Type}}{{range .Types}}<option {{if eq . $t}}selected{{end}}>{{.}}</option>{{end}}</select></label>
+</form>
+<form class="stack" method="post" action="/_pogi/arm/new">
+  <input type="hidden" name="type" value="{{.Type}}">
+  <label class="fld"><span>Resource ID<b class="req">*</b></span><input name="path" value="{{.Path}}" required></label>
+  <label class="fld"><span>Body (PUT)<b class="req">*</b></span><textarea name="body" rows="14" required>{{.Body}}</textarea></label>
+  <div><button>Create or update</button></div>
+</form>
+{{if .Result}}<h2>Saved</h2><pre id="armresult">{{.Result}}</pre>{{end}}
+</div>
+{{end}}{{end}}

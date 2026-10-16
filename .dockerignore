@@ -1,0 +1,5 @@
+.git
+pogi
+dist
+*.test
+scan-results

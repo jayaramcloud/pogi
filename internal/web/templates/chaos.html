@@ -1,0 +1,19 @@
+{{define "head"}}<div class="ph"><div><h1>Chaos</h1><p class="sub">Inject errors and latency to test retries, timeouts and dead-letter paths. Rules apply to SDK calls, never to this console.</p></div>
+  <div class="actions">{{if .Data.Rules}}<form method="post" action="/_pogi/chaos/all/delete" hx-confirm="Remove every chaos rule?"><button class="btn danger">Remove all</button></form>{{end}}
+    <a class="btn primary" href="/_pogi/chaos/new" data-drawer data-create>{{icon "plus"}}Add rule</a></div></div>{{end}}
+
+{{define "content"}}{{with .Data}}
+<div class="presets">
+  <a class="preset" href="/_pogi/chaos/new?preset=throttle" data-drawer><b>{{icon "bolt"}}Throttle</b><span>20% of calls fail with ThrottlingException</span></a>
+  <a class="preset" href="/_pogi/chaos/new?preset=outage" data-drawer><b>{{icon "x"}}Outage</b><span>One service answers 503 to every call</span></a>
+  <a class="preset" href="/_pogi/chaos/new?preset=slow" data-drawer><b>{{icon "pulse"}}Slow</b><span>Add 800 ms to every response</span></a>
+  <a class="preset" href="/_pogi/chaos/new?preset=custom" data-drawer><b>{{icon "plus"}}Custom</b><span>Pick service, operation, error and latency</span></a>
+</div>
+<div class="tablecard"><table class="dt"><thead><tr><th>Target</th><th>Effect</th><th class="num">Probability</th><th class="num">Hits</th><th></th></tr></thead><tbody>
+{{range .Rules}}<tr><td><span class="name">{{or .Service "any service"}}</span> <span class="faint">· {{if .Op}}{{.Op}}{{else}}any operation{{end}}</span></td>
+  <td>{{if .Status}}<span class="st bad">{{.Status}} {{.Code}}</span>{{end}}{{if .LatencyMs}} <span class="st warn">+{{.LatencyMs}} ms</span>{{end}}</td>
+  <td class="num">{{if .Probability}}{{printf "%.0f%%" (mul100 .Probability)}}{{else}}100%{{end}}</td><td class="num">{{.Hits}}</td>
+  <td class="num"><form method="post" action="/_pogi/chaos/{{.ID}}/delete" class="inline"><button class="btn sm ghost danger">{{icon "trash"}}Remove</button></form></td></tr>
+{{else}}<tr><td colspan="5"><div class="empty"><h2>No rules: everything behaves</h2><p>Start from a preset above, or add your own rule.</p></div></td></tr>{{end}}
+</tbody></table></div>
+{{end}}{{end}}

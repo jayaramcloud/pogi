@@ -1,0 +1,273 @@
+#!/bin/sh
+# Runs the same checks as CI. Every CI job calls this script, so what passes here passes there.
+#
+#   scripts/ci.sh [step ...]     no arguments runs: coverage fmt vet build cross release-check lint workflows test all
+#
+# Steps:
+#   fmt              gofmt finds nothing to change
+#   vet              go vet ./...
+#   build            builds ./cmd/pogi and runs "pogi version"
+#   cross [os/arch ...]  builds ./cmd/pogi for the given platforms, default all six release ones (CGO off)
+#   release-check    goreleaser check (the release config)
+#   lint             golangci-lint (config: .golangci.yml)
+#   workflows        actionlint and zizmor on .github/workflows
+#   coverage         every Go package is in exactly one test group
+#   groups           prints the test group names, one per line
+#   test <group>     the race tests of one group (Docker off, 8 minute limit per package); "all" runs every group
+#   conformance [block ...]   scripts/conformance.sh (Terraform and CDK against a fresh pogi)
+#   security [tool ...]       scripts/security-scan.sh
+#   notes <version>  prints that version's CHANGELOG.md section, the release page notes (links made absolute)
+#   gate             the full pre-release gate: go test -race ./... with Docker ON, then scripts/conformance.sh
+#
+# test, conformance and security take the rest of the arguments, so put them last.
+#
+# A missing tool is skipped with a hint on your machine, and fails the step when CI=true (GitHub sets it).
+# When GITHUB_STEP_SUMMARY is set, "test" also writes JUnit XML and JSON to test-results/ and adds a table
+# of the totals and the failed tests to the job summary.
+set -eu
+
+root=$(cd "$(dirname "$0")/.." && pwd)
+cd "$root"
+
+# Pinned tools that run through "go run". Raise them on purpose, not by accident.
+gotestsum_pkg=gotest.tools/gotestsum@c4a0df2e75a225d979a444342dd3db752b53619f # v1.13.0
+actionlint_pkg=github.com/rhysd/actionlint/cmd/actionlint@914e7df21a07ef503a81201c76d2b11c789d3fca # v1.7.12
+
+# The platforms "cross" builds, the same six as the release.
+platforms="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64"
+
+# --- test groups -------------------------------------------------------------
+# The only place the groups are defined. Each group is a pattern on the package path (it starts with "./",
+# the module root is "./."). They are balanced by test time and package count from a CI run with Docker off
+# (about 460 seconds in all). "coverage" fails when a package is in no group or in two, so a new package
+# makes CI fail until it is put in a group.
+test_groups="aws-a-c aws-d-g aws-h-l aws-m-z gcp-a-f gcp-g-z azure-a-b azure-c-e azure-f-z core"
+
+group_pattern() {
+  case $1 in
+    aws-a-c)   echo 'internal/aws/[a-c]' ;;
+    aws-d-g)   echo 'internal/aws/[d-g]' ;; # includes aws/generic, a slow one
+    aws-h-l)   echo 'internal/aws/[h-l]' ;; # includes aws/lambda, a slow one
+    aws-m-z)   echo 'internal/aws/[m-z]' ;;
+    gcp-a-f)   echo 'internal/gcp/[a-f]' ;;
+    gcp-g-z)   echo 'internal/gcp/[g-z]' ;;
+    azure-a-b) echo 'internal/azure/[a-b]' ;;
+    azure-c-e) echo 'internal/azure/[c-e]' ;;
+    azure-f-z) echo 'internal/azure/[f-z]' ;;
+    core)      echo '(\.|cmd|test|internal/(aimodel|amqp|awstest|config|core|docker|duckdb|mcp|seed|tui|web))(/|$)' ;;
+    *)         return 1 ;;
+  esac
+}
+
+# --- helpers -----------------------------------------------------------------
+
+have() { command -v "$1" >/dev/null 2>&1; }
+die() { echo "ci.sh: $*" >&2; exit 1; }
+
+# need <program> [brew name]: true if the program exists. If not: CI fails, a laptop skips with a hint.
+need() {
+  have "$1" && return 0
+  [ "${CI:-}" = true ] && die "$1 is not installed"
+  echo "skipped: install $1 (brew install ${2:-$1})"
+  return 1
+}
+
+# Prints a warning when the local tool is not the version the workflows pin.
+# warn_version <tool> <local version> <pinned version>
+warn_version() {
+  [ -n "$3" ] && [ "$2" != "$3" ] && echo "warning: $1 is $2 here, CI pins $3" >&2
+  return 0
+}
+
+# The version preflight.yml pins for a tool: a line with "version: v2.18.3" or "zizmor==1.30.1" and "# pinned <tool>".
+pinned() { sed -nE "s/.*(version: v|==)([0-9][0-9.]*) # pinned $1.*/\2/p" .github/workflows/preflight.yml | head -1; }
+
+# Every package of the module as ./path, the module root as ./.
+list_pkgs() {
+  mod=$(go list -m)
+  go list ./... | sed -e "s#^$mod\$#./.#" -e "s#^$mod/#./#"
+}
+
+# --- steps -------------------------------------------------------------------
+
+step_fmt() {
+  out=$(gofmt -l .)
+  [ -z "$out" ] || { echo "gofmt would change:"; echo "$out"; return 1; }
+  echo "fmt: ok"
+}
+
+step_vet() { go vet ./...; }
+
+step_build() {
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  go build -o "$tmp/pogi" ./cmd/pogi
+  "$tmp/pogi" version
+}
+
+# step_cross [os/arch ...]: CI runs one platform per job, in parallel.
+step_cross() {
+  [ $# -gt 0 ] || set -- $platforms
+  for p in "$@"; do
+    echo "build $p"
+    CGO_ENABLED=0 GOOS=${p%/*} GOARCH=${p#*/} go build -trimpath -o /dev/null ./cmd/pogi
+  done
+}
+
+step_release_check() {
+  need goreleaser || return 0
+  warn_version goreleaser "$(goreleaser --version | sed -n 's/^GitVersion: *//p')" "$(pinned goreleaser)"
+  goreleaser check
+}
+
+step_lint() {
+  need golangci-lint || return 0
+  warn_version golangci-lint "$(golangci-lint --version | sed -n 's/^golangci-lint has version \([0-9.]*\).*/\1/p')" "$(pinned golangci-lint)"
+  golangci-lint run ./...
+}
+
+step_workflows() {
+  if have actionlint; then actionlint; else go run "$actionlint_pkg"; fi
+  need zizmor || return 0
+  warn_version zizmor "$(zizmor --version | sed 's/^zizmor //')" "$(pinned zizmor)"
+  # Some audits ask GitHub's API and need a token. Without one they are skipped.
+  online=
+  [ -n "${GH_TOKEN:-}${GITHUB_TOKEN:-}" ] || online=--no-online-audits
+  zizmor $online .github/workflows
+}
+
+step_groups() { for g in $test_groups; do echo "$g"; done; }
+
+# Every package is in exactly one group, and every group has a package.
+step_coverage() {
+  pkgs=$(list_pkgs)
+  problems=$(echo "$pkgs" | while read -r p; do
+    n=0
+    for g in $test_groups; do
+      echo "$p" | grep -Eq "^\\./($(group_pattern "$g"))" && n=$((n + 1))
+    done
+    [ $n = 1 ] || echo "$p is in $n test groups (it must be in exactly one: see group_pattern in scripts/ci.sh)"
+  done)
+  for g in $test_groups; do
+    echo "$pkgs" | grep -Eq "^\\./($(group_pattern "$g"))" || problems="$problems
+group $g matches no package"
+  done
+  [ -z "$problems" ] || { echo "$problems" >&2; return 1; }
+  echo "coverage: $(echo "$pkgs" | wc -l | tr -d ' ') packages, each in one of $(echo "$test_groups" | wc -w | tr -d ' ') groups"
+}
+
+# step_test <group>|all
+step_test() {
+  [ $# -ge 1 ] || die "test needs a group ($test_groups) or all"
+  if [ "$1" = all ]; then
+    for g in $test_groups; do echo "== $g"; step_test "$g"; done
+    return 0
+  fi
+  g=$1
+  pat=$(group_pattern "$g") || die "unknown group: $g (choose from: $test_groups all)"
+  pkgs=$(list_pkgs | grep -E "^\\./($pat)" || true)
+  [ -n "$pkgs" ] || die "group $g has no package"
+  set -- --format pkgname-and-test-fails --format-hide-empty-pkg --hide-summary skipped
+  if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+    need jq || return 1
+    set -- "$@" --jsonfile "test-results/$g.json" --junitfile "test-results/$g.xml" \
+      --post-run-command "sh $root/scripts/ci.sh report $g"
+  fi
+  # Docker is off: tests that need it skip themselves. They run in "gate" on a developer machine.
+  # $pkgs is left unquoted on purpose: one word per package.
+  # shellcheck disable=SC2086
+  DOCKER_HOST=unix:///nonexistent/docker.sock go run "$gotestsum_pkg" "$@" -- -race -count=1 -timeout 8m $pkgs
+}
+
+# Called by gotestsum after the run (not by hand): adds the totals and the failed tests to the job summary,
+# and one annotation per failed test. It never fails, so it cannot hide the test result.
+step_report() {
+  g=${1:-tests}
+  json=${GOTESTSUM_JSONFILE:-}
+  [ -s "$json" ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ] && have jq || return 0
+  mod=$(go list -m)
+  # The failed tests that have no failing subtest, each with its output.
+  # shellcheck disable=SC2016 # the jq programs are single-quoted on purpose
+  prelude='
+    def short: sub("^" + $mod + "/?"; "") | if . == "" then "." else . end;
+    def tail($n): rtrimstr("\n") | split("\n") | .[-$n:] | join("\n");
+    (reduce (.[] | select(.Action == "output")) as $e ({}; .[$e.Package + "|" + ($e.Test // "")] += $e.Output)) as $out
+    | [.[] | select(.Test != null and .Action == "fail")] as $f
+    | ($f | map(.Package + "|" + .Test)) as $names
+    | ($f | map(select((.Package + "|" + .Test) as $k | $names | any(startswith($k + "/")) | not))) as $leaves
+    | ([.[] | select(.Test == null and .Action == "fail") | .Package] - ($leaves | map(.Package))) as $badpkgs
+  '
+  # shellcheck disable=SC2016
+  summary="$prelude"'
+    | "### Tests: \($group)", "",
+    "| tests | failed | skipped | errors | time |", "|---:|---:|---:|---:|---:|",
+    "| \($total) | \($failed) | \($skipped) | \($errors) | \($time) |", "",
+    ($leaves[] | "<details><summary>FAIL \(.Test) (\(.Package | short))</summary>\n\n```\n\($out[.Package + "|" + .Test] // "" | tail(40))\n```\n\n</details>\n"),
+    ($badpkgs[] | "<details><summary>FAIL package \(. | short)</summary>\n\n```\n\($out[. + "|"] // "" | tail(40))\n```\n\n</details>\n")
+  '
+  jq -rs --arg mod "$mod" --arg group "$g" --arg total "${TESTS_TOTAL:-?}" --arg failed "${TESTS_FAILED:-?}" \
+    --arg skipped "${TESTS_SKIPPED:-?}" --arg errors "${TESTS_ERRORS:-?}" --arg time "${GOTESTSUM_ELAPSED:-?}" \
+    "$summary" "$json" >>"$GITHUB_STEP_SUMMARY" || true
+  [ -n "${GITHUB_ACTIONS:-}" ] || return 0
+  # An annotation points at the first "file.go:line:" line of the test's output, when there is one.
+  # shellcheck disable=SC2016
+  annotations="$prelude"'
+    | ($leaves[] | . as $l | ($out[.Package + "|" + .Test] // "") as $o
+      | ([$o | split("\n")[] | capture("^\\s+(?<f>[A-Za-z0-9_.-]+\\.go):(?<l>[0-9]+): (?<m>.*)$")] | first) as $h
+      | ($l.Package | short) as $dir
+      | ("FAIL " + $l.Test | gsub(","; "%2C") | gsub(":"; "%3A")) as $title
+      | if $h then "::error file=\($dir)/\($h.f),line=\($h.l),title=\($title)::\($h.m | gsub("%"; "%25") | gsub("\r"; "%0D"))"
+        else "::error title=\($title)::failed in \($l.Package | short)" end),
+    ($badpkgs[] | "::error title=FAIL package::\(. | short) failed (build error or panic): see the job summary")
+  '
+  jq -rs --arg mod "$mod" "$annotations" "$json" || true
+}
+
+step_conformance() {
+  # Terraform keeps its provider downloads here, between runs (CI caches the folder).
+  [ -z "${TF_PLUGIN_CACHE_DIR:-}" ] || mkdir -p "$TF_PLUGIN_CACHE_DIR"
+  sh scripts/conformance.sh "$@"
+}
+
+step_security() {
+  rc=0
+  sh scripts/security-scan.sh "$@" || rc=$?
+  if [ -n "${GITHUB_STEP_SUMMARY:-}" ] && [ -f scan-results/SUMMARY.md ]; then
+    { echo "### Security scan"; echo; cat scan-results/SUMMARY.md; } >>"$GITHUB_STEP_SUMMARY"
+  fi
+  return $rc
+}
+
+# The full local gate before a release. Docker is ON here, so the container-backed tests run.
+# step_notes <version>: the "## [x.y.z]" section of CHANGELOG.md, without its heading. Relative links point
+# at the tagged tree on GitHub, since the release page has no files next to it. Fails when the section is missing.
+step_notes() {
+  v=${1:?usage: scripts/ci.sh notes <version>}; v=${v#v}
+  out=$(awk -v h="## [$v]" 'index($0, h) == 1 { on = 1; next } on && /^## \[/ { exit } on && !/^\[[^]]*\]: /' CHANGELOG.md |
+    sed "s#](docs/#](https://github.com/nrndev/pogi/blob/v$v/docs/#g")
+  [ -n "$(printf '%s' "$out" | tr -d '[:space:]')" ] || die "CHANGELOG.md has no section for $v"
+  printf '%s\n' "$out"
+}
+
+step_gate() {
+  go test -race -count=1 ./...
+  sh scripts/conformance.sh
+}
+
+# --- run ---------------------------------------------------------------------
+
+[ $# -gt 0 ] || set -- coverage fmt vet build cross release-check lint workflows test all
+while [ $# -gt 0 ]; do
+  s=$1; shift
+  case $s in
+    fmt|vet|build|lint|workflows|coverage|groups|gate) "step_$s" ;;
+    cross) # takes the os/arch arguments that follow it
+      ps=""; while [ $# -gt 0 ] && case $1 in */*) true ;; *) false ;; esac; do ps="$ps $1"; shift; done
+      step_cross $ps ;;
+    release-check) step_release_check ;;
+    report) step_report "$@"; exit 0 ;;
+    test|conformance|security) "step_$s" "$@"; exit $? ;; # these take the rest of the arguments
+    notes) step_notes "${1:-}"; exit $? ;;
+    *) die "unknown step: $s (fmt vet build cross release-check lint workflows coverage groups test conformance security notes gate)" ;;
+  esac
+done

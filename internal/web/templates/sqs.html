@@ -1,0 +1,34 @@
+{{define "drawer"}}{{with .Data}}
+<header><div class="eyebrow">{{$.Eyebrow}}</div><div class="title"><h2 id="dtitle">{{.Name}}</h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<div class="dbody">{{template "sqsbody" .}}</div>
+<footer><button class="btn danger left" hx-post="/_pogi/sqs/{{.Account}}/{{.Region}}/{{path .Name}}/purge" hx-target="#drawer" hx-confirm="Purge every message?">{{icon "trash"}}Purge queue</button><button class="btn" data-close>Close</button></footer>
+{{end}}{{end}}
+
+{{define "content"}}{{with .Data}}
+<p class="crumbs"><a href="/_pogi/resources/sqs">queues</a> / {{.Name}} <span class="dim">({{.Account}} · {{.Region}})</span></p>
+{{template "sqsbody" .}}
+<form method="post" action="/_pogi/sqs/{{.Account}}/{{.Region}}/{{path .Name}}/purge" hx-confirm="Purge every message?"><button class="ghost danger">Purge queue</button></form>
+{{end}}{{end}}
+
+{{define "sqsbody"}}{{$u := printf "/_pogi/sqs/%s/%s/%s" .Account .Region (path .Name)}}
+<form id="sqsform" hx-post="{{$u}}/send" hx-target="#drawer" method="post" action="{{$u}}/send">
+  <div class="field"><label>Send a message</label><textarea class="input" name="body" placeholder='{"hello": "pogi"}' required></textarea></div>
+  <div class="field"><label>Delay (seconds)</label><input class="input mono" type="number" name="delay" min="0" max="900" placeholder="0"></div>
+  {{if .FIFO}}<div class="field"><label>Message group ID</label><input class="input mono" name="group" placeholder="default: console"></div>
+  <div class="field"><label>Message deduplication ID</label><input class="input mono" name="dedup" placeholder="default: random"></div>{{end}}
+  <details class="more"><summary>Message attributes (String)</summary>
+    {{range $i := .Rows}}<div style="display:flex;gap:8px;margin-top:6px"><input class="input mono" name="ak{{$i}}" placeholder="key"><input class="input mono" name="av{{$i}}" placeholder="value"></div>{{end}}
+  </details>
+  <div class="actions" style="justify-content:flex-end;margin:12px 0 18px"><button class="btn primary">{{icon "send"}}Send</button></div>
+  <div class="cli"><div class="lbl">{{icon "term"}}Same thing from the CLI<span class="spacer"></span><button type="button" class="btn sm ghost" data-copy="#sqscli">{{icon "copy"}}Copy</button></div>
+    <pre id="sqscli" hx-target="this" hx-post="{{$u}}/cli" hx-include="#sqsform" hx-encoding="application/x-www-form-urlencoded" hx-trigger="load, input from:#sqsform delay:250ms" hx-swap="innerHTML"></pre></div>
+</form>
+<div id="msgs" hx-get="{{$u}}" hx-select="#msgs" data-poll="3000" data-poll-drawer hx-trigger="pogi-poll" hx-swap="outerHTML">
+  <div class="stats3"><div><b>{{index .Count "visible"}}</b><span>visible</span></div><div><b>{{index .Count "inflight"}}</b><span>in flight</span></div><div><b>{{index .Count "delayed"}}</b><span>delayed</span></div></div>
+  <h4 style="margin:0 0 8px;display:flex;justify-content:space-between">Messages <span class="faint" style="font-weight:400">peeking does not change visibility</span></h4>
+  <div class="tablecard"><table class="dt"><tbody>
+  {{range .Messages}}<tr><td class="mono trunc" style="max-width:280px" title="{{.Body}}">{{.Body}}</td><td><span class="st {{if eq .State "visible"}}ok{{else}}warn{{end}}">{{.State}}</span></td><td class="dim">received {{.Receives}}×</td><td class="faint">{{ago .Sent}}</td></tr>
+  {{else}}<tr><td class="empty-cell">Queue is empty.</td></tr>{{end}}</tbody></table></div>
+</div>
+<details class="more" style="margin-top:16px"><summary>Attributes</summary><div class="kvs">{{range $k, $v := .Queue.attributes}}<div>{{$k}}</div><div class="mono">{{$v}}</div>{{end}}</div></details>
+{{end}}

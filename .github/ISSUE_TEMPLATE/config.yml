@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/nrndev/pogi/security/advisories/new
+    about: Report it privately, please, not as a public issue.
+  - name: Docs
+    url: https://pogi.nrnx.dev
+    about: Install, tutorials, how-to guides and reference.

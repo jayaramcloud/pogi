@@ -1,0 +1,34 @@
+{{define "head"}}{{template "iam-head" .Data}}{{end}}
+
+{{define "content"}}{{with .Data}}
+<div class="banner {{if eq .Mode "strict"}}warn{{end}}">{{icon "lock"}}{{.Banner}}</div>
+{{if .Attached}}<div class="banner" style="justify-content:space-between"><span>{{icon "check"}}Attached: {{.AttachedWhat}}</span>
+  <form method="post" action="/_pogi/iam/gcp/undo" class="actions"><input type="hidden" name="principal" value="{{.Selected}}"><input type="hidden" name="u" value="{{.Attached}}"><button class="btn sm">Undo</button></form></div>
+<form method="post" action="/_pogi/iam/mode" class="actions" style="margin-bottom:12px"><input type="hidden" name="mode" value="strict"><input type="hidden" name="to" value="/_pogi/requests?show=iam">
+  <button class="btn">{{icon "pulse"}}Switch to strict and watch</button><span class="faint">then Activity shows what is still denied</span></form>{{end}}
+
+{{if .Principals}}
+<div class="toolbar"><form method="get" action="/_pogi/iam"><input type="hidden" name="c" value="gcp"><select class="input mono" name="principal" style="width:420px" data-autosubmit>{{$s := .Selected}}{{range .Principals}}<option value="{{.Member}}" {{if eq .Member $s}}selected{{end}}>{{.Member}}</option>{{end}}</select></form>
+  <span class="faint">{{.Calls}} calls recorded since {{.Since}}</span><span class="spacer"></span>
+  <form method="post" action="/_pogi/iam/gcp/restart"><input type="hidden" name="principal" value="{{.Selected}}"><button class="btn">{{icon "reset"}}Restart recording</button></form></div>
+<div class="grid2" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start">
+  <section class="card"><header>Called permissions <span class="dim">· {{len .Rows}}</span></header>
+    <table class="dt"><thead><tr><th>Permission</th><th>Resource</th><th class="num">Calls</th><th>Strict mode</th></tr></thead><tbody>
+    {{range .Rows}}<tr><td class="mono name">{{.Perm}}</td><td class="mono dim trunc" style="max-width:180px" title="{{.Full}}">{{.Resource}}</td><td class="num">{{.Count}}</td>
+      <td>{{if not .Modelled}}<span class="st mute" title="pogi does not model this call's permission, so it is always allowed">not modelled</span>{{else if eq .Verdict "allowed"}}<span class="st ok">allowed</span>{{else}}<span class="st warn" title="{{.Reason}}">would deny</span>{{end}}</td></tr>{{end}}
+    </tbody></table></section>
+  <section class="card"><header>Generated bindings <form method="get" action="/_pogi/iam" class="seg" style="margin-left:auto;font-weight:400"><input type="hidden" name="c" value="gcp"><input type="hidden" name="principal" value="{{.Selected}}"><input type="hidden" name="role" value="{{.Role}}">
+      <button name="fmt" value="gcloud" class="{{if eq .Format "gcloud"}}on{{end}}">gcloud</button><button name="fmt" value="tf" class="{{if eq .Format "tf"}}on{{end}}">Terraform</button></form></header>
+    <div class="body">
+      <form method="get" action="/_pogi/iam" class="seg" style="margin-bottom:10px"><input type="hidden" name="c" value="gcp"><input type="hidden" name="principal" value="{{.Selected}}"><input type="hidden" name="fmt" value="{{.Format}}">
+        <button name="role" value="predefined" class="{{if eq .Role "predefined"}}on{{end}}">Predefined roles</button><button name="role" value="custom" class="{{if eq .Role "custom"}}on{{end}}">One custom role</button></form>
+      <div class="kvs" style="margin-bottom:10px;grid-template-columns:max-content 1fr">{{range .Bindings}}<div class="mono">{{.Role}}</div><div class="mono dim">{{.Resource}}</div>{{end}}</div>
+      <div class="codewrap"><pre class="code" id="policy" style="max-height:320px;white-space:pre-wrap;word-break:break-all">{{.Doc}}</pre><button class="btn sm copy" data-copy="#policy">{{icon "copy"}}Copy</button></div>
+      <p class="faint" style="margin:10px 0">{{if eq .Role "custom"}}One role with exactly the permissions used.{{else}}The fewest predefined roles that cover what was used, each on the one resource it touched or on the project.{{end}}
+        {{if .Uncovered}} No predefined role has {{range $i, $u := .Uncovered}}{{if $i}}, {{end}}<span class="mono">{{$u}}</span>{{end}}.{{end}}
+        {{if .Missing}} {{.Missing}} {{if eq .Missing 1}}permission is{{else}}permissions are{{end}} missing from the current bindings.{{else}} The current bindings already allow every recorded call.{{end}}</p>
+      <div class="actions">{{if .Missing}}<a class="btn primary" href="/_pogi/iam/gcp/attach?principal={{q .Selected}}&role={{.Role}}" data-drawer>{{icon "plus"}}Attach bindings</a>{{else}}<button class="btn primary" disabled>Nothing to attach</button>{{end}}
+        <a class="btn" href="/_pogi/iam/gcp/snippet?principal={{q .Selected}}&fmt={{.Format}}&role={{.Role}}" download>{{icon "download"}}Download</a></div></div></section></div>
+{{else}}<div class="card"><div class="empty"><div class="ico">{{icon "lock"}}</div><h2>No calls recorded yet</h2>
+  <p>pogi records calls made with an access token of a service account created in IAM, or of a user other than the default one. Requests without a token and the default credentials are never recorded.</p></div></div>{{end}}
+{{end}}{{end}}

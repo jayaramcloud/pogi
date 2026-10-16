@@ -1,0 +1,29 @@
+{{define "drawer"}}{{with .Data}}{{$s := .Svc}}{{$b := .Bucket}}
+<header><div class="eyebrow">{{$.Eyebrow}}</div><div class="title"><h2 id="dtitle">{{$b}}</h2><button class="btn sm" data-copy="{{$b}}">{{icon "copy"}}Name</button><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<div class="dbody">{{template "objbody" .}}</div>
+<footer><button class="btn danger left" hx-post="/_pogi/objects/{{$s}}/{{$b}}" hx-vals='{"action":"drop"}' hx-confirm="Delete {{$b}} and everything in it?" style="margin-top:14px">{{icon "trash"}}Delete {{if eq $s "azblob"}}container{{else}}bucket{{end}}</button><button class="btn" data-close>Close</button></footer>
+{{end}}{{end}}
+
+{{define "content"}}{{with .Data}}{{$s := .Svc}}{{$b := .Bucket}}
+<p class="crumbs"><a href="/_pogi/resources/{{$s}}">{{.Title}}</a> / {{$b}}</p>
+{{template "objbody" .}}
+<form method="post" action="/_pogi/objects/{{$s}}/{{$b}}" hx-confirm="Delete {{$b}} and everything in it?" style="margin-top:14px"><input type="hidden" name="action" value="drop"><button class="ghost danger">Delete bucket</button></form>
+{{end}}{{end}}
+
+{{define "objbody"}}{{$s := .Svc}}{{$b := .Bucket}}{{$p := .Prefix}}{{$u := printf "/_pogi/objects/%s/%s" $s $b}}
+<div class="toolbar"><div class="crumbs" style="margin:0"><a href="{{$u}}" hx-get="{{$u}}" hx-target="#drawer">{{$b}}</a>{{range crumbs $p}}{{icon "right"}}<a href="{{$u}}?prefix={{q (index . 1)}}" hx-get="{{$u}}?prefix={{q (index . 1)}}" hx-target="#drawer">{{index . 0}}</a>{{end}}</div></div>
+<div class="toolbar">
+  <form hx-post="{{$u}}" hx-target="#drawer" hx-encoding="multipart/form-data" method="post" action="{{$u}}" enctype="multipart/form-data" class="inline">
+    <input type="hidden" name="action" value="upload"><input type="hidden" name="prefix" value="{{$p}}">
+    <label class="btn sm primary">{{icon "upload"}}Upload<input type="file" name="file" multiple required hidden data-upload data-autosubmit></label></form>
+  <form hx-post="{{$u}}" hx-target="#drawer" method="post" action="{{$u}}" class="toolbar" style="margin:0">
+    <input type="hidden" name="action" value="mkdir"><input type="hidden" name="prefix" value="{{$p}}">
+    <input class="input" name="folder" placeholder="New folder" style="width:140px" required><button class="btn sm">{{icon "folder"}}Create</button></form>
+</div>
+<div class="tablecard"><table class="dt"><thead><tr><th>Key</th><th class="num">Size</th><th>Modified</th><th></th></tr></thead><tbody>
+{{range .Dirs}}<tr><td colspan="4"><a href="{{$u}}?prefix={{q .}}" hx-get="{{$u}}?prefix={{q .}}" hx-target="#drawer">{{icon "folder"}} {{base . $p}}</a></td></tr>{{end}}
+{{range .Objects}}<tr><td>{{icon "file"}} <a href="{{$u}}?inline=1&download={{q .Key}}" target="_blank">{{base .Key $p}}</a></td><td class="num dim">{{size .Size}}</td><td class="dim">{{ago .Modified}}</td>
+<td class="num"><a class="btn icon ghost sm" href="{{$u}}?download={{q .Key}}" title="Download">{{icon "download"}}</a>
+<form method="post" action="{{$u}}" hx-post="{{$u}}" hx-target="#drawer" hx-confirm="Delete {{.Key}}?" class="inline"><input type="hidden" name="action" value="delete"><input type="hidden" name="key" value="{{.Key}}"><input type="hidden" name="prefix" value="{{$p}}"><button class="btn icon ghost sm danger" title="Delete">{{icon "trash"}}</button></form></td></tr>{{end}}
+{{if and (not .Dirs) (not .Objects)}}<tr><td colspan="4" class="empty-cell">Empty. Upload a file above.</td></tr>{{end}}
+</tbody></table></div>{{end}}

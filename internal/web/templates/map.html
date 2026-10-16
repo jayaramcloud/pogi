@@ -1,0 +1,38 @@
+{{define "head"}}{{with .Data}}{{if .Node}}
+<div class="ph"><div><div class="crumbs"><a href="/_pogi/map">Map</a>{{icon "right"}}<span>{{.Node.Type}}</span></div><h1>{{.Node.Name}}</h1><p class="sub mono">{{.Node.ID}}</p></div>
+  <div class="actions">{{if .Open}}<a class="btn sm" href="{{.Open}}">Open</a>{{end}}</div></div>
+{{else}}
+<div class="ph"><div><h1>Map</h1><p class="sub">How your resources are wired, and what is flowing through them right now. Click a resource for its connections.</p></div>
+  <div class="actions"><a class="btn" id="export" href="/_pogi/map.svg?trace={{q .Trace}}&hl={{q .Hl}}" download>Export SVG</a><label class="switch"><input type="checkbox" id="live" checked><i></i>Live traffic</label></div></div>
+{{end}}{{end}}{{end}}
+
+{{define "content"}}{{with .Data}}{{if .Node}}{{template "nodebody" .}}{{else}}
+<form id="mf" class="toolbar" action="/_pogi/map" data-nosubmit>
+  <div class="filter" style="width:240px">{{icon "search"}}<input class="input" id="hl" aria-label="Highlight a resource" name="hl" value="{{.Hl}}" placeholder="Highlight a resource" autocomplete="off"></div>
+  <input type="hidden" name="trace" value="{{.Trace}}">
+  <span class="spacer"></span>
+  <div class="legend"><span><i></i>configured</span><span><i class="o"></i>seen at runtime</span><span><i class="d"></i>dead-letter</span><span><svg width="10" height="10"><circle cx="5" cy="5" r="3.5" fill="var(--accent)"/></svg> live message</span>{{if .Hidden}}<span class="faint">· {{.Hidden}} unconnected resources hidden</span>{{end}}</div>
+</form>
+{{if .Trace}}<div class="banner">{{icon "map"}}<span>Showing flow <a class="mono" data-drawer href="/_pogi/flows/{{path .Trace}}">{{.Trace}}</a></span><span class="spacer"></span><a href="/_pogi/map">Clear</a></div>{{end}}
+{{if .Empty}}<div class="tablecard"><div class="empty"><div class="ico">{{icon "map"}}</div><h2>Nothing is wired yet</h2>
+  <p>Subscribe a queue to a topic, point a bucket's notifications at a function, or add an event source mapping, and the connections draw here. For example:</p>
+  <code>pogi aws sns subscribe --topic-arn arn:aws:sns:us-east-1:000000000000:orders --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:000000000000:jobs</code></div></div>
+{{else}}<div class="mapwrap" id="mapwrap" hx-get="/_pogi/map?frag=1" hx-include="#mf" hx-swap="innerHTML"
+  data-poll="3000" data-poll-live hx-trigger="pogi-poll, keyup changed delay:300ms from:#hl">{{.SVG}}</div>{{end}}
+{{end}}{{end}}{{end}}
+
+{{define "path"}}<span class="path">{{range $i, $c := .}}{{if $i}}{{icon "right"}}{{end}}<span class="{{if $c.Err}}err{{end}}"><span class="dot {{$c.Cloud}}"></span>{{$c.Name}}</span>{{end}}</span>{{end}}
+{{define "kind"}}{{if eq . "o"}}<span class="st mute">seen at runtime</span>{{else if eq . "d"}}<span class="st bad">dead-letter</span>{{else}}<span class="st mute">configured</span>{{end}}{{end}}
+{{define "links"}}{{range .}}<tr data-drawer="/_pogi/map/node?id={{q .Node.ID}}"><td><span class="dot {{.Node.Cloud}}"></span> <span class="faint">{{.Node.Type}}</span> <a class="mono name" href="/_pogi/map/node?id={{q .Node.ID}}" data-drawer>{{.Node.Name}}</a></td><td class="dim">{{.Label}}</td><td>{{template "kind" .Kind}}</td></tr>{{end}}{{end}}
+
+{{define "nodebody"}}
+<div class="stats3"><div><b>{{len .In}}</b><span>inbound</span></div><div><b>{{len .Out}}</b><span>outbound</span></div><div><b {{if .Node.Err}}style="color:var(--bad)"{{end}}>{{with .Node.Ct}}{{.}}{{else}}ok{{end}}</b><span>now</span></div></div>
+<h4 style="margin:0 0 6px">Receives from</h4><div class="tablecard" style="margin-bottom:14px"><table class="dt"><tbody>{{template "links" .In}}{{if not .In}}<tr><td class="empty" style="padding:14px!important">Nothing: flows start here.</td></tr>{{end}}</tbody></table></div>
+<h4 style="margin:0 0 6px">Sends to</h4><div class="tablecard" style="margin-bottom:14px"><table class="dt"><tbody>{{template "links" .Out}}{{if not .Out}}<tr><td class="empty" style="padding:14px!important">Nothing: flows end here.</td></tr>{{end}}</tbody></table></div>
+<h4 style="margin:0 0 6px">Recent flows through it</h4>
+{{range .Flows}}<a class="banner" style="margin-bottom:6px" data-drawer href="/_pogi/flows/{{path .Trace}}">{{if .Failed}}<span class="st bad">failed</span>{{else}}<span class="st ok">ok</span>{{end}}<span class="mono faint">{{time .Start}}</span>{{template "path" .Path}}</a>
+{{else}}<p class="faint">No flow has passed through it yet.</p>{{end}}
+{{end}}
+
+{{define "drawer"}}{{with .Data}}<header><div class="eyebrow">{{$.Eyebrow}}</div><div class="title"><h2 id="dtitle">{{.Node.Name}}</h2>{{if .Open}}<a class="btn sm" href="{{.Open}}">Open</a>{{end}}<button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<div class="dbody">{{template "nodebody" .}}</div>{{end}}{{end}}

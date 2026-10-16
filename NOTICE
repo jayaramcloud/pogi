@@ -1,0 +1,16 @@
+pogi
+Copyright the pogi authors
+
+This product embeds service models from botocore, the low-level core of the
+AWS SDK for Python (boto3).
+
+    botocore
+    Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+    Licensed under the Apache License, Version 2.0
+    https://github.com/boto/botocore
+
+The models are in internal/aws/generic/models. They are gzipped copies of each
+service's service-2.json and paginators-1.json from the pinned botocore wheel
+named in scripts/models.sh, with the documentation strings removed. The models in models/limits keep only the
+input members that carry limits. You may obtain a copy of the Apache License, Version 2.0 at
+http://www.apache.org/licenses/LICENSE-2.0
