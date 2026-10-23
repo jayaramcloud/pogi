@@ -196,7 +196,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		err = protojson.UnmarshalOptions{DiscardUnknown: true}.Unmarshal(body, in)
 	}
 	if err != nil {
-		gapi.Err(w, c, gapi.Invalid("Invalid JSON payload received. %v", err))
+		gapi.Err(w, c, gapi.Invalid("Invalid JSON payload received. %s", gapi.PlainProto(body, err)))
 		return
 	}
 	in.Location = strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/v1/"), ":generateRandomBytes")

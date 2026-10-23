@@ -162,7 +162,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if b := core.Body(r); len(strings.TrimSpace(string(b))) > 0 {
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(b, req); err != nil {
-			gapi.Err(w, c, gapi.Invalid("Invalid JSON payload received. %v", err))
+			gapi.Err(w, c, gapi.Invalid("Invalid JSON payload received. %s", gapi.PlainProto(b, err)))
 			return
 		}
 	}

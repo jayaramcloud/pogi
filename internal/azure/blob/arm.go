@@ -1,7 +1,6 @@
 package blob
 
 import (
-	"net/http"
 	"strings"
 	"time"
 
@@ -68,7 +67,9 @@ func (s *Service) accountView(c *core.Ctx, stored map[string]any) map[string]any
 		"blob":  ep("blob"),
 		"queue": ep("queue"),
 		"table": ep("table"),
-		"file":  "https://" + name + ".file.core.windows.net/", "web": "https://" + name + ".z13.web.core.windows.net/", "dfs": "https://" + name + ".dfs.core.windows.net/",
+		"file":  ep("file"),
+		"dfs":   ep("dfs"),
+		"web":   "https://" + name + ".z13.web.core.windows.net/",
 	}
 	return r
 }
@@ -107,13 +108,13 @@ func (s *Service) listAccounts(c *core.Ctx, parent arm.ID) ([]map[string]any, er
 	return out, nil
 }
 
-// deleteAccount drops the account's blobs and, through their optional DropAccount, its queues and tables.
+// deleteAccount drops the account's blobs and, through their optional DropAccount, its queues, tables and shares.
 func (s *Service) deleteAccount(c *core.Ctx, id arm.ID) error {
 	s.mu.Lock()
 	delete(s.st.Accounts, id.Name())
 	s.st.ARM.Delete(id)
 	s.mu.Unlock()
-	for _, svc := range []string{"azqueue", "aztable"} {
+	for _, svc := range []string{"azqueue", "aztable", "azfiles"} {
 		if d, ok := c.Hub.Service(svc).(interface{ DropAccount(string) }); ok {
 			d.DropAccount(id.Name())
 		}
@@ -157,8 +158,8 @@ func containerView(id arm.ID, ct *Container) map[string]any {
 
 func (s *Service) armPutContainer(c *core.Ctx, id arm.ID, body map[string]any) (map[string]any, error) {
 	name, p := id.Name(), armres.Props(body)
-	if len(name) < 3 || len(name) > 63 || strings.ToLower(name) != name {
-		return nil, core.Errorf(http.StatusBadRequest, "InvalidResourceName", "The specified resource name contains invalid characters.")
+	if err := checkContainerName(name); err != nil {
+		return nil, err
 	}
 	meta := map[string]string{}
 	if m, ok := p["metadata"].(map[string]any); ok {

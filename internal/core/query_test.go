@@ -1,6 +1,7 @@
 package core
 
 import (
+	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
@@ -41,8 +42,30 @@ func TestRedact(t *testing.T) {
 		`Action=CreateLoginProfile&UserName=bob&Password=hunter2&PasswordResetRequired=true`:                                                `Action=CreateLoginProfile&UserName=bob&Password=[redacted]&PasswordResetRequired=true`,
 		`<Credentials><AccessKeyId>ASIA1</AccessKeyId><SecretAccessKey>xyz</SecretAccessKey><SessionToken>tok</SessionToken></Credentials>`: `<Credentials><AccessKeyId>ASIA1</AccessKeyId><SecretAccessKey>[redacted]</SecretAccessKey><SessionToken>[redacted]</SessionToken></Credentials>`,
 	} {
-		if got := redact(in); got != want {
+		if got := redact(in, ""); got != want {
 			t.Errorf("redact(%s)\n got %s\nwant %s", in, got, want)
 		}
+	}
+}
+
+func TestRedactKeepsKeysHidesValues(t *testing.T) {
+	for _, c := range []struct{ in, path, want string }{
+		{`{"Name":"/p","Value":"s3","Type":"SecureString"}`, "/", `{"Name":"/p","Value":"[redacted]","Type":"SecureString"}`},
+		{`{"Name":"/p","Value":"plain","Type":"String"}`, "/", `{"Name":"/p","Value":"plain","Type":"String"}`},
+		{`{"value":"kv"}`, "/secrets/x", `{"value":"[redacted]"}`},
+		{`{"payload":{"data":"abc="}}`, "/v1/x", `{"payload":{"data":"[redacted]"}}`},
+		{`{"Environment":{"Variables":{"A":"1","B":"2"}},"Handler":"h"}`, "/", `{"Environment":{"Variables":{"A":"[redacted]","B":"[redacted]"}},"Handler":"h"}`},
+		{`{"AccessToken":"t","NextToken":"n","administratorLoginPassword":"p"}`, "/", `{"AccessToken":"[redacted]","NextToken":"n","administratorLoginPassword":"[redacted]"}`},
+	} {
+		if got := redact(c.in, c.path); got != c.want {
+			t.Errorf("redact(%s)\n got %s\nwant %s", c.in, got, c.want)
+		}
+	}
+	if got, want := redactPath("/b/k?X-Amz-Security-Token=t&key=g&prefix=a&key-marker=m&X-Amz-Signature=s"), "/b/k?X-Amz-Security-Token=[redacted]&key=[redacted]&prefix=a&key-marker=m&X-Amz-Signature=[redacted]"; got != want {
+		t.Errorf("redactPath = %s", got)
+	}
+	h := flatHeaders(http.Header{"X-Amz-Security-Token": {"t"}, "X-Goog-Api-Key": {"k"}, "Content-Type": {"x"}})
+	if h["X-Amz-Security-Token"] != "[redacted]" || h["X-Goog-Api-Key"] != "[redacted]" || h["Content-Type"] != "x" {
+		t.Errorf("flatHeaders = %v", h)
 	}
 }

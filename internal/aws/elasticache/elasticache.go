@@ -378,11 +378,26 @@ func family(engine, v string) string {
 func Spec(engine string, host int, cluster bool) rds.Spec {
 	e := engines[engine]
 	sp := rds.Spec{Image: e.image, Port: e.port, Host: host, Hello: e.hello}
+	if engine != "memcached" { // memcached keeps nothing on disk
+		sp.Data = "/data"
+	}
 	if cluster {
 		sp.Args = []string{"--cluster-enabled", "yes", "--cluster-announce-ip", "127.0.0.1", "--cluster-announce-port", "{port}"}
 		sp.Init = []string{engine + "-cli", "cluster", "addslotsrange", "0", "16383"}
 	}
 	return sp
+}
+
+// Image is the image of an engine ("" when pogi does not run it); Images lists them all, for pogi pull.
+func Image(engine string) string { return engines[engine].image }
+
+func Images() []string {
+	var out []string
+	for _, e := range engines {
+		out = append(out, e.image)
+	}
+	slices.Sort(out)
+	return out
 }
 
 func (cl *CacheCluster) spec() rds.Spec      { return Spec(cl.Engine, cl.Pogi.HostPort, false) }
@@ -1337,20 +1352,20 @@ func (s *Service) Resources() []core.Table {
 	for _, k := range core.SortedKeys(s.st.Clusters) {
 		c, cl := ctxOf(k), s.st.Clusters[k]
 		srv, _ := s.server(c, cl)
-		cls.Rows = append(cls.Rows, []string{cl.CacheClusterId, cl.Engine + " " + cl.EngineVersion, srv.State, addr(s.endpoint(srv)),
+		cls.Rows = append(cls.Rows, []string{cl.CacheClusterId, cl.Engine + " " + cl.EngineVersion, rds.StatusCell(srv.State, srv), addr(s.endpoint(srv)),
 			c.Region, c.Account, cl.ReplicationGroupId})
 	}
 	rgs := core.Table{Name: "Replication groups", Columns: cols}
 	for _, k := range core.SortedKeys(s.st.Groups) {
 		c := ctxOf(k)
 		v := s.groupView(c, s.st.Groups[k])
-		rgs.Rows = append(rgs.Rows, []string{v.ReplicationGroupId, v.Engine, v.Status, addr(s.endpoint(&s.st.Groups[k].Pogi)), c.Region, c.Account})
+		rgs.Rows = append(rgs.Rows, []string{v.ReplicationGroupId, v.Engine, rds.StatusCell(v.Status, &s.st.Groups[k].Pogi), addr(s.endpoint(&s.st.Groups[k].Pogi)), c.Region, c.Account})
 	}
 	sls := core.Table{Name: "Serverless caches", Columns: cols}
 	for _, k := range core.SortedKeys(s.st.Serverless) {
 		c := ctxOf(k)
 		v := s.serverlessView(s.st.Serverless[k])
-		sls.Rows = append(sls.Rows, []string{v.ServerlessCacheName, v.Engine + " " + v.FullEngineVersion, v.Status, addr(v.Endpoint), c.Region, c.Account})
+		sls.Rows = append(sls.Rows, []string{v.ServerlessCacheName, v.Engine + " " + v.FullEngineVersion, rds.StatusCell(v.Status, &s.st.Serverless[k].Pogi), addr(v.Endpoint), c.Region, c.Account})
 	}
 	return []core.Table{cls, rgs, sls}
 }

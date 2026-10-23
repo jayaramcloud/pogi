@@ -18,7 +18,8 @@ import (
 
 // Engine records what services ask of it, docker CLI style: "create --name n
 // -p 127.0.0.1:h:p -e K=V image args…", "start n", "stop n", "restart n",
-// "exec n cmd…", "rm -f -v n". Every published port is Port on inspect.
+// "exec n cmd…", "rm -f -v n", and for volumes "volume create v", "volume rm v" and
+// "bind n v:/path" (a container's named volume). Every published port is Port on inspect.
 type Engine struct {
 	Port int  // the host port inspect reports; point it at a listener of the test
 	Down bool // answer like an engine that is not running
@@ -26,11 +27,59 @@ type Engine struct {
 	mu    sync.Mutex
 	calls []string
 	ports map[string][]string // container → its published ports ("5432/tcp")
+	vols  map[string]bool     // named volumes that exist
+}
+
+// DropVolume forgets a volume, as if someone removed it behind pogi's back.
+func (e *Engine) DropVolume(name string) {
+	e.mu.Lock()
+	delete(e.vols, name)
+	e.mu.Unlock()
+}
+
+// HasVolume reports whether a named volume exists.
+func (e *Engine) HasVolume(name string) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.vols[name]
+}
+
+func (e *Engine) volume(w http.ResponseWriter, r *http.Request, p []string) {
+	switch {
+	case r.Method == http.MethodPost && len(p) == 2 && p[1] == "create":
+		var v struct{ Name string }
+		json.NewDecoder(r.Body).Decode(&v)
+		e.mu.Lock()
+		e.vols[v.Name] = true
+		e.calls = append(e.calls, "volume create "+v.Name)
+		e.mu.Unlock()
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprintf(w, `{"Name":%q}`, v.Name)
+	case r.Method == http.MethodDelete && len(p) == 2:
+		e.mu.Lock()
+		ok := e.vols[p[1]]
+		delete(e.vols, p[1])
+		e.calls = append(e.calls, "volume rm "+p[1])
+		e.mu.Unlock()
+		if !ok {
+			http.Error(w, `{"message":"no such volume"}`, http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	case r.Method == http.MethodGet && len(p) == 2:
+		if !e.HasVolume(p[1]) {
+			http.Error(w, `{"message":"get `+p[1]+`: no such volume"}`, http.StatusNotFound)
+			return
+		}
+		fmt.Fprintf(w, `{"Name":%q}`, p[1])
+	default: // a listing
+		io.WriteString(w, `{"Volumes":[]}`)
+	}
 }
 
 // Start serves a fake engine until the test ends and points DOCKER_HOST at it.
 func Start(t testing.TB, port int, down bool) *Engine {
-	e := &Engine{Port: port, Down: down, ports: map[string][]string{}}
+	e := &Engine{Port: port, Down: down, ports: map[string][]string{}, vols: map[string]bool{}}
 	srv := httptest.NewServer(e)
 	t.Cleanup(srv.Close)
 	t.Setenv("DOCKER_HOST", "tcp://"+srv.Listener.Addr().String())
@@ -73,6 +122,8 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, `{"Version":"fake","ApiVersion":"1.41"}`)
 	case path == "/containers/create":
 		e.create(w, r)
+	case p[0] == "volumes":
+		e.volume(w, r, p)
 	case path == "/containers/json":
 		io.WriteString(w, "[]")
 	case p[0] == "containers" && r.Method == http.MethodDelete:
@@ -116,6 +167,7 @@ func (e *Engine) create(w http.ResponseWriter, r *http.Request) {
 		Env, Cmd   []string
 		HostConfig struct {
 			PortBindings map[string][]struct{ HostIp, HostPort string }
+			Binds        []string
 		}
 	}
 	json.NewDecoder(r.Body).Decode(&c)
@@ -133,6 +185,9 @@ func (e *Engine) create(w http.ResponseWriter, r *http.Request) {
 	call += " " + strings.Join(append([]string{c.Image}, c.Cmd...), " ")
 	e.mu.Lock()
 	e.calls, e.ports[name] = append(e.calls, call), keys
+	for _, b := range c.HostConfig.Binds {
+		e.calls = append(e.calls, "bind "+name+" "+b)
+	}
 	e.mu.Unlock()
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, `{"Id":%q}`, name)

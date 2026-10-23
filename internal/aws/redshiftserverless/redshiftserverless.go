@@ -961,7 +961,7 @@ func (s *Service) Resources() []core.Table {
 		if v.Endpoint != nil {
 			ep = fmt.Sprintf("%s:%d", v.Endpoint.Address, v.Endpoint.Port)
 		}
-		wgs.Rows = append(wgs.Rows, []string{v.WorkgroupName, v.NamespaceName, v.Status, ep, c.Region, c.Account})
+		wgs.Rows = append(wgs.Rows, []string{v.WorkgroupName, v.NamespaceName, rds.StatusCell(v.Status, s.st.Workgroups[k].Pogi), ep, c.Region, c.Account})
 	}
 	return []core.Table{nss, wgs}
 }

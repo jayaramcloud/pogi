@@ -14,20 +14,42 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/nrndev/pogi/internal/core"
 )
 
 type logLine struct {
-	T            time.Time
-	Source, Text string
+	T                          time.Time
+	Cloud, Source, Level, Text string
 }
 
-// fetchLogs gathers the tail from every log service that is running.
-func (m *model) fetchLogs() ([]logLine, error) {
+var levelWords = []string{"DEBUG", "INFO", "NOTICE", "WARN", "WARNING", "ERROR", "CRITICAL", "FATAL"}
+
+// levelOf reads a CloudWatch message's level: its first word, if that is a known level.
+func levelOf(msg string) string {
+	w := strings.ToUpper(strings.TrimRight(strings.TrimLeft(strings.TrimSpace(msg), "["), ":"))
+	if i := strings.IndexAny(w, " \t"); i >= 0 {
+		w = w[:i]
+	}
+	w = strings.TrimRight(w, "]:")
+	if slices.Contains(levelWords, w) {
+		return w
+	}
+	return "–"
+}
+
+// fetchLogs gathers the tail from every log service that is running. One that is off is not asked:
+// the API answers 404 for it.
+func (m *model) fetchLogs(running []core.ServiceStatus) ([]logLine, error) {
+	on := func(name string) bool {
+		return slices.ContainsFunc(running, func(s core.ServiceStatus) bool { return s.Name == name })
+	}
 	out := []logLine{}
 	var groups map[string][]core.Table
-	if err := m.get("/_pogi/api/resources?service=logs", &groups); err != nil {
-		return nil, err
+	if on("logs") {
+		if err := m.get("/_pogi/api/resources?service=logs", &groups); err != nil {
+			return nil, err
+		}
 	}
 	for _, t := range groups["logs"] {
 		for i, r := range t.Rows {
@@ -44,12 +66,12 @@ func (m *model) fetchLogs() ([]logLine, error) {
 				continue
 			}
 			for _, e := range v.Events {
-				out = append(out, logLine{time.UnixMilli(e.Timestamp), "aws " + r[0], strings.TrimRight(e.Message, "\n")})
+				out = append(out, logLine{time.UnixMilli(e.Timestamp), core.AWS, r[0], levelOf(e.Message), strings.TrimRight(e.Message, "\n")})
 			}
 		}
 	}
 	var gcp map[string][]core.Table
-	if m.get("/_pogi/api/resources?service=logging", &gcp) == nil {
+	if on("logging") && m.get("/_pogi/api/resources?service=logging", &gcp) == nil {
 		for _, t := range gcp["logging"] {
 			if t.Name != "Entries" {
 				continue
@@ -59,7 +81,7 @@ func (m *model) fetchLogs() ([]logLine, error) {
 					continue
 				}
 				ts, _ := time.ParseInLocation(time.DateTime, r[0], time.UTC)
-				out = append(out, logLine{ts, "gcp " + r[2][strings.LastIndexByte(r[2], '/')+1:], r[1] + " " + r[4]})
+				out = append(out, logLine{ts, core.GCP, r[2][strings.LastIndexByte(r[2], '/')+1:], or(strings.ToUpper(r[1]), "–"), r[4]})
 			}
 		}
 	}
@@ -67,43 +89,102 @@ func (m *model) fetchLogs() ([]logLine, error) {
 	return out[max(0, len(out)-1000):], nil
 }
 
+// visibleLogs applies the filter text and the warnings-and-errors switch.
+func (m *model) visibleLogs() []logLine {
+	if m.logFilter == "" && !m.logWarn {
+		return m.logs
+	}
+	f := strings.ToLower(m.logFilter)
+	var out []logLine
+	for _, l := range m.logs {
+		if m.logWarn && !slices.Contains([]string{"WARN", "WARNING", "ERROR", "CRITICAL", "FATAL", "ALERT", "EMERGENCY"}, l.Level) {
+			continue
+		}
+		if f != "" && !strings.Contains(strings.ToLower(l.Source+" "+l.Level+" "+l.Text), f) {
+			continue
+		}
+		out = append(out, l)
+	}
+	return out
+}
+
 func (m *model) logsKey(key string) (tea.Model, tea.Cmd) {
+	n := len(m.visibleLogs())
 	switch key {
 	case "p", " ":
 		m.logHold = !m.logHold
 		m.logAbove = 0
 	case "up", "k":
 		m.logHold = true
-		m.logAbove = min(m.logAbove+1, max(0, len(m.logs)-1))
+		m.logAbove = min(m.logAbove+1, max(0, n-1))
 	case "down", "j":
 		m.logAbove = max(0, m.logAbove-1)
 	case "pgup":
 		m.logHold = true
-		m.logAbove = min(m.logAbove+m.h-6, max(0, len(m.logs)-1))
+		m.logAbove = min(m.logAbove+m.h-6, max(0, n-1))
 	case "pgdown":
 		m.logAbove = max(0, m.logAbove-(m.h-6))
 	case "G", "end":
 		m.logHold, m.logAbove = false, 0
+	case "/":
+		m.filtering = true
+	case "w":
+		m.logWarn, m.logAbove = !m.logWarn, 0
 	}
 	return m, nil
 }
 
-func (m *model) logsView() string {
+func levelStyle(l string) lipgloss.Style {
+	switch l {
+	case "ERROR", "CRITICAL", "FATAL", "ALERT", "EMERGENCY":
+		return bad
+	case "WARN", "WARNING":
+		return warn
+	case "DEBUG":
+		return dim
+	}
+	return lipgloss.NewStyle()
+}
+
+func (m *model) logsView(room int) []string {
+	vis := m.visibleLogs()
+	sources := map[string]bool{}
+	for _, l := range m.logs {
+		sources[l.Cloud+l.Source] = true
+	}
+	live := ok.Render("● live")
+	if m.logHold {
+		live = warn.Render("paused")
+	}
+	head := fmt.Sprintf("%d %s · %d %s · ", len(vis), plural(len(vis), "line", "lines"), len(sources), plural(len(sources), "source", "sources")) + live
+	if m.logFilter != "" || m.filtering {
+		head = m.acc("/ "+m.logFilter+map[bool]string{true: "▏"}[m.filtering]) + " · " + head
+	}
+	if m.logWarn {
+		head += " · warnings and errors only"
+	}
+	out := []string{head}
 	if len(m.logs) == 0 {
-		return dim.Render("no log events yet — CloudWatch Logs groups and Cloud Logging entries show up here as they arrive")
+		return append(out, dim.Render("no log events yet. CloudWatch Logs groups and Cloud Logging entries show up here as they arrive."))
 	}
-	room := max(1, m.h-6)
-	end := len(m.logs) - m.logAbove
-	var b strings.Builder
-	for _, l := range m.logs[max(0, end-room):end] {
-		text := l.Text
-		switch {
-		case strings.Contains(text, "ERROR") || strings.Contains(text, "CRITICAL"):
-			text = bad.Render(text)
-		case strings.Contains(text, "WARN"):
-			text = warn.Render(text)
+	rows := max(1, room-2)
+	end := max(0, len(vis)-m.logAbove)
+	from := max(0, end-rows)
+	t := table{cols: []col{{"TIME", false, 0, 5}, {"CLOUD", false, 0, 2}, {"SOURCE", false, 28, 3}, {"LEVEL", false, 0, 4}, {"MESSAGE", false, 0, 6}}, sel: -1}
+	for _, l := range vis[from:end] {
+		t.rows = append(t.rows, []string{l.T.Local().Format("15:04:05.000"), cloudShort[l.Cloud], l.Source, l.Level, strings.ReplaceAll(l.Text, "\t", " ")})
+	}
+	t.cell = func(r, c int, s string) string {
+		l := vis[from+r]
+		switch c {
+		case 0:
+			return dim.Render(s)
+		case 1:
+			return clouds[l.Cloud].Render(s)
+		case 3:
+			return levelStyle(l.Level).Render(s)
 		}
-		fmt.Fprintf(&b, "%s %s %s\n", dim.Render(l.T.Local().Format("15:04:05.000")), accent.Render(l.Source), text)
+		return s
 	}
-	return b.String()
+	return append(out, t.render(m.w)...)
 }

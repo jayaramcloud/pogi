@@ -33,10 +33,11 @@ const maxExtensions = 10
 const shutdownWait = 2 * time.Second
 
 type extension struct {
-	name    string
-	events  map[string]bool
-	ch      chan []byte // events not yet asked for
-	polling bool        // it has asked for an event, so it has an event loop
+	name              string
+	events            map[string]bool
+	ch                chan []byte // events not yet asked for
+	polling           bool        // it has asked for an event, so it has an event loop
+	registered, ready time.Time   // when it registered, and first asked for an event (its init done)
 }
 
 // extensions is the Extensions API state of one instance; the zero value is ready to use.
@@ -72,13 +73,13 @@ func (e *extensions) signalReady() {
 }
 
 // waitInit holds the first invocation until every extension process has registered and asked for its first
-// event, or ended, as Lambda's init phase does; it gives up after 10 seconds.
-func (e *extensions) waitInit(ctx context.Context, dead <-chan struct{}) {
+// event, or ended, as Lambda's init phase does; it gives up after limit (lambda.initTimeout).
+func (e *extensions) waitInit(ctx context.Context, dead <-chan struct{}, limit time.Duration) {
 	e.waited.Do(func() {
 		e.mu.Lock()
 		expected, ready := e.expected, e.ready
 		e.mu.Unlock()
-		timeout := time.After(10 * time.Second)
+		timeout := time.After(limit)
 		for range expected {
 			select {
 			case <-ready:
@@ -166,7 +167,7 @@ func (in *instance) mountExtensions(m *http.ServeMux) {
 				return
 			}
 		}
-		x := &extension{name: name, events: map[string]bool{}, ch: make(chan []byte, 64)}
+		x := &extension{name: name, events: map[string]bool{}, ch: make(chan []byte, 64), registered: time.Now()}
 		for _, ev := range body.Events {
 			if ev != "INVOKE" && ev != "SHUTDOWN" {
 				extError(w, http.StatusBadRequest, "Extension.InvalidEventType", "Unknown event type "+ev+": use INVOKE or SHUTDOWN.")
@@ -202,7 +203,9 @@ func (in *instance) mountExtensions(m *http.ServeMux) {
 			return
 		}
 		e.mu.Lock()
-		x.polling = true
+		if !x.polling {
+			x.polling, x.ready = true, time.Now()
+		}
 		e.mu.Unlock()
 		e.signalReady() // an extension that asks for events has finished its init; more signals than processes do no harm
 		select {

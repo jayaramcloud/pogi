@@ -1,0 +1,8564 @@
+{
+ "name": "chronicle",
+ "resources": {
+  "all": {
+   "methods": {
+    "chronicle.projects.locations.instances.bigQueryExport.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/bigQueryExport",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.bigQueryExport.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "BigQueryExport"
+     }
+    },
+    "chronicle.projects.locations.instances.bigQueryExport.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/bigQueryExport",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.bigQueryExport.patch",
+     "parameters": {
+      "bigQueryExport": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+big_query_export.name}",
+     "request": {
+      "$ref": "BigQueryExport"
+     },
+     "response": {
+      "$ref": "BigQueryExport"
+     }
+    },
+    "chronicle.projects.locations.instances.bigQueryExport.provisionBigQueryExport": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/bigQueryExport:provision",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.bigQueryExport.provisionBigQueryExport",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/bigQueryExport:provision",
+     "request": {
+      "$ref": "ProvisionBigQueryExportRequest"
+     },
+     "response": {
+      "$ref": "BigQueryExport"
+     }
+    },
+    "chronicle.projects.locations.instances.computeAllFindingsRefinementActivities": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}:computeAllFindingsRefinementActivities",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.computeAllFindingsRefinementActivities",
+     "parameters": {
+      "instance": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+instance}:computeAllFindingsRefinementActivities",
+     "request": {
+      "$ref": "ComputeAllFindingsRefinementActivitiesRequest"
+     },
+     "response": {
+      "$ref": "ComputeAllFindingsRefinementActivitiesResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.contentHub.*.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/contentHub/{contentHubId}/*",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.contentHub.*.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "FeaturedContentNativeDashboard"
+     }
+    },
+    "chronicle.projects.locations.instances.contentHub.*.installFeaturedContentNativeDashboard": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/contentHub/{contentHubId}/*:install",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.contentHub.*.installFeaturedContentNativeDashboard",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:install",
+     "request": {
+      "$ref": "InstallFeaturedContentNativeDashboardRequest"
+     },
+     "response": {
+      "$ref": "InstallFeaturedContentNativeDashboardResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.contentHub.featuredContentNativeDashboards.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/contentHub/featuredContentNativeDashboards",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.contentHub.featuredContentNativeDashboards.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/featuredContentNativeDashboards",
+     "response": {
+      "$ref": "ListFeaturedContentNativeDashboardsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.dashboardCharts.batchGetDashboardCharts": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dashboardCharts:batchGet",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dashboardCharts.batchGetDashboardCharts",
+     "parameters": {
+      "names": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dashboardCharts:batchGet",
+     "response": {
+      "$ref": "BatchGetDashboardChartsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.dashboardCharts.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dashboardCharts/{dashboardChartsId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dashboardCharts.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "DashboardChart"
+     }
+    },
+    "chronicle.projects.locations.instances.dashboardQueries.executeDashboardQuery": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dashboardQueries:execute",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.dashboardQueries.executeDashboardQuery",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dashboardQueries:execute",
+     "request": {
+      "$ref": "ExecuteDashboardQueryRequest"
+     },
+     "response": {
+      "$ref": "ExecuteDashboardQueryResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.dashboardQueries.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dashboardQueries/{dashboardQueriesId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dashboardQueries.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "DashboardQuery"
+     }
+    },
+    "chronicle.projects.locations.instances.dataAccessLabels.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataAccessLabels",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.dataAccessLabels.create",
+     "parameters": {
+      "dataAccessLabelId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataAccessLabels",
+     "request": {
+      "$ref": "DataAccessLabel"
+     },
+     "response": {
+      "$ref": "DataAccessLabel"
+     }
+    },
+    "chronicle.projects.locations.instances.dataAccessLabels.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataAccessLabels/{dataAccessLabelsId}",
+     "httpMethod": "DELETE",
+     "id": "chronicle.projects.locations.instances.dataAccessLabels.delete",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Empty"
+     }
+    },
+    "chronicle.projects.locations.instances.dataAccessLabels.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataAccessLabels/{dataAccessLabelsId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dataAccessLabels.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "DataAccessLabel"
+     }
+    },
+    "chronicle.projects.locations.instances.dataAccessLabels.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataAccessLabels",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dataAccessLabels.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataAccessLabels",
+     "response": {
+      "$ref": "ListDataAccessLabelsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.dataAccessLabels.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataAccessLabels/{dataAccessLabelsId}",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.dataAccessLabels.patch",
+     "parameters": {
+      "dataAccessLabel": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+data_access_label.name}",
+     "request": {
+      "$ref": "DataAccessLabel"
+     },
+     "response": {
+      "$ref": "DataAccessLabel"
+     }
+    },
+    "chronicle.projects.locations.instances.dataAccessScopes.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataAccessScopes",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.dataAccessScopes.create",
+     "parameters": {
+      "dataAccessScopeId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataAccessScopes",
+     "request": {
+      "$ref": "DataAccessScope"
+     },
+     "response": {
+      "$ref": "DataAccessScope"
+     }
+    },
+    "chronicle.projects.locations.instances.dataAccessScopes.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataAccessScopes/{dataAccessScopesId}",
+     "httpMethod": "DELETE",
+     "id": "chronicle.projects.locations.instances.dataAccessScopes.delete",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Empty"
+     }
+    },
+    "chronicle.projects.locations.instances.dataAccessScopes.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataAccessScopes/{dataAccessScopesId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dataAccessScopes.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "DataAccessScope"
+     }
+    },
+    "chronicle.projects.locations.instances.dataAccessScopes.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataAccessScopes",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dataAccessScopes.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataAccessScopes",
+     "response": {
+      "$ref": "ListDataAccessScopesResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.dataAccessScopes.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataAccessScopes/{dataAccessScopesId}",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.dataAccessScopes.patch",
+     "parameters": {
+      "dataAccessScope": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+data_access_scope.name}",
+     "request": {
+      "$ref": "DataAccessScope"
+     },
+     "response": {
+      "$ref": "DataAccessScope"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTableOperationErrors.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTableOperationErrors/{dataTableOperationErrorsId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dataTableOperationErrors.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "DataTableOperationErrors"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.dataTables.create",
+     "parameters": {
+      "dataTableId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataTables",
+     "request": {
+      "$ref": "DataTable"
+     },
+     "response": {
+      "$ref": "DataTable"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.dataTableRows.bulkCreateDataTableRows": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}/dataTableRows:bulkCreate",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.dataTables.dataTableRows.bulkCreateDataTableRows",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataTableRows:bulkCreate",
+     "request": {
+      "$ref": "BulkCreateDataTableRowsRequest"
+     },
+     "response": {
+      "$ref": "BulkCreateDataTableRowsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.dataTableRows.bulkGetDataTableRows": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}/dataTableRows:bulkGet",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.dataTables.dataTableRows.bulkGetDataTableRows",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataTableRows:bulkGet",
+     "request": {
+      "$ref": "BulkGetDataTableRowsRequest"
+     },
+     "response": {
+      "$ref": "BulkGetDataTableRowsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.dataTableRows.bulkReplaceDataTableRows": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}/dataTableRows:bulkReplace",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.dataTables.dataTableRows.bulkReplaceDataTableRows",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataTableRows:bulkReplace",
+     "request": {
+      "$ref": "BulkReplaceDataTableRowsRequest"
+     },
+     "response": {
+      "$ref": "BulkReplaceDataTableRowsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.dataTableRows.bulkUpdateDataTableRows": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}/dataTableRows:bulkUpdate",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.dataTables.dataTableRows.bulkUpdateDataTableRows",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataTableRows:bulkUpdate",
+     "request": {
+      "$ref": "BulkUpdateDataTableRowsRequest"
+     },
+     "response": {
+      "$ref": "BulkUpdateDataTableRowsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.dataTableRows.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}/dataTableRows",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.dataTables.dataTableRows.create",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataTableRows",
+     "request": {
+      "$ref": "DataTableRow"
+     },
+     "response": {
+      "$ref": "DataTableRow"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.dataTableRows.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}/dataTableRows/{dataTableRowsId}",
+     "httpMethod": "DELETE",
+     "id": "chronicle.projects.locations.instances.dataTables.dataTableRows.delete",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Empty"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.dataTableRows.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}/dataTableRows/{dataTableRowsId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dataTables.dataTableRows.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "DataTableRow"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.dataTableRows.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}/dataTableRows",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dataTables.dataTableRows.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "orderBy": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataTableRows",
+     "response": {
+      "$ref": "ListDataTableRowsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.dataTableRows.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}/dataTableRows/{dataTableRowsId}",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.dataTables.dataTableRows.patch",
+     "parameters": {
+      "dataTableRow": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+data_table_row.name}",
+     "request": {
+      "$ref": "DataTableRow"
+     },
+     "response": {
+      "$ref": "DataTableRow"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}",
+     "httpMethod": "DELETE",
+     "id": "chronicle.projects.locations.instances.dataTables.delete",
+     "parameters": {
+      "force": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Empty"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dataTables.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "DataTable"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.dataTables.list",
+     "parameters": {
+      "orderBy": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/dataTables",
+     "response": {
+      "$ref": "ListDataTablesResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.dataTables.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/dataTables/{dataTablesId}",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.dataTables.patch",
+     "parameters": {
+      "dataTable": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+data_table.name}",
+     "request": {
+      "$ref": "DataTable"
+     },
+     "response": {
+      "$ref": "DataTable"
+     }
+    },
+    "chronicle.projects.locations.instances.feedPacks.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feedPacks/{feedPacksId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.feedPacks.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "FeedPack"
+     }
+    },
+    "chronicle.projects.locations.instances.feedPacks.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feedPacks",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.feedPacks.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/feedPacks",
+     "response": {
+      "$ref": "ListFeedPacksResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.feedServiceAccounts.fetchServiceAccountForCustomer": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feedServiceAccounts:fetchServiceAccountForCustomer",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.feedServiceAccounts.fetchServiceAccountForCustomer",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/feedServiceAccounts:fetchServiceAccountForCustomer",
+     "response": {
+      "$ref": "FeedServiceAccount"
+     }
+    },
+    "chronicle.projects.locations.instances.feedSourceTypeSchemas.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feedSourceTypeSchemas",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.feedSourceTypeSchemas.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/feedSourceTypeSchemas",
+     "response": {
+      "$ref": "ListFeedSourceTypeSchemasResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.feedSourceTypeSchemas.logTypeSchemas.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feedSourceTypeSchemas/{feedSourceTypeSchemasId}/logTypeSchemas",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.feedSourceTypeSchemas.logTypeSchemas.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/logTypeSchemas",
+     "response": {
+      "$ref": "ListLogTypeSchemasResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.feeds.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feeds",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.feeds.create",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/feeds",
+     "request": {
+      "$ref": "Feed"
+     },
+     "response": {
+      "$ref": "Feed"
+     }
+    },
+    "chronicle.projects.locations.instances.feeds.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feeds/{feedsId}",
+     "httpMethod": "DELETE",
+     "id": "chronicle.projects.locations.instances.feeds.delete",
+     "parameters": {
+      "deleteBacklog": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Empty"
+     }
+    },
+    "chronicle.projects.locations.instances.feeds.disableFeed": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feeds/{feedsId}:disable",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.feeds.disableFeed",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:disable",
+     "request": {
+      "$ref": "DisableFeedRequest"
+     },
+     "response": {
+      "$ref": "Feed"
+     }
+    },
+    "chronicle.projects.locations.instances.feeds.enableFeed": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feeds/{feedsId}:enable",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.feeds.enableFeed",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:enable",
+     "request": {
+      "$ref": "EnableFeedRequest"
+     },
+     "response": {
+      "$ref": "Feed"
+     }
+    },
+    "chronicle.projects.locations.instances.feeds.generateSecret": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feeds/{feedsId}:generateSecret",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.feeds.generateSecret",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:generateSecret",
+     "request": {
+      "$ref": "GenerateSecretRequest"
+     },
+     "response": {
+      "$ref": "GenerateSecretResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.feeds.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feeds/{feedsId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.feeds.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Feed"
+     }
+    },
+    "chronicle.projects.locations.instances.feeds.importPushLogs": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feeds/{feedsId}:importPushLogs",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.feeds.importPushLogs",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}:importPushLogs",
+     "request": {
+      "$ref": "ImportPushLogsRequest"
+     },
+     "response": {
+      "$ref": "googleapiHttpBody"
+     }
+    },
+    "chronicle.projects.locations.instances.feeds.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feeds",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.feeds.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/feeds",
+     "response": {
+      "$ref": "ListFeedsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.feeds.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/feeds/{feedsId}",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.feeds.patch",
+     "parameters": {
+      "feed": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+feed.name}",
+     "request": {
+      "$ref": "Feed"
+     },
+     "response": {
+      "$ref": "Feed"
+     }
+    },
+    "chronicle.projects.locations.instances.findingsRefinements.computeFindingsRefinementActivity": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/findingsRefinements/{findingsRefinementsId}:computeFindingsRefinementActivity",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.findingsRefinements.computeFindingsRefinementActivity",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:computeFindingsRefinementActivity",
+     "request": {
+      "$ref": "ComputeFindingsRefinementActivityRequest"
+     },
+     "response": {
+      "$ref": "ComputeFindingsRefinementActivityResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.findingsRefinements.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/findingsRefinements",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.findingsRefinements.create",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/findingsRefinements",
+     "request": {
+      "$ref": "FindingsRefinement"
+     },
+     "response": {
+      "$ref": "FindingsRefinement"
+     }
+    },
+    "chronicle.projects.locations.instances.findingsRefinements.deployment.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/findingsRefinements/{findingsRefinementsId}/deployment",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.findingsRefinements.deployment.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "FindingsRefinementDeployment"
+     }
+    },
+    "chronicle.projects.locations.instances.findingsRefinements.deployment.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/findingsRefinements/{findingsRefinementsId}/deployment",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.findingsRefinements.deployment.patch",
+     "parameters": {
+      "findingsRefinementDeployment": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+findings_refinement_deployment.name}",
+     "request": {
+      "$ref": "FindingsRefinementDeployment"
+     },
+     "response": {
+      "$ref": "FindingsRefinementDeployment"
+     }
+    },
+    "chronicle.projects.locations.instances.findingsRefinements.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/findingsRefinements/{findingsRefinementsId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.findingsRefinements.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "FindingsRefinement"
+     }
+    },
+    "chronicle.projects.locations.instances.findingsRefinements.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/findingsRefinements",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.findingsRefinements.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/findingsRefinements",
+     "response": {
+      "$ref": "ListFindingsRefinementsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.findingsRefinements.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/findingsRefinements/{findingsRefinementsId}",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.findingsRefinements.patch",
+     "parameters": {
+      "findingsRefinement": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+findings_refinement.name}",
+     "request": {
+      "$ref": "FindingsRefinement"
+     },
+     "response": {
+      "$ref": "FindingsRefinement"
+     }
+    },
+    "chronicle.projects.locations.instances.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Instance"
+     }
+    },
+    "chronicle.projects.locations.instances.listAllFindingsRefinementDeployments": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}:listAllFindingsRefinementDeployments",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.listAllFindingsRefinementDeployments",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "instance": {
+       "location": "path"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+instance}:listAllFindingsRefinementDeployments",
+     "response": {
+      "$ref": "ListAllFindingsRefinementDeploymentsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.addChart": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards/{nativeDashboardsId}:addChart",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.addChart",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:addChart",
+     "request": {
+      "$ref": "AddChartRequest"
+     },
+     "response": {
+      "$ref": "AddChartResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.create",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/nativeDashboards",
+     "request": {
+      "$ref": "NativeDashboard"
+     },
+     "response": {
+      "$ref": "NativeDashboard"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards/{nativeDashboardsId}",
+     "httpMethod": "DELETE",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.delete",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Empty"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.duplicateChart": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards/{nativeDashboardsId}:duplicateChart",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.duplicateChart",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:duplicateChart",
+     "request": {
+      "$ref": "DuplicateChartRequest"
+     },
+     "response": {
+      "$ref": "DuplicateChartResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.duplicateNativeDashboard": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards/{nativeDashboardsId}:duplicate",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.duplicateNativeDashboard",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:duplicate",
+     "request": {
+      "$ref": "DuplicateNativeDashboardRequest"
+     },
+     "response": {
+      "$ref": "NativeDashboard"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.editChart": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards/{nativeDashboardsId}:editChart",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.editChart",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:editChart",
+     "request": {
+      "$ref": "EditChartRequest"
+     },
+     "response": {
+      "$ref": "EditChartResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.exportNativeDashboards": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards:export",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.exportNativeDashboards",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/nativeDashboards:export",
+     "request": {
+      "$ref": "ExportNativeDashboardsRequest"
+     },
+     "response": {
+      "$ref": "ExportNativeDashboardsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards/{nativeDashboardsId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      },
+      "view": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "NativeDashboard"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.importNativeDashboards": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards:import",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.importNativeDashboards",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/nativeDashboards:import",
+     "request": {
+      "$ref": "ImportNativeDashboardsRequest"
+     },
+     "response": {
+      "$ref": "ImportNativeDashboardsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "view": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/nativeDashboards",
+     "response": {
+      "$ref": "ListNativeDashboardsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards/{nativeDashboardsId}",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.patch",
+     "parameters": {
+      "nativeDashboard": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+native_dashboard.name}",
+     "request": {
+      "$ref": "NativeDashboard"
+     },
+     "response": {
+      "$ref": "NativeDashboard"
+     }
+    },
+    "chronicle.projects.locations.instances.nativeDashboards.removeChart": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/nativeDashboards/{nativeDashboardsId}:removeChart",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.nativeDashboards.removeChart",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:removeChart",
+     "request": {
+      "$ref": "RemoveChartRequest"
+     },
+     "response": {
+      "$ref": "NativeDashboard"
+     }
+    },
+    "chronicle.projects.locations.instances.referenceLists.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/referenceLists",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.referenceLists.create",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      },
+      "referenceListId": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/referenceLists",
+     "request": {
+      "$ref": "ReferenceList"
+     },
+     "response": {
+      "$ref": "ReferenceList"
+     }
+    },
+    "chronicle.projects.locations.instances.referenceLists.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/referenceLists/{referenceListsId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.referenceLists.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      },
+      "view": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "ReferenceList"
+     }
+    },
+    "chronicle.projects.locations.instances.referenceLists.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/referenceLists",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.referenceLists.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "view": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/referenceLists",
+     "response": {
+      "$ref": "ListReferenceListsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.referenceLists.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/referenceLists/{referenceListsId}",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.referenceLists.patch",
+     "parameters": {
+      "referenceList": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+reference_list.name}",
+     "request": {
+      "$ref": "ReferenceList"
+     },
+     "response": {
+      "$ref": "ReferenceList"
+     }
+    },
+    "chronicle.projects.locations.instances.ruleExecutionErrors.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/ruleExecutionErrors",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.ruleExecutionErrors.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/ruleExecutionErrors",
+     "response": {
+      "$ref": "ListRuleExecutionErrorsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.rules.create",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/rules",
+     "request": {
+      "$ref": "Rule"
+     },
+     "response": {
+      "$ref": "Rule"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules/{rulesId}",
+     "httpMethod": "DELETE",
+     "id": "chronicle.projects.locations.instances.rules.delete",
+     "parameters": {
+      "force": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Empty"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.deployment.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules/{rulesId}/deployment",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.rules.deployment.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "RuleDeployment"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.deployment.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules/{rulesId}/deployment",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.rules.deployment.patch",
+     "parameters": {
+      "ruleDeployment": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+rule_deployment.name}",
+     "request": {
+      "$ref": "RuleDeployment"
+     },
+     "response": {
+      "$ref": "RuleDeployment"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.deployments.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules/{rulesId}/deployments",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.rules.deployments.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/deployments",
+     "response": {
+      "$ref": "ListRuleDeploymentsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules/{rulesId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.rules.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      },
+      "view": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Rule"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.rules.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "view": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/rules",
+     "response": {
+      "$ref": "ListRulesResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.listRuleRevisions": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules/{rulesId}:listRevisions",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.rules.listRuleRevisions",
+     "parameters": {
+      "name": {
+       "location": "path"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "view": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}:listRevisions",
+     "response": {
+      "$ref": "ListRuleRevisionsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules/{rulesId}",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.rules.patch",
+     "parameters": {
+      "rule": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+rule.name}",
+     "request": {
+      "$ref": "Rule"
+     },
+     "response": {
+      "$ref": "Rule"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.retrohunts.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules/{rulesId}/retrohunts",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.rules.retrohunts.create",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/retrohunts",
+     "request": {
+      "$ref": "Retrohunt"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.retrohunts.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules/{rulesId}/retrohunts/{retrohuntsId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.rules.retrohunts.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Retrohunt"
+     }
+    },
+    "chronicle.projects.locations.instances.rules.retrohunts.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/rules/{rulesId}/retrohunts",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.rules.retrohunts.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/retrohunts",
+     "response": {
+      "$ref": "ListRetrohuntsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.verifyReferenceList": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}:verifyReferenceList",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.verifyReferenceList",
+     "parameters": {
+      "instance": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+instance}:verifyReferenceList",
+     "request": {
+      "$ref": "VerifyReferenceListRequest"
+     },
+     "response": {
+      "$ref": "VerifyReferenceListResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.verifyRuleText": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}:verifyRuleText",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.verifyRuleText",
+     "parameters": {
+      "instance": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+instance}:verifyRuleText",
+     "request": {
+      "$ref": "VerifyRuleTextRequest"
+     },
+     "response": {
+      "$ref": "VerifyRuleTextResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.watchlists.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/watchlists",
+     "httpMethod": "POST",
+     "id": "chronicle.projects.locations.instances.watchlists.create",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      },
+      "watchlistId": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/watchlists",
+     "request": {
+      "$ref": "Watchlist"
+     },
+     "response": {
+      "$ref": "Watchlist"
+     }
+    },
+    "chronicle.projects.locations.instances.watchlists.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/watchlists/{watchlistsId}",
+     "httpMethod": "DELETE",
+     "id": "chronicle.projects.locations.instances.watchlists.delete",
+     "parameters": {
+      "force": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Empty"
+     }
+    },
+    "chronicle.projects.locations.instances.watchlists.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/watchlists/{watchlistsId}",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.watchlists.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Watchlist"
+     }
+    },
+    "chronicle.projects.locations.instances.watchlists.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/watchlists",
+     "httpMethod": "GET",
+     "id": "chronicle.projects.locations.instances.watchlists.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/watchlists",
+     "response": {
+      "$ref": "ListWatchlistsResponse"
+     }
+    },
+    "chronicle.projects.locations.instances.watchlists.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}/watchlists/{watchlistsId}",
+     "httpMethod": "PATCH",
+     "id": "chronicle.projects.locations.instances.watchlists.patch",
+     "parameters": {
+      "updateMask": {
+       "location": "query"
+      },
+      "watchlist": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+watchlist.name}",
+     "request": {
+      "$ref": "Watchlist"
+     },
+     "response": {
+      "$ref": "Watchlist"
+     }
+    }
+   }
+  }
+ },
+ "rootUrl": "https://chronicle.googleapis.com/",
+ "schemas": {
+  "AWSEC2HostsSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    }
+   },
+   "type": "object"
+  },
+  "AWSEC2InstancesSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    }
+   },
+   "type": "object"
+  },
+  "AWSEC2VpcsSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    }
+   },
+   "type": "object"
+  },
+  "AWSIAMSettings": {
+   "properties": {
+    "apiType": {
+     "enum": [
+      "API_TYPE_UNSPECIFIED",
+      "USERS",
+      "ROLES",
+      "GROUPS"
+     ],
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    }
+   },
+   "type": "object"
+  },
+  "AddChartRequest": {
+   "properties": {
+    "chartLayout": {
+     "$ref": "DashboardDefinitionChartConfigChartLayout"
+    },
+    "dashboardChart": {
+     "$ref": "DashboardChart"
+    },
+    "dashboardQuery": {
+     "$ref": "DashboardQuery"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AddChartResponse": {
+   "properties": {
+    "dashboardChart": {
+     "$ref": "DashboardChart"
+    },
+    "nativeDashboard": {
+     "$ref": "NativeDashboard"
+    }
+   },
+   "type": "object"
+  },
+  "AdditionalS3AccessKeySecretAuth": {
+   "properties": {
+    "accessKeyId": {
+     "type": "string"
+    },
+    "secretAccessKey": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AdvancedFilterConfig": {
+   "properties": {
+    "defaultValues": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "multipleAllowed": {
+     "type": "boolean"
+    },
+    "prefix": {
+     "type": "string"
+    },
+    "separator": {
+     "type": "string"
+    },
+    "skipDefaultAffixes": {
+     "type": "boolean"
+    },
+    "suffix": {
+     "type": "string"
+    },
+    "token": {
+     "type": "string"
+    },
+    "valueSource": {
+     "$ref": "AdvancedFilterConfigValueSource"
+    }
+   },
+   "type": "object"
+  },
+  "AdvancedFilterConfigManualOptions": {
+   "properties": {
+    "options": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AdvancedFilterConfigQueryOptions": {
+   "properties": {
+    "column": {
+     "type": "string"
+    },
+    "globalTimeFilterEnabled": {
+     "type": "boolean"
+    },
+    "input": {
+     "$ref": "DashboardQueryInput"
+    },
+    "query": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AdvancedFilterConfigValueSource": {
+   "properties": {
+    "manualOptions": {
+     "$ref": "AdvancedFilterConfigManualOptions"
+    },
+    "queryOptions": {
+     "$ref": "AdvancedFilterConfigQueryOptions"
+    }
+   },
+   "type": "object"
+  },
+  "AmazonKinesisFirehoseSettings": {
+   "properties": {},
+   "type": "object"
+  },
+  "AmazonS3Settings": {
+   "properties": {
+    "authentication": {
+     "$ref": "S3Auth"
+    },
+    "s3Uri": {
+     "type": "string"
+    },
+    "sourceDeletionOption": {
+     "enum": [
+      "SOURCE_DELETION_OPTION_UNSPECIFIED",
+      "SOURCE_DELETION_NEVER",
+      "SOURCE_DELETION_ON_SUCCESS",
+      "SOURCE_DELETION_ON_SUCCESS_FILES_ONLY"
+     ],
+     "type": "string"
+    },
+    "sourceType": {
+     "enum": [
+      "URI_SOURCE_TYPE_UNSPECIFIED",
+      "FILES",
+      "FOLDERS",
+      "FOLDERS_RECURSIVE"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AmazonS3V2Settings": {
+   "properties": {
+    "authentication": {
+     "$ref": "S3AuthV2"
+    },
+    "chronicleServiceAccount": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "includePrefixes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "maxLookbackDays": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "s3Uri": {
+     "type": "string"
+    },
+    "sourceDeletionOption": {
+     "enum": [
+      "SOURCE_DELETION_OPTION_V2_UNSPECIFIED",
+      "NEVER",
+      "ON_SUCCESS"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AmazonSQSSettings": {
+   "properties": {
+    "accountNumber": {
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "SQSAuth"
+    },
+    "queue": {
+     "type": "string"
+    },
+    "region": {
+     "enum": [
+      "S3_REGION_UNSPECIFIED",
+      "US_EAST_1",
+      "US_EAST_2",
+      "US_WEST_1",
+      "US_WEST_2",
+      "US_GOV_CLOUD",
+      "US_GOV_EAST_1",
+      "EU_WEST_1",
+      "EU_WEST_2",
+      "EU_WEST_3",
+      "EU_CENTRAL_1",
+      "EU_NORTH_1",
+      "EU_SOUTH_1",
+      "AP_SOUTH_1",
+      "AP_SOUTHEAST_1",
+      "AP_SOUTHEAST_2",
+      "AP_SOUTHEAST_3",
+      "AP_NORTHEAST_1",
+      "AP_NORTHEAST_2",
+      "AP_NORTHEAST_3",
+      "AP_EAST_1",
+      "SA_EAST_1",
+      "CN_NORTH_1",
+      "CN_NORTHWEST_1",
+      "CA_CENTRAL_1",
+      "AF_SOUTH_1",
+      "ME_SOUTH_1",
+      "AP_SOUTH_2",
+      "AP_SOUTHEAST_4",
+      "CA_WEST_1",
+      "EU_SOUTH_2",
+      "EU_CENTRAL_2",
+      "IL_CENTRAL_1",
+      "ME_CENTRAL_1"
+     ],
+     "type": "string"
+    },
+    "sourceDeletionOption": {
+     "enum": [
+      "SOURCE_DELETION_OPTION_UNSPECIFIED",
+      "SOURCE_DELETION_NEVER",
+      "SOURCE_DELETION_ON_SUCCESS",
+      "SOURCE_DELETION_ON_SUCCESS_FILES_ONLY"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AmazonSQSV2Settings": {
+   "properties": {
+    "authentication": {
+     "$ref": "SQSAuthV2"
+    },
+    "chronicleServiceAccount": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "includePrefixes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "maxLookbackDays": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "queue": {
+     "type": "string"
+    },
+    "s3Uri": {
+     "type": "string"
+    },
+    "sourceDeletionOption": {
+     "enum": [
+      "SOURCE_DELETION_OPTION_V2_UNSPECIFIED",
+      "NEVER",
+      "ON_SUCCESS"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AnomaliIocSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureADAuditSettings": {
+   "properties": {
+    "authEndpoint": {
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "MicrosoftOAuthClientCredentials"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "tenantId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureADContextSettings": {
+   "properties": {
+    "authEndpoint": {
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "MicrosoftOAuthClientCredentials"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "retrieveDevices": {
+     "type": "boolean"
+    },
+    "retrieveGroups": {
+     "type": "boolean"
+    },
+    "tenantId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureADSettings": {
+   "properties": {
+    "authEndpoint": {
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "MicrosoftOAuthClientCredentials"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "tenantId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureAuth": {
+   "properties": {
+    "sasToken": {
+     "type": "string"
+    },
+    "sharedKey": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureAuthV2": {
+   "properties": {
+    "accessKey": {
+     "type": "string"
+    },
+    "azureV2WorkloadIdentityFederation": {
+     "$ref": "AzureV2WorkloadIdentityFederation"
+    },
+    "sasToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureBlobStoreSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "AzureAuth"
+    },
+    "azureUri": {
+     "type": "string"
+    },
+    "sourceDeletionOption": {
+     "enum": [
+      "SOURCE_DELETION_OPTION_UNSPECIFIED",
+      "SOURCE_DELETION_NEVER",
+      "SOURCE_DELETION_ON_SUCCESS",
+      "SOURCE_DELETION_ON_SUCCESS_FILES_ONLY"
+     ],
+     "type": "string"
+    },
+    "sourceType": {
+     "enum": [
+      "URI_SOURCE_TYPE_UNSPECIFIED",
+      "FILES",
+      "FOLDERS",
+      "FOLDERS_RECURSIVE"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureBlobStoreV2Settings": {
+   "properties": {
+    "authentication": {
+     "$ref": "AzureAuthV2"
+    },
+    "azureUri": {
+     "type": "string"
+    },
+    "chronicleServiceAccount": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "includePrefixes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "maxLookbackDays": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "sourceDeletionOption": {
+     "enum": [
+      "SOURCE_DELETION_OPTION_V2_UNSPECIFIED",
+      "NEVER",
+      "ON_SUCCESS"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureEventHubSettings": {
+   "properties": {
+    "azureSasToken": {
+     "type": "string"
+    },
+    "azureStorageConnectionString": {
+     "type": "string"
+    },
+    "azureStorageContainer": {
+     "type": "string"
+    },
+    "consumerGroup": {
+     "type": "string"
+    },
+    "eventHubConnectionString": {
+     "type": "string"
+    },
+    "eventHubNamespace": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureMDMIntuneSettings": {
+   "properties": {
+    "authEndpoint": {
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "MicrosoftOAuthClientCredentials"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "tenantId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureV2WorkloadIdentityFederation": {
+   "properties": {
+    "clientId": {
+     "type": "string"
+    },
+    "subjectId": {
+     "type": "string"
+    },
+    "tenantId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "BatchGetDashboardChartsRequest": {
+   "properties": {
+    "names": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "BatchGetDashboardChartsResponse": {
+   "properties": {
+    "dashboardCharts": {
+     "items": {
+      "$ref": "DashboardChart"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "BigQueryExport": {
+   "properties": {
+    "bigQueryExportPackage": {
+     "enum": [
+      "BIG_QUERY_EXPORT_PACKAGE_UNSPECIFIED",
+      "BIG_QUERY_EXPORT_PACKAGE_BYOBQ",
+      "BIG_QUERY_EXPORT_PACKAGE_ADVANCED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "entityGraphSettings": {
+     "$ref": "DataSourceExportSettings"
+    },
+    "iocMatchesSettings": {
+     "$ref": "DataSourceExportSettings"
+    },
+    "name": {
+     "type": "string"
+    },
+    "provisioned": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "ruleDetectionsSettings": {
+     "$ref": "DataSourceExportSettings"
+    },
+    "udmEventsAggregatesSettings": {
+     "$ref": "DataSourceExportSettings"
+    },
+    "udmEventsSettings": {
+     "$ref": "DataSourceExportSettings"
+    }
+   },
+   "type": "object"
+  },
+  "BulkCreateDataTableRowsRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    },
+    "requests": {
+     "items": {
+      "$ref": "CreateDataTableRowRequest"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "BulkCreateDataTableRowsResponse": {
+   "properties": {
+    "dataTableRows": {
+     "items": {
+      "$ref": "DataTableRow"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "BulkGetDataTableRowsRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    },
+    "requests": {
+     "items": {
+      "$ref": "GetDataTableRowRequest"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "BulkGetDataTableRowsResponse": {
+   "properties": {
+    "dataTableRows": {
+     "items": {
+      "$ref": "DataTableRow"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "BulkReplaceDataTableRowsRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    },
+    "requests": {
+     "items": {
+      "$ref": "CreateDataTableRowRequest"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "BulkReplaceDataTableRowsResponse": {
+   "properties": {
+    "dataTableRows": {
+     "items": {
+      "$ref": "DataTableRow"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "BulkUpdateDataTableRowsRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    },
+    "requests": {
+     "items": {
+      "$ref": "UpdateDataTableRowRequest"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "BulkUpdateDataTableRowsResponse": {
+   "properties": {
+    "dataTableRows": {
+     "items": {
+      "$ref": "DataTableRow"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "Button": {
+   "properties": {
+    "description": {
+     "type": "string"
+    },
+    "hyperlink": {
+     "type": "string"
+    },
+    "label": {
+     "type": "string"
+    },
+    "newTab": {
+     "type": "boolean"
+    },
+    "properties": {
+     "$ref": "ButtonProperties"
+    }
+   },
+   "type": "object"
+  },
+  "ButtonProperties": {
+   "properties": {
+    "buttonStyle": {
+     "enum": [
+      "BUTTON_STYLE_UNSPECIFIED",
+      "BUTTON_STYLE_FILLED",
+      "BUTTON_STYLE_OUTLINED",
+      "BUTTON_STYLE_TRANSPARENT"
+     ],
+     "type": "string"
+    },
+    "color": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Claims": {
+   "properties": {
+    "audience": {
+     "type": "string"
+    },
+    "issuer": {
+     "type": "string"
+    },
+    "subject": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CloudPassageSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    },
+    "eventTypes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ColumnMetadata": {
+   "properties": {
+    "column": {
+     "type": "string"
+    },
+    "dataSource": {
+     "enum": [
+      "DATA_SOURCE_UNSPECIFIED",
+      "UDM",
+      "ENTITY",
+      "INGESTION_METRICS",
+      "RULE_DETECTIONS",
+      "RULESETS",
+      "GLOBAL",
+      "IOC_MATCHES",
+      "RULES",
+      "SOAR_CASES",
+      "SOAR_PLAYBOOKS",
+      "SOAR_CASE_HISTORY",
+      "DATA_TABLE",
+      "INVESTIGATION",
+      "INVESTIGATION_FEEDBACK"
+     ],
+     "type": "string"
+    },
+    "fieldPath": {
+     "type": "string"
+    },
+    "functionModule": {
+     "type": "string"
+    },
+    "functionName": {
+     "type": "string"
+    },
+    "latitude": {
+     "type": "boolean"
+    },
+    "longitude": {
+     "type": "boolean"
+    },
+    "selected": {
+     "type": "boolean"
+    },
+    "timestampMetadata": {
+     "$ref": "TimestampMetadata"
+    },
+    "unselected": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "CompilationDiagnostic": {
+   "properties": {
+    "message": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "position": {
+     "$ref": "CompilationPosition",
+     "readOnly": true
+    },
+    "severity": {
+     "enum": [
+      "SEVERITY_UNSPECIFIED",
+      "WARNING",
+      "ERROR"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "uri": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CompilationPosition": {
+   "properties": {
+    "endColumn": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    },
+    "endLine": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    },
+    "startColumn": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    },
+    "startLine": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "ComputeAllFindingsRefinementActivitiesRequest": {
+   "properties": {
+    "instance": {
+     "type": "string"
+    },
+    "interval": {
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "ComputeAllFindingsRefinementActivitiesResponse": {
+   "properties": {
+    "activities": {
+     "items": {
+      "$ref": "FindingsRefinementActivity"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ComputeFindingsRefinementActivityRequest": {
+   "properties": {
+    "interval": {
+     "type": "object"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ComputeFindingsRefinementActivityResponse": {
+   "properties": {
+    "activity": {
+     "$ref": "FindingsRefinementActivity"
+    }
+   },
+   "type": "object"
+  },
+  "CortexXDRSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "endpoint": {
+     "type": "string"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateDataAccessLabelRequest": {
+   "properties": {
+    "dataAccessLabel": {
+     "$ref": "DataAccessLabel"
+    },
+    "dataAccessLabelId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateDataAccessScopeRequest": {
+   "properties": {
+    "dataAccessScope": {
+     "$ref": "DataAccessScope"
+    },
+    "dataAccessScopeId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateDataTableRequest": {
+   "properties": {
+    "dataTable": {
+     "$ref": "DataTable"
+    },
+    "dataTableId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateDataTableRowRequest": {
+   "properties": {
+    "dataTableRow": {
+     "$ref": "DataTableRow"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateFeedRequest": {
+   "properties": {
+    "feed": {
+     "$ref": "Feed"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateFindingsRefinementRequest": {
+   "properties": {
+    "findingsRefinement": {
+     "$ref": "FindingsRefinement"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateNativeDashboardRequest": {
+   "properties": {
+    "nativeDashboard": {
+     "$ref": "NativeDashboard"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateReferenceListRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    },
+    "referenceList": {
+     "$ref": "ReferenceList"
+    },
+    "referenceListId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateRetrohuntRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    },
+    "retrohunt": {
+     "$ref": "Retrohunt"
+    }
+   },
+   "type": "object"
+  },
+  "CreateRuleRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    },
+    "rule": {
+     "$ref": "Rule"
+    }
+   },
+   "type": "object"
+  },
+  "CreateWatchlistRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    },
+    "watchlist": {
+     "$ref": "Watchlist"
+    },
+    "watchlistId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CrowdStrikeAlertsSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "OAuthClientCredentials"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "ingestionType": {
+     "enum": [
+      "INGESTION_TYPE_UNSPECIFIED",
+      "BRING_ALL_ALERTS",
+      "BRING_ONLY_NEW_ALERTS"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CrowdStrikeDetectsSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "OAuthClientCredentials"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "ingestionType": {
+     "enum": [
+      "INGESTION_TYPE_UNSPECIFIED",
+      "BRING_ONLY_NEW_DETECTIONS",
+      "BRING_ALL_DETECTIONS"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPICheckpointConfig": {
+   "properties": {
+    "iteratorStrategy": {
+     "$ref": "CustomAPICheckpointConfigIteratorStrategy"
+    },
+    "latestRecordStrategy": {
+     "$ref": "CustomAPICheckpointConfigLatestRecordStrategy"
+    },
+    "latestTimestampStrategy": {
+     "$ref": "CustomAPICheckpointConfigLatestTimestampStrategy"
+    },
+    "noneStrategy": {
+     "$ref": "CustomAPICheckpointConfigNoneStrategy"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPICheckpointConfigIteratorStrategy": {
+   "properties": {
+    "checkpointValuePath": {
+     "type": "string"
+    },
+    "checkpointVariable": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPICheckpointConfigLatestRecordStrategy": {
+   "properties": {
+    "checkpointValuePath": {
+     "type": "string"
+    },
+    "checkpointVariable": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPICheckpointConfigLatestTimestampStrategy": {
+   "properties": {
+    "checkpointValuePath": {
+     "type": "string"
+    },
+    "checkpointVariable": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPICheckpointConfigNoneStrategy": {
+   "properties": {},
+   "type": "object"
+  },
+  "CustomAPIDependentRequestsConfig": {
+   "properties": {
+    "dependentRequests": {
+     "items": {
+      "$ref": "CustomAPITransferNode"
+     },
+     "type": "array"
+    },
+    "itemIdJsonPath": {
+     "type": "string"
+    },
+    "itemIdVariable": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPIHeaderAuth": {
+   "properties": {
+    "headerKeyValues": {
+     "items": {
+      "$ref": "CustomAPIHeaderKeyValue"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPIHeaderKeyValue": {
+   "properties": {
+    "key": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPINoAuth": {
+   "properties": {},
+   "type": "object"
+  },
+  "CustomAPIPagination": {
+   "properties": {
+    "link": {
+     "$ref": "CustomAPIPaginationLinkPagination"
+    },
+    "none": {
+     "$ref": "CustomAPIPaginationNonePagination"
+    },
+    "offset": {
+     "$ref": "CustomAPIPaginationOffsetPagination"
+    },
+    "pageNumber": {
+     "$ref": "CustomAPIPaginationPageNumberPagination"
+    },
+    "token": {
+     "$ref": "CustomAPIPaginationTokenPagination"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPIPaginationLinkPagination": {
+   "properties": {
+    "nextPageLinkJsonPath": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPIPaginationNonePagination": {
+   "properties": {},
+   "type": "object"
+  },
+  "CustomAPIPaginationOffsetPagination": {
+   "properties": {
+    "offsetQueryParam": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPIPaginationPageNumberPagination": {
+   "properties": {
+    "pageNumberQueryParam": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPIPaginationTokenPagination": {
+   "properties": {
+    "nextPageTokenJsonPath": {
+     "type": "string"
+    },
+    "queryParam": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPIQueryAuth": {
+   "properties": {
+    "queryKeyValues": {
+     "items": {
+      "$ref": "CustomAPIQueryKeyValue"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPIQueryKeyValue": {
+   "properties": {
+    "key": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPIRequestConfig": {
+   "properties": {
+    "customHeaders": {
+     "items": {
+      "$ref": "HeaderKeyValue"
+     },
+     "type": "array"
+    },
+    "endpointPath": {
+     "type": "string"
+    },
+    "httpMethod": {
+     "enum": [
+      "HTTP_METHOD_UNSPECIFIED",
+      "GET",
+      "POST"
+     ],
+     "type": "string"
+    },
+    "maxRequestsPerMinute": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "queryParameters": {
+     "items": {
+      "$ref": "HeaderKeyValue"
+     },
+     "type": "array"
+    },
+    "requestBody": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPIResponseConfig": {
+   "properties": {
+    "targetDataPath": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPISettings": {
+   "properties": {
+    "baseUrl": {
+     "type": "string"
+    },
+    "basicAuth": {
+     "$ref": "UsernameSecretAuth"
+    },
+    "headerAuth": {
+     "$ref": "CustomAPIHeaderAuth"
+    },
+    "noAuth": {
+     "$ref": "CustomAPINoAuth"
+    },
+    "oauthClientCredentials": {
+     "$ref": "OAuthClientCredentials"
+    },
+    "pollingFrequency": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "primaryRequest": {
+     "$ref": "CustomAPITransferNode"
+    },
+    "queryAuth": {
+     "$ref": "CustomAPIQueryAuth"
+    }
+   },
+   "type": "object"
+  },
+  "CustomAPITransferNode": {
+   "properties": {
+    "checkpointing": {
+     "$ref": "CustomAPICheckpointConfig"
+    },
+    "dependentRequestsConfig": {
+     "$ref": "CustomAPIDependentRequestsConfig"
+    },
+    "paginationStrategy": {
+     "$ref": "CustomAPIPagination"
+    },
+    "requestSettings": {
+     "$ref": "CustomAPIRequestConfig"
+    },
+    "responseMapping": {
+     "$ref": "CustomAPIResponseConfig"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChart": {
+   "properties": {
+    "chartDatasource": {
+     "$ref": "DashboardChartChartDatasource"
+    },
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "drillDownConfig": {
+     "$ref": "DashboardChartDrillDownConfig"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "name": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "nativeDashboard": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "tileType": {
+     "enum": [
+      "TILE_TYPE_UNSPECIFIED",
+      "TILE_TYPE_VISUALIZATION",
+      "TILE_TYPE_BUTTON",
+      "TILE_TYPE_MARKDOWN"
+     ],
+     "type": "string"
+    },
+    "tokens": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "visualization": {
+     "$ref": "DashboardChartVisualization"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartChartDatasource": {
+   "properties": {
+    "dashboardQuery": {
+     "type": "string"
+    },
+    "dataSources": {
+     "items": {
+      "enum": [
+       "DATA_SOURCE_UNSPECIFIED",
+       "UDM",
+       "ENTITY",
+       "INGESTION_METRICS",
+       "RULE_DETECTIONS",
+       "RULESETS",
+       "GLOBAL",
+       "IOC_MATCHES",
+       "RULES",
+       "SOAR_CASES",
+       "SOAR_PLAYBOOKS",
+       "SOAR_CASE_HISTORY",
+       "DATA_TABLE",
+       "INVESTIGATION",
+       "INVESTIGATION_FEEDBACK"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartDrillDownConfig": {
+   "properties": {
+    "leftDrillDowns": {
+     "items": {
+      "$ref": "DashboardChartDrillDownConfigDrillDown"
+     },
+     "type": "array"
+    },
+    "rightDrillDowns": {
+     "items": {
+      "$ref": "DashboardChartDrillDownConfigDrillDown"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartDrillDownConfigDrillDown": {
+   "properties": {
+    "customSettings": {
+     "$ref": "DashboardChartDrillDownConfigDrillDownCustomDrillDownSettings"
+    },
+    "defaultSettings": {
+     "$ref": "DashboardChartDrillDownConfigDrillDownDefaultDrillDownSettings"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "id": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartDrillDownConfigDrillDownCustomDrillDownSettings": {
+   "properties": {
+    "externalLink": {
+     "$ref": "DashboardChartDrillDownConfigDrillDownCustomDrillDownSettingsDrillDownExternalLink"
+    },
+    "filter": {
+     "$ref": "DashboardChartDrillDownConfigDrillDownCustomDrillDownSettingsDrillDownFilter"
+    },
+    "leftClickColumn": {
+     "type": "string"
+    },
+    "newTab": {
+     "type": "boolean"
+    },
+    "query": {
+     "$ref": "DashboardChartDrillDownConfigDrillDownCustomDrillDownSettingsDrillDownQuery"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartDrillDownConfigDrillDownCustomDrillDownSettingsDrillDownExternalLink": {
+   "properties": {
+    "description": {
+     "type": "string"
+    },
+    "link": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartDrillDownConfigDrillDownCustomDrillDownSettingsDrillDownFilter": {
+   "properties": {
+    "dashboardFilters": {
+     "items": {
+      "$ref": "DashboardChartDrillDownConfigDrillDownCustomDrillDownSettingsDrillDownFilterDrillDownDashboardFilter"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartDrillDownConfigDrillDownCustomDrillDownSettingsDrillDownFilterDrillDownDashboardFilter": {
+   "properties": {
+    "dashboardFilterId": {
+     "type": "string"
+    },
+    "filterOperatorAndValues": {
+     "items": {
+      "$ref": "FilterOperatorAndValues"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartDrillDownConfigDrillDownCustomDrillDownSettingsDrillDownQuery": {
+   "properties": {
+    "query": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartDrillDownConfigDrillDownDefaultDrillDownSettings": {
+   "properties": {
+    "enabled": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualization": {
+   "properties": {
+    "button": {
+     "$ref": "Button"
+    },
+    "columnDefs": {
+     "items": {
+      "$ref": "DashboardChartVisualizationColumnDef"
+     },
+     "type": "array"
+    },
+    "googleMapsConfig": {
+     "$ref": "DashboardChartVisualizationGoogleMapsConfig"
+    },
+    "groupingType": {
+     "type": "string"
+    },
+    "legends": {
+     "items": {
+      "$ref": "DashboardChartVisualizationLegend"
+     },
+     "type": "array"
+    },
+    "markdown": {
+     "$ref": "Markdown"
+    },
+    "series": {
+     "items": {
+      "$ref": "DashboardChartVisualizationSeries"
+     },
+     "type": "array"
+    },
+    "seriesColumn": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "tableConfig": {
+     "$ref": "DashboardChartVisualizationTableConfig"
+    },
+    "thresholdColoringEnabled": {
+     "type": "boolean"
+    },
+    "tooltip": {
+     "$ref": "DashboardChartVisualizationTooltip"
+    },
+    "visualMaps": {
+     "items": {
+      "$ref": "DashboardChartVisualizationVisualMap"
+     },
+     "type": "array"
+    },
+    "xAxes": {
+     "items": {
+      "$ref": "DashboardChartVisualizationAxis"
+     },
+     "type": "array"
+    },
+    "yAxes": {
+     "items": {
+      "$ref": "DashboardChartVisualizationAxis"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationAxis": {
+   "properties": {
+    "axisType": {
+     "enum": [
+      "AXIS_TYPE_UNSPECIFIED",
+      "VALUE",
+      "CATEGORY",
+      "TIME",
+      "LOG"
+     ],
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "max": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "min": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationColumnDef": {
+   "properties": {
+    "field": {
+     "type": "string"
+    },
+    "header": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationColumnRenderTypeSettings": {
+   "properties": {
+    "columnRenderType": {
+     "enum": [
+      "RENDER_TYPE_UNSPECIFIED",
+      "RENDER_TYPE_TEXT",
+      "RENDER_TYPE_ICON",
+      "RENDER_TYPE_ICON_AND_TEXT"
+     ],
+     "type": "string"
+    },
+    "field": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationColumnTooltipSettings": {
+   "properties": {
+    "cellTooltipText": {
+     "type": "string"
+    },
+    "field": {
+     "type": "string"
+    },
+    "headerTooltipText": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationGoogleMapsConfig": {
+   "properties": {
+    "dataSettings": {
+     "$ref": "DashboardChartVisualizationGoogleMapsConfigDataSettings"
+    },
+    "mapPosition": {
+     "$ref": "DashboardChartVisualizationGoogleMapsConfigMapPosition"
+    },
+    "plotMode": {
+     "enum": [
+      "PLOT_MODE_UNSPECIFIED",
+      "PLOT_MODE_POINTS",
+      "PLOT_MODE_HEATMAP",
+      "PLOT_MODE_BOTH"
+     ],
+     "type": "string"
+    },
+    "pointSettings": {
+     "$ref": "DashboardChartVisualizationGoogleMapsConfigPointSettings"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationGoogleMapsConfigDataSettings": {
+   "properties": {
+    "countColumn": {
+     "type": "string"
+    },
+    "latitudeColumn": {
+     "type": "string"
+    },
+    "longitudeColumn": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationGoogleMapsConfigMapPosition": {
+   "properties": {
+    "fitData": {
+     "type": "boolean"
+    },
+    "latitudeValue": {
+     "type": "number"
+    },
+    "longitudeValue": {
+     "type": "number"
+    },
+    "zoomScaleValue": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationGoogleMapsConfigPointSettings": {
+   "properties": {
+    "color": {
+     "type": "string"
+    },
+    "pointSizeType": {
+     "enum": [
+      "POINT_SIZE_TYPE_UNSPECIFIED",
+      "POINT_SIZE_TYPE_FIXED",
+      "POINT_SIZE_TYPE_PROPORTIONAL_TO_SIZE"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationLegend": {
+   "properties": {
+    "bottom": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "id": {
+     "type": "string"
+    },
+    "left": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "legendAlign": {
+     "enum": [
+      "LEGEND_ALIGN_UNSPECIFIED",
+      "AUTO",
+      "LEFT",
+      "RIGHT"
+     ],
+     "type": "string"
+    },
+    "legendOrient": {
+     "enum": [
+      "LEGEND_ORIENT_UNSPECIFIED",
+      "VERTICAL",
+      "HORIZONTAL"
+     ],
+     "type": "string"
+    },
+    "padding": {
+     "items": {
+      "format": "int32",
+      "type": "integer"
+     },
+     "type": "array"
+    },
+    "right": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "show": {
+     "type": "boolean"
+    },
+    "top": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "z": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "zLevel": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationSeries": {
+   "properties": {
+    "areaStyle": {
+     "$ref": "DashboardChartVisualizationSeriesAreaStyle"
+    },
+    "dataLabel": {
+     "$ref": "DashboardChartVisualizationSeriesDataLabel"
+    },
+    "encode": {
+     "$ref": "DashboardChartVisualizationSeriesEncode"
+    },
+    "field": {
+     "type": "string"
+    },
+    "gaugeConfig": {
+     "$ref": "DashboardChartVisualizationSeriesGaugeConfig"
+    },
+    "itemColors": {
+     "$ref": "DashboardChartVisualizationSeriesItemColors"
+    },
+    "itemStyle": {
+     "$ref": "DashboardChartVisualizationSeriesItemStyle"
+    },
+    "label": {
+     "type": "string"
+    },
+    "metricTrendConfig": {
+     "$ref": "DashboardChartVisualizationSeriesMetricTrendConfig"
+    },
+    "radius": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "seriesName": {
+     "type": "string"
+    },
+    "seriesStackStrategy": {
+     "enum": [
+      "SERIES_STACK_STRATEGY_UNSPECIFIED",
+      "SAMESIGN",
+      "ALL",
+      "POSITIVE",
+      "NEGATIVE"
+     ],
+     "type": "string"
+    },
+    "seriesType": {
+     "enum": [
+      "SERIES_TYPE_UNSPECIFIED",
+      "LINE",
+      "BAR",
+      "PIE",
+      "TEXT",
+      "MAP",
+      "GAUGE",
+      "SCATTERPLOT"
+     ],
+     "type": "string"
+    },
+    "seriesUniqueValue": {
+     "type": "string"
+    },
+    "showBackground": {
+     "type": "boolean"
+    },
+    "showSymbol": {
+     "type": "boolean"
+    },
+    "stack": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationSeriesAreaStyle": {
+   "properties": {
+    "color": {
+     "type": "string"
+    },
+    "opacity": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "origin": {
+     "type": "string"
+    },
+    "shadowBlur": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "shadowColor": {
+     "type": "string"
+    },
+    "shadowOffsetX": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "shadowOffsetY": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationSeriesChartSliceColor": {
+   "properties": {
+    "key": {
+     "type": "string"
+    },
+    "value": {
+     "$ref": "DashboardChartVisualizationSeriesUserSelectedValues"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationSeriesDataLabel": {
+   "properties": {
+    "show": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationSeriesEncode": {
+   "properties": {
+    "itemName": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    },
+    "x": {
+     "type": "string"
+    },
+    "y": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationSeriesGaugeConfig": {
+   "properties": {
+    "baseValue": {
+     "$ref": "DashboardChartVisualizationSeriesGaugeValue"
+    },
+    "limitValue": {
+     "$ref": "DashboardChartVisualizationSeriesGaugeValue"
+    },
+    "thresholdValues": {
+     "items": {
+      "$ref": "DashboardChartVisualizationSeriesGaugeValue"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationSeriesGaugeValue": {
+   "properties": {
+    "color": {
+     "type": "string"
+    },
+    "value": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationSeriesItemColors": {
+   "properties": {
+    "colors": {
+     "items": {
+      "$ref": "DashboardChartVisualizationSeriesChartSliceColor"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationSeriesItemStyle": {
+   "properties": {
+    "borderColor": {
+     "type": "string"
+    },
+    "borderWidth": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "color": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationSeriesMetricTrendConfig": {
+   "properties": {
+    "metricDisplayTrend": {
+     "enum": [
+      "METRIC_DISPLAY_TREND_UNSPECIFIED",
+      "METRIC_DISPLAY_TREND_ABSOLUTE_VALUE",
+      "METRIC_DISPLAY_TREND_PERCENTAGE",
+      "METRIC_DISPLAY_TREND_ABSOLUTE_VALUE_AND_PERCENTAGE"
+     ],
+     "type": "string"
+    },
+    "metricFormat": {
+     "enum": [
+      "METRIC_FORMAT_UNSPECIFIED",
+      "METRIC_FORMAT_NUMBER",
+      "METRIC_FORMAT_PLAIN_TEXT"
+     ],
+     "type": "string"
+    },
+    "metricTrendType": {
+     "enum": [
+      "METRIC_TREND_TYPE_UNSPECIFIED",
+      "METRIC_TREND_TYPE_REGULAR",
+      "METRIC_TREND_TYPE_INVERSE"
+     ],
+     "type": "string"
+    },
+    "showMetricTrend": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationSeriesUserSelectedValues": {
+   "properties": {
+    "color": {
+     "type": "string"
+    },
+    "label": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationTableConfig": {
+   "properties": {
+    "columnRenderTypeSettings": {
+     "items": {
+      "$ref": "DashboardChartVisualizationColumnRenderTypeSettings"
+     },
+     "type": "array"
+    },
+    "columnTooltipSettings": {
+     "items": {
+      "$ref": "DashboardChartVisualizationColumnTooltipSettings"
+     },
+     "type": "array"
+    },
+    "enableTextWrap": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationTooltip": {
+   "properties": {
+    "show": {
+     "type": "boolean"
+    },
+    "tooltipTrigger": {
+     "enum": [
+      "TOOLTIP_TRIGGER_UNSPECIFIED",
+      "TOOLTIP_TRIGGER_NONE",
+      "TOOLTIP_TRIGGER_ITEM",
+      "TOOLTIP_TRIGGER_AXIS"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationVisualMap": {
+   "properties": {
+    "pieces": {
+     "items": {
+      "$ref": "DashboardChartVisualizationVisualMapVisualMapPiece"
+     },
+     "type": "array"
+    },
+    "visualMapType": {
+     "enum": [
+      "VISUAL_MAP_TYPE_UNSPECIFIED",
+      "CONTINUOUS",
+      "PIECEWISE"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardChartVisualizationVisualMapVisualMapPiece": {
+   "properties": {
+    "color": {
+     "type": "string"
+    },
+    "label": {
+     "type": "string"
+    },
+    "max": {
+     "format": "int64",
+     "type": "string"
+    },
+    "min": {
+     "format": "int64",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardDefinition": {
+   "properties": {
+    "charts": {
+     "items": {
+      "$ref": "DashboardDefinitionChartConfig"
+     },
+     "type": "array"
+    },
+    "filters": {
+     "items": {
+      "$ref": "DashboardFilter"
+     },
+     "type": "array"
+    },
+    "fingerprint": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardDefinitionChartConfig": {
+   "properties": {
+    "chartLayout": {
+     "$ref": "DashboardDefinitionChartConfigChartLayout"
+    },
+    "dashboardChart": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "filtersIds": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardDefinitionChartConfigChartLayout": {
+   "properties": {
+    "spanX": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "spanY": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "startX": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "startY": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardFilter": {
+   "properties": {
+    "advancedFilterConfig": {
+     "$ref": "AdvancedFilterConfig"
+    },
+    "chartIds": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "dataSource": {
+     "enum": [
+      "DATA_SOURCE_UNSPECIFIED",
+      "UDM",
+      "ENTITY",
+      "INGESTION_METRICS",
+      "RULE_DETECTIONS",
+      "RULESETS",
+      "GLOBAL",
+      "IOC_MATCHES",
+      "RULES",
+      "SOAR_CASES",
+      "SOAR_PLAYBOOKS",
+      "SOAR_CASE_HISTORY",
+      "DATA_TABLE",
+      "INVESTIGATION",
+      "INVESTIGATION_FEEDBACK"
+     ],
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "fieldPath": {
+     "type": "string"
+    },
+    "filterOperatorAndFieldValues": {
+     "items": {
+      "$ref": "FilterOperatorAndValues"
+     },
+     "type": "array"
+    },
+    "id": {
+     "type": "string"
+    },
+    "isMandatory": {
+     "type": "boolean"
+    },
+    "isStandardTimeRangeFilter": {
+     "type": "boolean"
+    },
+    "isStandardTimeRangeFilterEnabled": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardQuery": {
+   "properties": {
+    "dashboardChart": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "input": {
+     "$ref": "DashboardQueryInput"
+    },
+    "name": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "query": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardQueryInput": {
+   "properties": {
+    "relativeTime": {
+     "$ref": "DashboardQueryInputRelativeTime"
+    },
+    "timeWindow": {
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardQueryInputRelativeTime": {
+   "properties": {
+    "startTimeVal": {
+     "format": "int64",
+     "type": "string"
+    },
+    "timeUnit": {
+     "enum": [
+      "TIME_UNIT_UNSPECIFIED",
+      "SECOND",
+      "MINUTE",
+      "HOUR",
+      "DAY",
+      "WEEK",
+      "MONTH",
+      "YEAR"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DashboardUserData": {
+   "properties": {
+    "isPinned": {
+     "type": "boolean"
+    },
+    "lastViewedTime": {
+     "format": "google-datetime",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DataAccessLabel": {
+   "properties": {
+    "author": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "lastEditor": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "udmQuery": {
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DataAccessLabelReference": {
+   "properties": {
+    "assetNamespace": {
+     "type": "string"
+    },
+    "dataAccessLabel": {
+     "type": "string"
+    },
+    "displayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "ingestionLabel": {
+     "$ref": "IngestionLabel"
+    },
+    "logType": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DataAccessScope": {
+   "properties": {
+    "allowAll": {
+     "type": "boolean"
+    },
+    "allowedDataAccessLabels": {
+     "items": {
+      "$ref": "DataAccessLabelReference"
+     },
+     "type": "array"
+    },
+    "author": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "deniedDataAccessLabels": {
+     "items": {
+      "$ref": "DataAccessLabelReference"
+     },
+     "type": "array"
+    },
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "lastEditor": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DataSourceExportSettings": {
+   "properties": {
+    "dataFreshnessTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "dataVolume": {
+     "format": "int64",
+     "readOnly": true,
+     "type": "string"
+    },
+    "enabled": {
+     "type": "boolean"
+    },
+    "latestExportJobState": {
+     "enum": [
+      "LATEST_EXPORT_JOB_STATE_UNSPECIFIED",
+      "LATEST_EXPORT_JOB_STATE_SUCCESS",
+      "LATEST_EXPORT_JOB_STATE_FAILED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "retentionDays": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "DataTable": {
+   "properties": {
+    "approximateRowCount": {
+     "format": "int64",
+     "readOnly": true,
+     "type": "string"
+    },
+    "columnInfo": {
+     "items": {
+      "$ref": "DataTableColumnInfo"
+     },
+     "type": "array"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "dataTableUuid": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "rowTimeToLive": {
+     "type": "string"
+    },
+    "rowTimeToLiveUpdateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "ruleAssociationsCount": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    },
+    "rules": {
+     "items": {
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "scopeInfo": {
+     "$ref": "DataTableScopeInfo"
+    },
+    "updateSource": {
+     "enum": [
+      "DATA_TABLE_UPDATE_SOURCE_UNSPECIFIED",
+      "USER",
+      "RULE",
+      "SEARCH"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DataTableColumnInfo": {
+   "properties": {
+    "columnIndex": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "columnType": {
+     "enum": [
+      "DATA_TABLE_COLUMN_TYPE_UNSPECIFIED",
+      "STRING",
+      "REGEX",
+      "CIDR",
+      "NUMBER"
+     ],
+     "type": "string"
+    },
+    "keyColumn": {
+     "type": "boolean"
+    },
+    "mappedColumnPath": {
+     "type": "string"
+    },
+    "originalColumn": {
+     "type": "string"
+    },
+    "repeatedValues": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DataTableOperationErrors": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "rpcErrors": {
+     "items": {
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DataTableRow": {
+   "properties": {
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "rowTimeToLive": {
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "values": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DataTableScopeInfo": {
+   "properties": {
+    "dataAccessScopes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteDataAccessLabelRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteDataAccessScopeRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteDataTableRequest": {
+   "properties": {
+    "force": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteDataTableRowRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteFeedRequest": {
+   "properties": {
+    "deleteBacklog": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteNativeDashboardRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteRuleRequest": {
+   "properties": {
+    "force": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteWatchlistRequest": {
+   "properties": {
+    "force": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DetectionExclusionActivity": {
+   "properties": {
+    "detectionExclusionDetectorActivities": {
+     "items": {
+      "$ref": "DetectionExclusionActivityDetectionExclusionDetectorActivity"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DetectionExclusionActivityDetectionExclusionDetectorActivity": {
+   "properties": {
+    "curatedRule": {
+     "type": "string"
+    },
+    "curatedRuleSet": {
+     "type": "string"
+    },
+    "deletedCuratedRuleSet": {
+     "type": "string"
+    },
+    "excludedDetectionCount": {
+     "format": "int64",
+     "type": "string"
+    },
+    "rule": {
+     "type": "string"
+    },
+    "totalDetectionCount": {
+     "format": "int64",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DetectionExclusionApplication": {
+   "properties": {
+    "curatedRuleSets": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "curatedRules": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "deletedCuratedRuleSets": {
+     "items": {
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "rules": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "DisableFeedRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DummyLogTypeSettings": {
+   "properties": {
+    "apiEndpoint": {
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    }
+   },
+   "type": "object"
+  },
+  "DuoAuthSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DuoUserContextSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DuplicateChartRequest": {
+   "properties": {
+    "dashboardChart": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DuplicateChartResponse": {
+   "properties": {
+    "dashboardChart": {
+     "$ref": "DashboardChart"
+    },
+    "nativeDashboard": {
+     "$ref": "NativeDashboard"
+    }
+   },
+   "type": "object"
+  },
+  "DuplicateNativeDashboardRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "nativeDashboard": {
+     "$ref": "NativeDashboard"
+    }
+   },
+   "type": "object"
+  },
+  "EditChartRequest": {
+   "properties": {
+    "dashboardChart": {
+     "$ref": "DashboardChart"
+    },
+    "dashboardQuery": {
+     "$ref": "DashboardQuery"
+    },
+    "editMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    },
+    "languageFeatures": {
+     "items": {
+      "enum": [
+       "LANGUAGE_FEATURE_UNSPECIFIED",
+       "JOINS",
+       "STAGES",
+       "DATA_TABLES"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "EditChartResponse": {
+   "properties": {
+    "dashboardChart": {
+     "$ref": "DashboardChart"
+    },
+    "nativeDashboard": {
+     "$ref": "NativeDashboard"
+    }
+   },
+   "type": "object"
+  },
+  "Empty": {
+   "type": "object"
+  },
+  "EnableFeedRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ExecuteDashboardQueryRequest": {
+   "properties": {
+    "clearCache": {
+     "type": "boolean"
+    },
+    "filters": {
+     "items": {
+      "$ref": "DashboardFilter"
+     },
+     "type": "array"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "query": {
+     "$ref": "DashboardQuery"
+    },
+    "usePreviousTimeRange": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "ExecuteDashboardQueryResponse": {
+   "properties": {
+    "dataSources": {
+     "items": {
+      "enum": [
+       "DATA_SOURCE_UNSPECIFIED",
+       "UDM",
+       "ENTITY",
+       "INGESTION_METRICS",
+       "RULE_DETECTIONS",
+       "RULESETS",
+       "GLOBAL",
+       "IOC_MATCHES",
+       "RULES",
+       "SOAR_CASES",
+       "SOAR_PLAYBOOKS",
+       "SOAR_CASE_HISTORY",
+       "DATA_TABLE",
+       "INVESTIGATION",
+       "INVESTIGATION_FEEDBACK"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "languageFeatures": {
+     "items": {
+      "enum": [
+       "LANGUAGE_FEATURE_UNSPECIFIED",
+       "JOINS",
+       "STAGES",
+       "DATA_TABLES"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "lastBackendCacheRefreshedTime": {
+     "format": "google-datetime",
+     "type": "string"
+    },
+    "queryRuntimeErrors": {
+     "items": {
+      "$ref": "QueryRuntimeError"
+     },
+     "type": "array"
+    },
+    "results": {
+     "items": {
+      "$ref": "ExecuteDashboardQueryResponseColumnData"
+     },
+     "type": "array"
+    },
+    "timeWindow": {
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "ExecuteDashboardQueryResponseColumnData": {
+   "properties": {
+    "column": {
+     "type": "string"
+    },
+    "metadata": {
+     "$ref": "ColumnMetadata"
+    },
+    "values": {
+     "items": {
+      "$ref": "ExecuteDashboardQueryResponseColumnType"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ExecuteDashboardQueryResponseColumnType": {
+   "properties": {
+    "list": {
+     "$ref": "ExecuteDashboardQueryResponseColumnTypeList"
+    },
+    "value": {
+     "$ref": "ExecuteDashboardQueryResponseColumnValue"
+    }
+   },
+   "type": "object"
+  },
+  "ExecuteDashboardQueryResponseColumnTypeList": {
+   "properties": {
+    "values": {
+     "items": {
+      "$ref": "ExecuteDashboardQueryResponseColumnValue"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ExecuteDashboardQueryResponseColumnValue": {
+   "properties": {
+    "boolVal": {
+     "type": "boolean"
+    },
+    "bytesVal": {
+     "format": "byte",
+     "type": "string"
+    },
+    "dateVal": {
+     "type": "object"
+    },
+    "doubleVal": {
+     "type": "number"
+    },
+    "int64Val": {
+     "format": "int64",
+     "type": "string"
+    },
+    "metadata": {
+     "$ref": "ExecuteDashboardQueryResponseColumnValueValueMetadata"
+    },
+    "nullVal": {
+     "type": "boolean"
+    },
+    "protoVal": {
+     "type": "object"
+    },
+    "stringVal": {
+     "type": "string"
+    },
+    "timestampVal": {
+     "format": "google-datetime",
+     "type": "string"
+    },
+    "uint64Val": {
+     "format": "uint64",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ExecuteDashboardQueryResponseColumnValueValueMetadata": {
+   "properties": {
+    "fieldPaths": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "links": {
+     "items": {
+      "$ref": "InAppLink"
+     },
+     "type": "array"
+    },
+    "timestampVal": {
+     "format": "google-datetime",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ExportNativeDashboardsRequest": {
+   "properties": {
+    "names": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ExportNativeDashboardsResponse": {
+   "properties": {
+    "inlineDestination": {
+     "$ref": "InlineDestination"
+    }
+   },
+   "type": "object"
+  },
+  "FeaturedContentMetadata": {
+   "properties": {
+    "author": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "categories": {
+     "items": {
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "certified": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "displayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "id": {
+     "type": "string"
+    },
+    "sourceType": {
+     "enum": [
+      "CONTENT_SOURCE_TYPE_UNSPECIFIED",
+      "GOOGLE",
+      "COMMUNITY",
+      "PARTNER"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "verified": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "version": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FeaturedContentNativeDashboard": {
+   "properties": {
+    "contentMetadata": {
+     "$ref": "FeaturedContentMetadata",
+     "readOnly": true
+    },
+    "dashboardContent": {
+     "$ref": "NativeDashboardWithChartsAndQueries"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Feed": {
+   "properties": {
+    "details": {
+     "$ref": "FeedDetails"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "failureDetails": {
+     "$ref": "FeedFailureDetails",
+     "readOnly": true
+    },
+    "failureMsg": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "lastFeedInitiationTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "readOnly": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "referenceId": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "state": {
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "ACTIVE",
+      "INACTIVE",
+      "RUNNING",
+      "SUCCEEDED",
+      "FAILED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "uid": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FeedDetails": {
+   "properties": {
+    "amazonKinesisFirehoseSettings": {
+     "$ref": "AmazonKinesisFirehoseSettings"
+    },
+    "amazonS3Settings": {
+     "$ref": "AmazonS3Settings"
+    },
+    "amazonS3V2Settings": {
+     "$ref": "AmazonS3V2Settings"
+    },
+    "amazonSqsSettings": {
+     "$ref": "AmazonSQSSettings"
+    },
+    "amazonSqsV2Settings": {
+     "$ref": "AmazonSQSV2Settings"
+    },
+    "anomaliSettings": {
+     "$ref": "AnomaliIocSettings"
+    },
+    "assetNamespace": {
+     "type": "string"
+    },
+    "awsEc2HostsSettings": {
+     "$ref": "AWSEC2HostsSettings"
+    },
+    "awsEc2InstancesSettings": {
+     "$ref": "AWSEC2InstancesSettings"
+    },
+    "awsEc2VpcsSettings": {
+     "$ref": "AWSEC2VpcsSettings"
+    },
+    "awsIamSettings": {
+     "$ref": "AWSIAMSettings"
+    },
+    "azureAdAuditSettings": {
+     "$ref": "AzureADAuditSettings"
+    },
+    "azureAdContextSettings": {
+     "$ref": "AzureADContextSettings"
+    },
+    "azureAdSettings": {
+     "$ref": "AzureADSettings"
+    },
+    "azureBlobStoreSettings": {
+     "$ref": "AzureBlobStoreSettings"
+    },
+    "azureBlobStoreV2Settings": {
+     "$ref": "AzureBlobStoreV2Settings"
+    },
+    "azureEventHubSettings": {
+     "$ref": "AzureEventHubSettings"
+    },
+    "azureMdmIntuneSettings": {
+     "$ref": "AzureMDMIntuneSettings"
+    },
+    "cloudPassageSettings": {
+     "$ref": "CloudPassageSettings"
+    },
+    "cortexXdrSettings": {
+     "$ref": "CortexXDRSettings"
+    },
+    "crowdstrikeAlertsSettings": {
+     "$ref": "CrowdStrikeAlertsSettings"
+    },
+    "crowdstrikeDetectsSettings": {
+     "$ref": "CrowdStrikeDetectsSettings"
+    },
+    "customApiSettings": {
+     "$ref": "CustomAPISettings"
+    },
+    "dummyLogTypeSettings": {
+     "$ref": "DummyLogTypeSettings"
+    },
+    "duoAuthSettings": {
+     "$ref": "DuoAuthSettings"
+    },
+    "duoUserContextSettings": {
+     "$ref": "DuoUserContextSettings"
+    },
+    "feedSourceType": {
+     "enum": [
+      "FEED_SOURCE_TYPE_UNSPECIFIED",
+      "GOOGLE_CLOUD_STORAGE",
+      "HTTP",
+      "SFTP",
+      "AMAZON_S3",
+      "AZURE_BLOBSTORE",
+      "API",
+      "AMAZON_SQS",
+      "PUBSUB",
+      "AMAZON_KINESIS_FIREHOSE",
+      "WEBHOOK",
+      "HTTPS_PUSH_GOOGLE_CLOUD_PUBSUB",
+      "HTTPS_PUSH_AMAZON_KINESIS_FIREHOSE",
+      "HTTPS_PUSH_WEBHOOK",
+      "AZURE_EVENT_HUB",
+      "GOOGLE_CLOUD_STORAGE_V2",
+      "AMAZON_S3_V2",
+      "AMAZON_SQS_V2",
+      "AZURE_BLOBSTORE_V2",
+      "GOOGLE_CLOUD_STORAGE_EVENT_DRIVEN",
+      "CUSTOM_API"
+     ],
+     "type": "string"
+    },
+    "foxItStixSettings": {
+     "$ref": "FoxITStixSettings"
+    },
+    "gcsSettings": {
+     "$ref": "GoogleCloudStorageSettings"
+    },
+    "gcsV2Settings": {
+     "$ref": "GoogleCloudStorageV2Settings"
+    },
+    "googleCloudIdentityDeviceUsersSettings": {
+     "$ref": "GoogleCloudIdentityDeviceUsersSettings"
+    },
+    "googleCloudIdentityDevicesSettings": {
+     "$ref": "GoogleCloudIdentityDevicesSettings"
+    },
+    "googleCloudStorageEventDrivenSettings": {
+     "$ref": "GoogleCloudStorageEventDrivenSettings"
+    },
+    "httpSettings": {
+     "$ref": "HttpSettings"
+    },
+    "httpsPushAmazonKinesisFirehoseSettings": {
+     "$ref": "HttpsPushAmazonKinesisFirehoseSettings"
+    },
+    "httpsPushGoogleCloudPubsubSettings": {
+     "$ref": "HttpsPushGoogleCloudPubSubSettings"
+    },
+    "httpsPushWebhookSettings": {
+     "$ref": "HttpsPushWebhookSettings"
+    },
+    "impervaWafSettings": {
+     "$ref": "ImpervaWAFSettings"
+    },
+    "labels": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "lastV2MigrationAttemptTime": {
+     "format": "google-datetime",
+     "type": "string"
+    },
+    "logType": {
+     "type": "string"
+    },
+    "mandiantIocSettings": {
+     "$ref": "MandiantIoCSettings"
+    },
+    "microsoftGraphAlertSettings": {
+     "$ref": "MicrosoftGraphAlertSettings"
+    },
+    "microsoftSecurityCenterAlertSettings": {
+     "$ref": "MicrosoftSecurityCenterAlertSettings"
+    },
+    "mimecastMailSettings": {
+     "$ref": "MimecastMailSettings"
+    },
+    "mimecastMailV2Settings": {
+     "$ref": "MimecastMailV2Settings"
+    },
+    "netskopeAlertSettings": {
+     "$ref": "NetskopeAlertSettings"
+    },
+    "netskopeAlertV2Settings": {
+     "$ref": "NetskopeAlertV2Settings"
+    },
+    "office365Settings": {
+     "$ref": "Office365Settings"
+    },
+    "oktaSettings": {
+     "$ref": "OktaSettings"
+    },
+    "oktaUserContextSettings": {
+     "$ref": "OktaUserContextSettings"
+    },
+    "panIocSettings": {
+     "$ref": "PanIocSettings"
+    },
+    "panPrismaCloudSettings": {
+     "$ref": "PanPrismaCloudSettings"
+    },
+    "proofpointMailSettings": {
+     "$ref": "ProofpointMailSettings"
+    },
+    "proofpointOnDemandSettings": {
+     "$ref": "ProofpointOnDemandSettings"
+    },
+    "pubsubSettings": {
+     "$ref": "PubsubSettings"
+    },
+    "qualysScanSettings": {
+     "$ref": "QualysScanSettings"
+    },
+    "qualysVmSettings": {
+     "$ref": "QualysVMSettings"
+    },
+    "rapid7InsightSettings": {
+     "$ref": "Rapid7InsightSettings"
+    },
+    "recordedFutureIocSettings": {
+     "$ref": "RecordedFutureIocSettings"
+    },
+    "rhIsacIocSettings": {
+     "$ref": "RHIsacIocSettings"
+    },
+    "salesforceSettings": {
+     "$ref": "SalesforceSettings"
+    },
+    "sentineloneAlertSettings": {
+     "$ref": "SentineloneAlertSettings"
+    },
+    "serviceNowCmdbSettings": {
+     "$ref": "ServiceNowCMDBSettings"
+    },
+    "sftpSettings": {
+     "$ref": "SftpSettings"
+    },
+    "stsMigrationReadiness": {
+     "enum": [
+      "STS_MIGRATION_READINESS_UNSPECIFIED",
+      "NOT_READY",
+      "READY",
+      "AUTH_RECONFIG_REQUIRED"
+     ],
+     "type": "string"
+    },
+    "symantecEventExportSettings": {
+     "$ref": "SymantecEventExportSettings"
+    },
+    "thinkstCanarySettings": {
+     "$ref": "ThinkstCanarySettings"
+    },
+    "threatConnectIocSettings": {
+     "$ref": "ThreatConnectIoCSettings"
+    },
+    "threatConnectIocV3Settings": {
+     "$ref": "ThreatConnectIoCV3Settings"
+    },
+    "trellixHxAlertsSettings": {
+     "$ref": "TrellixHxAlertsSettings"
+    },
+    "trellixHxBulkAcqsSettings": {
+     "$ref": "TrellixHxBulkAcqsSettings"
+    },
+    "trellixHxHostsSettings": {
+     "$ref": "TrellixHxHostsSettings"
+    },
+    "webhookSettings": {
+     "$ref": "WebhookSettings"
+    },
+    "workdaySettings": {
+     "$ref": "WorkdaySettings"
+    },
+    "workspaceActivitySettings": {
+     "$ref": "WorkspaceActivitySettings"
+    },
+    "workspaceAlertsSettings": {
+     "$ref": "WorkspaceAlertsSettings"
+    },
+    "workspaceChromeOsSettings": {
+     "$ref": "WorkspaceChromeOSSettings"
+    },
+    "workspaceGroupsSettings": {
+     "$ref": "WorkspaceGroupsSettings"
+    },
+    "workspaceMobileSettings": {
+     "$ref": "WorkspaceMobileSettings"
+    },
+    "workspacePrivilegesSettings": {
+     "$ref": "WorkspacePrivilegesSettings"
+    },
+    "workspaceUsersSettings": {
+     "$ref": "WorkspaceUsersSettings"
+    }
+   },
+   "type": "object"
+  },
+  "FeedFailureDetails": {
+   "properties": {
+    "errorAction": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "errorCause": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "errorCode": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "httpErrorCode": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "FeedPack": {
+   "properties": {
+    "categories": {
+     "items": {
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "description": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "displayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "hidden": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "icon": {
+     "format": "byte",
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "packDocumentation": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "packLogTypes": {
+     "items": {
+      "$ref": "PackLogType"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "packType": {
+     "enum": [
+      "PACK_TYPE_UNSPECIFIED",
+      "PRODUCT_BASED",
+      "USECASE_BASED",
+      "ONBOARDING"
+     ],
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FeedServiceAccount": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "subjectId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FeedSourceTypeSchema": {
+   "properties": {
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "feedSourceType": {
+     "enum": [
+      "FEED_SOURCE_TYPE_UNSPECIFIED",
+      "GOOGLE_CLOUD_STORAGE",
+      "HTTP",
+      "SFTP",
+      "AMAZON_S3",
+      "AZURE_BLOBSTORE",
+      "API",
+      "AMAZON_SQS",
+      "PUBSUB",
+      "AMAZON_KINESIS_FIREHOSE",
+      "WEBHOOK",
+      "HTTPS_PUSH_GOOGLE_CLOUD_PUBSUB",
+      "HTTPS_PUSH_AMAZON_KINESIS_FIREHOSE",
+      "HTTPS_PUSH_WEBHOOK",
+      "AZURE_EVENT_HUB",
+      "GOOGLE_CLOUD_STORAGE_V2",
+      "AMAZON_S3_V2",
+      "AMAZON_SQS_V2",
+      "AZURE_BLOBSTORE_V2",
+      "GOOGLE_CLOUD_STORAGE_EVENT_DRIVEN",
+      "CUSTOM_API"
+     ],
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "readOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "FetchServiceAccountForCustomerRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FilterOperatorAndValues": {
+   "properties": {
+    "fieldValues": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "filterOperator": {
+     "enum": [
+      "FILTER_OPERATOR_UNSPECIFIED",
+      "EQUAL",
+      "NOT_EQUAL",
+      "IN",
+      "GREATER_THAN",
+      "GREATER_THAN_OR_EQUAL_TO",
+      "LESS_THAN",
+      "LESS_THAN_OR_EQUAL_TO",
+      "BETWEEN",
+      "PAST",
+      "IS_NULL",
+      "IS_NOT_NULL",
+      "STARTS_WITH",
+      "ENDS_WITH",
+      "DOES_NOT_STARTS_WITH",
+      "DOES_NOT_ENDS_WITH",
+      "NOT_IN",
+      "CONTAINS",
+      "DOES_NOT_CONTAIN"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FindingsRefinement": {
+   "properties": {
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "outcomeFilters": {
+     "items": {
+      "$ref": "OutcomeFilter"
+     },
+     "type": "array"
+    },
+    "query": {
+     "type": "string"
+    },
+    "type": {
+     "enum": [
+      "FINDINGS_REFINEMENT_TYPE_UNSPECIFIED",
+      "DETECTION_EXCLUSION"
+     ],
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FindingsRefinementActivity": {
+   "properties": {
+    "detectionExclusionActivity": {
+     "$ref": "DetectionExclusionActivity"
+    },
+    "findingsRefinement": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FindingsRefinementDeployment": {
+   "properties": {
+    "archived": {
+     "type": "boolean"
+    },
+    "detectionExclusionApplication": {
+     "$ref": "DetectionExclusionApplication"
+    },
+    "enabled": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FoxITStixSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    },
+    "collection": {
+     "type": "string"
+    },
+    "pollServiceUri": {
+     "type": "string"
+    },
+    "ssl": {
+     "$ref": "SSLClientKeypair"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateSecretRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateSecretResponse": {
+   "properties": {
+    "secret": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetBigQueryExportRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetDashboardChartRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetDashboardQueryRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetDataAccessLabelRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetDataAccessScopeRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetDataTableOperationErrorsRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetDataTableRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetDataTableRowRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetFeaturedContentNativeDashboardRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetFeedPackRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetFeedRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetFindingsRefinementDeploymentRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetFindingsRefinementRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetInstanceRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetNativeDashboardRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "view": {
+     "enum": [
+      "NATIVE_DASHBOARD_VIEW_UNSPECIFIED",
+      "NATIVE_DASHBOARD_VIEW_BASIC",
+      "NATIVE_DASHBOARD_VIEW_FULL"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetReferenceListRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "view": {
+     "enum": [
+      "REFERENCE_LIST_VIEW_UNSPECIFIED",
+      "REFERENCE_LIST_VIEW_BASIC",
+      "REFERENCE_LIST_VIEW_FULL"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetRetrohuntRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetRuleDeploymentRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetRuleRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "view": {
+     "enum": [
+      "RULE_VIEW_UNSPECIFIED",
+      "BASIC",
+      "FULL",
+      "REVISION_METADATA_ONLY"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetWatchlistRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GoogleCloudIdentityDeviceUsersSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "OAuthJWTCredentials"
+    }
+   },
+   "type": "object"
+  },
+  "GoogleCloudIdentityDevicesSettings": {
+   "properties": {
+    "apiVersion": {
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "OAuthJWTCredentials"
+    }
+   },
+   "type": "object"
+  },
+  "GoogleCloudStorageEventDrivenSettings": {
+   "properties": {
+    "bucketUri": {
+     "type": "string"
+    },
+    "chronicleServiceAccount": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "includePrefixes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "maxLookbackDays": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pubsubSubscription": {
+     "type": "string"
+    },
+    "sourceDeletionOption": {
+     "enum": [
+      "SOURCE_DELETION_OPTION_V2_UNSPECIFIED",
+      "NEVER",
+      "ON_SUCCESS"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GoogleCloudStorageSettings": {
+   "properties": {
+    "bucketUri": {
+     "type": "string"
+    },
+    "chronicleServiceAccount": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "sourceDeletionOption": {
+     "enum": [
+      "SOURCE_DELETION_OPTION_UNSPECIFIED",
+      "SOURCE_DELETION_NEVER",
+      "SOURCE_DELETION_ON_SUCCESS",
+      "SOURCE_DELETION_ON_SUCCESS_FILES_ONLY"
+     ],
+     "type": "string"
+    },
+    "sourceType": {
+     "enum": [
+      "URI_SOURCE_TYPE_UNSPECIFIED",
+      "FILES",
+      "FOLDERS",
+      "FOLDERS_RECURSIVE"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GoogleCloudStorageV2Settings": {
+   "properties": {
+    "bucketUri": {
+     "type": "string"
+    },
+    "chronicleServiceAccount": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "includePrefixes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "maxLookbackDays": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "sourceDeletionOption": {
+     "enum": [
+      "SOURCE_DELETION_OPTION_V2_UNSPECIFIED",
+      "NEVER",
+      "ON_SUCCESS"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "HeaderKeyValue": {
+   "properties": {
+    "key": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "HttpHeaderAuth": {
+   "properties": {
+    "headerKeyValues": {
+     "items": {
+      "$ref": "HeaderKeyValue"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "HttpSettings": {
+   "properties": {
+    "sourceDeletionOption": {
+     "enum": [
+      "SOURCE_DELETION_OPTION_UNSPECIFIED",
+      "SOURCE_DELETION_NEVER",
+      "SOURCE_DELETION_ON_SUCCESS",
+      "SOURCE_DELETION_ON_SUCCESS_FILES_ONLY"
+     ],
+     "type": "string"
+    },
+    "sourceType": {
+     "enum": [
+      "URI_SOURCE_TYPE_UNSPECIFIED",
+      "FILES",
+      "FOLDERS",
+      "FOLDERS_RECURSIVE"
+     ],
+     "type": "string"
+    },
+    "uri": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "HttpsPushAmazonKinesisFirehoseSettings": {
+   "properties": {
+    "splitDelimiter": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "HttpsPushGoogleCloudPubSubSettings": {
+   "properties": {
+    "splitDelimiter": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "HttpsPushWebhookSettings": {
+   "properties": {
+    "splitDelimiter": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ImpervaWAFSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    }
+   },
+   "type": "object"
+  },
+  "ImportExportStatus": {
+   "properties": {
+    "dashboard": {
+     "type": "string"
+    },
+    "status": {
+     "readOnly": true,
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "ImportNativeDashboardsInlineSource": {
+   "properties": {
+    "dashboards": {
+     "items": {
+      "$ref": "NativeDashboardWithChartsAndQueries"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ImportNativeDashboardsRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    },
+    "source": {
+     "$ref": "ImportNativeDashboardsInlineSource"
+    }
+   },
+   "type": "object"
+  },
+  "ImportNativeDashboardsResponse": {
+   "properties": {
+    "results": {
+     "items": {
+      "$ref": "ImportExportStatus"
+     },
+     "readOnly": true,
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ImportPushLogsRequest": {
+   "properties": {
+    "httpBody": {
+     "type": "object"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "secret": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "InAppLink": {
+   "properties": {
+    "iconUrl": {
+     "type": "string"
+    },
+    "label": {
+     "type": "string"
+    },
+    "url": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "IngestionLabel": {
+   "properties": {
+    "ingestionLabelKey": {
+     "type": "string"
+    },
+    "ingestionLabelValue": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "InlineDestination": {
+   "properties": {
+    "dashboards": {
+     "items": {
+      "$ref": "NativeDashboardWithChartsAndQueries"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "InputsUsed": {
+   "properties": {
+    "usesDetection": {
+     "type": "boolean"
+    },
+    "usesEntity": {
+     "type": "boolean"
+    },
+    "usesUdm": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "InstallFeaturedContentNativeDashboardRequest": {
+   "properties": {
+    "featuredContentNativeDashboard": {
+     "$ref": "FeaturedContentNativeDashboard"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "InstallFeaturedContentNativeDashboardResponse": {
+   "properties": {
+    "nativeDashboard": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Instance": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAllFindingsRefinementDeploymentsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "instance": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAllFindingsRefinementDeploymentsResponse": {
+   "properties": {
+    "allFindingsRefinementDeployments": {
+     "items": {
+      "$ref": "FindingsRefinementDeployment"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListDataAccessLabelsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListDataAccessLabelsResponse": {
+   "properties": {
+    "dataAccessLabels": {
+     "items": {
+      "$ref": "DataAccessLabel"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListDataAccessScopesRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListDataAccessScopesResponse": {
+   "properties": {
+    "dataAccessScopes": {
+     "items": {
+      "$ref": "DataAccessScope"
+     },
+     "type": "array"
+    },
+    "globalDataAccessScopeGranted": {
+     "type": "boolean"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListDataTableRowsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "orderBy": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListDataTableRowsResponse": {
+   "properties": {
+    "dataTableRows": {
+     "items": {
+      "$ref": "DataTableRow"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListDataTablesRequest": {
+   "properties": {
+    "orderBy": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListDataTablesResponse": {
+   "properties": {
+    "dataTables": {
+     "items": {
+      "$ref": "DataTable"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFeaturedContentNativeDashboardsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFeaturedContentNativeDashboardsResponse": {
+   "properties": {
+    "featuredContentNativeDashboards": {
+     "items": {
+      "$ref": "FeaturedContentNativeDashboard"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFeedPacksRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFeedPacksResponse": {
+   "properties": {
+    "feedPacks": {
+     "items": {
+      "$ref": "FeedPack"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFeedSourceTypeSchemasRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFeedSourceTypeSchemasResponse": {
+   "properties": {
+    "feedSourceTypeSchemas": {
+     "items": {
+      "$ref": "FeedSourceTypeSchema"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFeedsRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFeedsResponse": {
+   "properties": {
+    "feeds": {
+     "items": {
+      "$ref": "Feed"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFindingsRefinementsRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFindingsRefinementsResponse": {
+   "properties": {
+    "findingsRefinements": {
+     "items": {
+      "$ref": "FindingsRefinement"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListLogTypeSchemasRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListLogTypeSchemasResponse": {
+   "properties": {
+    "logTypeSchemas": {
+     "items": {
+      "$ref": "LogTypeSchema"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListNativeDashboardsRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "view": {
+     "enum": [
+      "NATIVE_DASHBOARD_VIEW_UNSPECIFIED",
+      "NATIVE_DASHBOARD_VIEW_BASIC",
+      "NATIVE_DASHBOARD_VIEW_FULL"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListNativeDashboardsResponse": {
+   "properties": {
+    "nativeDashboards": {
+     "items": {
+      "$ref": "NativeDashboard"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListReferenceListsRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "view": {
+     "enum": [
+      "REFERENCE_LIST_VIEW_UNSPECIFIED",
+      "REFERENCE_LIST_VIEW_BASIC",
+      "REFERENCE_LIST_VIEW_FULL"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListReferenceListsResponse": {
+   "properties": {
+    "nextPageToken": {
+     "type": "string"
+    },
+    "referenceLists": {
+     "items": {
+      "$ref": "ReferenceList"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ListRetrohuntsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListRetrohuntsResponse": {
+   "properties": {
+    "nextPageToken": {
+     "type": "string"
+    },
+    "retrohunts": {
+     "items": {
+      "$ref": "Retrohunt"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ListRuleDeploymentsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListRuleDeploymentsResponse": {
+   "properties": {
+    "nextPageToken": {
+     "type": "string"
+    },
+    "ruleDeployments": {
+     "items": {
+      "$ref": "RuleDeployment"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ListRuleExecutionErrorsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListRuleExecutionErrorsResponse": {
+   "properties": {
+    "nextPageToken": {
+     "type": "string"
+    },
+    "ruleExecutionErrors": {
+     "items": {
+      "$ref": "RuleExecutionError"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ListRuleRevisionsRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "view": {
+     "enum": [
+      "RULE_VIEW_UNSPECIFIED",
+      "BASIC",
+      "FULL",
+      "REVISION_METADATA_ONLY"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListRuleRevisionsResponse": {
+   "properties": {
+    "nextPageToken": {
+     "type": "string"
+    },
+    "rules": {
+     "items": {
+      "$ref": "Rule"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ListRulesRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "view": {
+     "enum": [
+      "RULE_VIEW_UNSPECIFIED",
+      "BASIC",
+      "FULL",
+      "REVISION_METADATA_ONLY"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListRulesResponse": {
+   "properties": {
+    "nextPageToken": {
+     "type": "string"
+    },
+    "rules": {
+     "items": {
+      "$ref": "Rule"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ListWatchlistsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListWatchlistsResponse": {
+   "properties": {
+    "nextPageToken": {
+     "type": "string"
+    },
+    "watchlists": {
+     "items": {
+      "$ref": "Watchlist"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "LogTypeSchema": {
+   "properties": {
+    "detailsFieldSchemaAlternatives": {
+     "items": {
+      "$ref": "LogTypeSchemaDetailsFieldSchemaAlternative"
+     },
+     "type": "array"
+    },
+    "detailsFieldSchemas": {
+     "items": {
+      "$ref": "LogTypeSchemaDetailsFieldSchema"
+     },
+     "type": "array"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "logType": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "readOnly": {
+     "type": "boolean"
+    },
+    "supportingDocumentation": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "LogTypeSchemaDetailsFieldSchema": {
+   "properties": {
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "enumFieldSchemas": {
+     "items": {
+      "$ref": "LogTypeSchemaEnumFieldSchema"
+     },
+     "type": "array"
+    },
+    "exampleInput": {
+     "type": "string"
+    },
+    "fieldPath": {
+     "type": "string"
+    },
+    "readOnly": {
+     "type": "boolean"
+    },
+    "required": {
+     "type": "boolean"
+    },
+    "type": {
+     "enum": [
+      "SEMANTIC_TYPE_UNSPECIFIED",
+      "BOOL",
+      "ENUM",
+      "KEY_VALUE_LIST",
+      "MAP_STRING_STRING",
+      "STRING",
+      "STRING_LIST",
+      "STRING_MULTILINE",
+      "STRING_MULTILINE_SECRET",
+      "STRING_SECRET",
+      "STRING_URI",
+      "STRING_URI_LIST"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "LogTypeSchemaDetailsFieldSchemaAlternative": {
+   "properties": {
+    "detailsFieldSchemaSets": {
+     "items": {
+      "$ref": "LogTypeSchemaDetailsFieldSchemaSet"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "LogTypeSchemaDetailsFieldSchemaSet": {
+   "properties": {
+    "description": {
+     "type": "string"
+    },
+    "detailsFieldSchemas": {
+     "items": {
+      "$ref": "LogTypeSchemaDetailsFieldSchema"
+     },
+     "type": "array"
+    },
+    "displayName": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "LogTypeSchemaEnumFieldSchema": {
+   "properties": {
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "MandiantIoCSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "startTime": {
+     "format": "google-datetime",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Markdown": {
+   "properties": {
+    "content": {
+     "type": "string"
+    },
+    "properties": {
+     "$ref": "MarkdownMarkdownProperties"
+    }
+   },
+   "type": "object"
+  },
+  "MarkdownMarkdownProperties": {
+   "properties": {
+    "backgroundColor": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "MicrosoftGraphAlertSettings": {
+   "properties": {
+    "authEndpoint": {
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "MicrosoftOAuthClientCredentials"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "tenantId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "MicrosoftOAuthClientCredentials": {
+   "properties": {
+    "clientId": {
+     "type": "string"
+    },
+    "clientSecret": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "MicrosoftSecurityCenterAlertSettings": {
+   "properties": {
+    "authEndpoint": {
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "MicrosoftOAuthClientCredentials"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "subscriptionId": {
+     "type": "string"
+    },
+    "tenantId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "MimecastMailSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "MimecastMailV2Settings": {
+   "properties": {
+    "authCredentials": {
+     "$ref": "MimecastV2OAuthClientCredentials"
+    }
+   },
+   "type": "object"
+  },
+  "MimecastV2OAuthClientCredentials": {
+   "properties": {
+    "clientId": {
+     "type": "string"
+    },
+    "clientSecret": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "MssoAuthentication": {
+   "properties": {
+    "apiEndpoint": {
+     "type": "string"
+    },
+    "password": {
+     "type": "string"
+    },
+    "username": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "NativeDashboard": {
+   "properties": {
+    "access": {
+     "enum": [
+      "DASHBOARD_ACCESS_UNSPECIFIED",
+      "DASHBOARD_PRIVATE",
+      "DASHBOARD_PUBLIC"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "createUserId": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "dashboardUserData": {
+     "$ref": "DashboardUserData",
+     "readOnly": true
+    },
+    "definition": {
+     "$ref": "DashboardDefinition"
+    },
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "name": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "type": {
+     "enum": [
+      "DASHBOARD_TYPE_UNSPECIFIED",
+      "CURATED",
+      "PRIVATE",
+      "PUBLIC",
+      "CUSTOM",
+      "MARKETPLACE"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateUserId": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "NativeDashboardWithChartsAndQueries": {
+   "properties": {
+    "dashboard": {
+     "$ref": "NativeDashboard"
+    },
+    "dashboardCharts": {
+     "items": {
+      "$ref": "DashboardChart"
+     },
+     "type": "array"
+    },
+    "dashboardQueries": {
+     "items": {
+      "$ref": "DashboardQuery"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "NetskopeAlertSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "contentType": {
+     "type": "string"
+    },
+    "feedname": {
+     "type": "string"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "NetskopeAlertV2Settings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "contentCategory": {
+     "type": "string"
+    },
+    "contentTypes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "OAuthClientCredentials": {
+   "properties": {
+    "clientId": {
+     "type": "string"
+    },
+    "clientSecret": {
+     "type": "string"
+    },
+    "tokenEndpoint": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "OAuthJWTCredentials": {
+   "properties": {
+    "claims": {
+     "$ref": "Claims"
+    },
+    "rsCredentials": {
+     "$ref": "RSCredentials"
+    },
+    "tokenEndpoint": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "OAuthPasswordGrantCredentials": {
+   "properties": {
+    "clientId": {
+     "type": "string"
+    },
+    "clientSecret": {
+     "type": "string"
+    },
+    "password": {
+     "type": "string"
+    },
+    "tokenEndpoint": {
+     "type": "string"
+    },
+    "user": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "OAuthRefreshToken": {
+   "properties": {
+    "clientId": {
+     "type": "string"
+    },
+    "clientSecret": {
+     "type": "string"
+    },
+    "refreshToken": {
+     "type": "string"
+    },
+    "tokenEndpoint": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Office365Settings": {
+   "properties": {
+    "authEndpoint": {
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "MicrosoftOAuthClientCredentials"
+    },
+    "contentType": {
+     "enum": [
+      "CONTENT_TYPE_UNSPECIFIED",
+      "AUDIT_AZURE_ACTIVE_DIRECTORY",
+      "AUDIT_EXCHANGE",
+      "AUDIT_SHARE_POINT",
+      "AUDIT_GENERAL",
+      "DLP_ALL"
+     ],
+     "type": "string"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "tenantId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "OktaSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "OktaUserContextSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "managerIdReferenceField": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Operation": {
+   "properties": {
+    "done": {
+     "type": "boolean"
+    },
+    "error": {
+     "type": "object"
+    },
+    "metadata": {
+     "type": "object"
+    },
+    "name": {
+     "type": "string"
+    },
+    "response": {
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "OutcomeFilter": {
+   "properties": {
+    "outcomeFilterOperator": {
+     "enum": [
+      "OPERATOR_UNSPECIFIED",
+      "EQUAL",
+      "CONTAINS",
+      "MATCHES_REGEX",
+      "MATCHES_CIDR"
+     ],
+     "type": "string"
+    },
+    "outcomeValue": {
+     "type": "string"
+    },
+    "outcomeVariable": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "PackLogType": {
+   "properties": {
+    "additionalDocumentation": {
+     "type": "string"
+    },
+    "configurationDocumentation": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "hasDefaultParser": {
+     "type": "boolean"
+    },
+    "logType": {
+     "type": "string"
+    },
+    "recommendedSourceType": {
+     "enum": [
+      "FEED_SOURCE_TYPE_UNSPECIFIED",
+      "GOOGLE_CLOUD_STORAGE",
+      "HTTP",
+      "SFTP",
+      "AMAZON_S3",
+      "AZURE_BLOBSTORE",
+      "API",
+      "AMAZON_SQS",
+      "PUBSUB",
+      "AMAZON_KINESIS_FIREHOSE",
+      "WEBHOOK",
+      "HTTPS_PUSH_GOOGLE_CLOUD_PUBSUB",
+      "HTTPS_PUSH_AMAZON_KINESIS_FIREHOSE",
+      "HTTPS_PUSH_WEBHOOK",
+      "AZURE_EVENT_HUB",
+      "GOOGLE_CLOUD_STORAGE_V2",
+      "AMAZON_S3_V2",
+      "AMAZON_SQS_V2",
+      "AZURE_BLOBSTORE_V2",
+      "GOOGLE_CLOUD_STORAGE_EVENT_DRIVEN",
+      "CUSTOM_API"
+     ],
+     "type": "string"
+    },
+    "required": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "PanIocSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "feed": {
+     "type": "string"
+    },
+    "feedId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "PanPrismaAuth": {
+   "properties": {
+    "password": {
+     "type": "string"
+    },
+    "user": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "PanPrismaCloudSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "PanPrismaAuth"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ProofpointMailSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    }
+   },
+   "type": "object"
+  },
+  "ProofpointOnDemandSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "clusterId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ProvisionBigQueryExportRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "PubsubSettings": {
+   "properties": {
+    "googleServiceAccountEmail": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "QualysScanSettings": {
+   "properties": {
+    "apiType": {
+     "enum": [
+      "API_TYPE_UNSPECIFIED",
+      "SCAN_SUMMARY_OUTPUT",
+      "SCAN_COMPLIANCE_OUTPUT",
+      "SCAN_COMPLIANCE_CONTROL_OUTPUT"
+     ],
+     "type": "string"
+    },
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "QualysVMSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "QueryRuntimeError": {
+   "properties": {
+    "errorDescription": {
+     "type": "string"
+    },
+    "errorSeverity": {
+     "enum": [
+      "ERROR_SEVERITY_UNSPECIFIED",
+      "WARNING",
+      "SEVERE"
+     ],
+     "type": "string"
+    },
+    "errorTitle": {
+     "type": "string"
+    },
+    "metadata": {
+     "items": {
+      "$ref": "QueryRuntimeErrorQueryRuntimeErrorMetadata"
+     },
+     "type": "array"
+    },
+    "warningReason": {
+     "enum": [
+      "WARNING_REASON_UNSPECIFIED",
+      "ROW_LIMIT_EXCEEDED",
+      "DEFAULT_ROW_LIMIT_EXCEEDED",
+      "CURATED_QUERY_DEFAULT_ROW_LIMIT_EXCEEDED"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "QueryRuntimeErrorQueryRuntimeErrorMetadata": {
+   "properties": {
+    "key": {
+     "enum": [
+      "METADATA_KEY_UNSPECIFIED",
+      "ROW_LIMIT"
+     ],
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "RHIsacIocSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "OAuthClientCredentials"
+    }
+   },
+   "type": "object"
+  },
+  "RSCredentials": {
+   "properties": {
+    "privateKey": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Rapid7InsightSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "endpoint": {
+     "type": "string"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "RecordedFutureIocSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    }
+   },
+   "type": "object"
+  },
+  "ReferenceList": {
+   "properties": {
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "entries": {
+     "items": {
+      "$ref": "ReferenceListEntry"
+     },
+     "type": "array"
+    },
+    "name": {
+     "type": "string"
+    },
+    "revisionCreateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "ruleAssociationsCount": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    },
+    "rules": {
+     "items": {
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "scopeInfo": {
+     "$ref": "ScopeInfo"
+    },
+    "syntaxType": {
+     "enum": [
+      "REFERENCE_LIST_SYNTAX_TYPE_UNSPECIFIED",
+      "REFERENCE_LIST_SYNTAX_TYPE_PLAIN_TEXT_STRING",
+      "REFERENCE_LIST_SYNTAX_TYPE_REGEX",
+      "REFERENCE_LIST_SYNTAX_TYPE_CIDR"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ReferenceListEntry": {
+   "properties": {
+    "value": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ReferenceListError": {
+   "properties": {
+    "errorMessage": {
+     "type": "string"
+    },
+    "lineNumber": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "ReferenceListScope": {
+   "properties": {
+    "scopeNames": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "RemoveChartRequest": {
+   "properties": {
+    "dashboardChart": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Retrohunt": {
+   "properties": {
+    "executionInterval": {
+     "readOnly": true,
+     "type": "object"
+    },
+    "name": {
+     "type": "string"
+    },
+    "processInterval": {
+     "type": "object"
+    },
+    "progressPercentage": {
+     "readOnly": true,
+     "type": "number"
+    },
+    "state": {
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "RUNNING",
+      "DONE",
+      "CANCELLED",
+      "FAILED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "RetrohuntMetadata": {
+   "properties": {
+    "executionInterval": {
+     "type": "object"
+    },
+    "progressPercentage": {
+     "type": "number"
+    },
+    "retrohunt": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Rule": {
+   "properties": {
+    "allowedRunFrequencies": {
+     "items": {
+      "enum": [
+       "RUN_FREQUENCY_UNSPECIFIED",
+       "LIVE",
+       "HOURLY",
+       "DAILY"
+      ],
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "author": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "compilationDiagnostics": {
+     "items": {
+      "$ref": "CompilationDiagnostic"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "compilationState": {
+     "enum": [
+      "COMPILATION_STATE_UNSPECIFIED",
+      "SUCCEEDED",
+      "FAILED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "displayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "inputsUsed": {
+     "$ref": "InputsUsed",
+     "readOnly": true
+    },
+    "metadata": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "object"
+    },
+    "name": {
+     "type": "string"
+    },
+    "nearRealTimeLiveRuleEligible": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "referenceLists": {
+     "items": {
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "revisionCreateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "revisionId": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "scope": {
+     "type": "string"
+    },
+    "severity": {
+     "$ref": "Severity",
+     "readOnly": true
+    },
+    "text": {
+     "type": "string"
+    },
+    "type": {
+     "enum": [
+      "RULE_TYPE_UNSPECIFIED",
+      "SINGLE_EVENT",
+      "MULTI_EVENT"
+     ],
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "RuleDeployment": {
+   "properties": {
+    "alerting": {
+     "type": "boolean"
+    },
+    "archiveTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "archived": {
+     "type": "boolean"
+    },
+    "consumerRules": {
+     "items": {
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "enabled": {
+     "type": "boolean"
+    },
+    "executionState": {
+     "enum": [
+      "EXECUTION_STATE_UNSPECIFIED",
+      "DEFAULT",
+      "LIMITED",
+      "PAUSED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "lastAlertStatusChangeTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "producerRules": {
+     "items": {
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "runFrequency": {
+     "enum": [
+      "RUN_FREQUENCY_UNSPECIFIED",
+      "LIVE",
+      "HOURLY",
+      "DAILY"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "RuleExecutionError": {
+   "properties": {
+    "curatedRule": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "error": {
+     "readOnly": true,
+     "type": "object"
+    },
+    "name": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "rule": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "timeRange": {
+     "readOnly": true,
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "S3Auth": {
+   "properties": {
+    "accessKeyId": {
+     "type": "string"
+    },
+    "clientId": {
+     "type": "string"
+    },
+    "clientSecret": {
+     "type": "string"
+    },
+    "refreshUri": {
+     "type": "string"
+    },
+    "region": {
+     "enum": [
+      "S3_REGION_UNSPECIFIED",
+      "US_EAST_1",
+      "US_EAST_2",
+      "US_WEST_1",
+      "US_WEST_2",
+      "US_GOV_CLOUD",
+      "US_GOV_EAST_1",
+      "EU_WEST_1",
+      "EU_WEST_2",
+      "EU_WEST_3",
+      "EU_CENTRAL_1",
+      "EU_NORTH_1",
+      "EU_SOUTH_1",
+      "AP_SOUTH_1",
+      "AP_SOUTHEAST_1",
+      "AP_SOUTHEAST_2",
+      "AP_SOUTHEAST_3",
+      "AP_NORTHEAST_1",
+      "AP_NORTHEAST_2",
+      "AP_NORTHEAST_3",
+      "AP_EAST_1",
+      "SA_EAST_1",
+      "CN_NORTH_1",
+      "CN_NORTHWEST_1",
+      "CA_CENTRAL_1",
+      "AF_SOUTH_1",
+      "ME_SOUTH_1",
+      "AP_SOUTH_2",
+      "AP_SOUTHEAST_4",
+      "CA_WEST_1",
+      "EU_SOUTH_2",
+      "EU_CENTRAL_2",
+      "IL_CENTRAL_1",
+      "ME_CENTRAL_1"
+     ],
+     "type": "string"
+    },
+    "secretAccessKey": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "S3AuthV2": {
+   "properties": {
+    "accessKeySecretAuth": {
+     "$ref": "S3V2AccessKeySecretAuth"
+    },
+    "awsIamRoleAuth": {
+     "$ref": "S3V2AwsIamRoleAuth"
+    }
+   },
+   "type": "object"
+  },
+  "S3V2AccessKeySecretAuth": {
+   "properties": {
+    "accessKeyId": {
+     "type": "string"
+    },
+    "secretAccessKey": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "S3V2AwsIamRoleAuth": {
+   "properties": {
+    "awsIamRoleArn": {
+     "type": "string"
+    },
+    "subjectId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "SQSAccessKeySecretAuth": {
+   "properties": {
+    "accessKeyId": {
+     "type": "string"
+    },
+    "secretAccessKey": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "SQSAuth": {
+   "properties": {
+    "additionalS3AccessKeySecretAuth": {
+     "$ref": "AdditionalS3AccessKeySecretAuth"
+    },
+    "sqsAccessKeySecretAuth": {
+     "$ref": "SQSAccessKeySecretAuth"
+    }
+   },
+   "type": "object"
+  },
+  "SQSAuthV2": {
+   "properties": {
+    "awsIamRoleAuth": {
+     "$ref": "SQSV2AwsIamRoleAuth"
+    },
+    "sqsV2AccessKeySecretAuth": {
+     "$ref": "SQSV2AccessKeySecretAuth"
+    }
+   },
+   "type": "object"
+  },
+  "SQSV2AccessKeySecretAuth": {
+   "properties": {
+    "accessKeyId": {
+     "type": "string"
+    },
+    "secretAccessKey": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "SQSV2AwsIamRoleAuth": {
+   "properties": {
+    "awsIamRoleArn": {
+     "type": "string"
+    },
+    "subjectId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "SSLClientKeypair": {
+   "properties": {
+    "encodedPrivateKey": {
+     "type": "string"
+    },
+    "sslCertificate": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "SalesforceSettings": {
+   "properties": {
+    "hostname": {
+     "type": "string"
+    },
+    "oauthJwtCredentials": {
+     "$ref": "OAuthJWTCredentials"
+    },
+    "oauthPasswordGrantAuth": {
+     "$ref": "OAuthPasswordGrantCredentials"
+    }
+   },
+   "type": "object"
+  },
+  "ScopeInfo": {
+   "properties": {
+    "referenceListScope": {
+     "$ref": "ReferenceListScope"
+    }
+   },
+   "type": "object"
+  },
+  "SentineloneAlertSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "initialStartTime": {
+     "type": "string"
+    },
+    "isAlertApiSubscribed": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "ServiceNowCMDBSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    },
+    "feedname": {
+     "type": "string"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Severity": {
+   "properties": {
+    "displayName": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "SftpAuth": {
+   "properties": {
+    "password": {
+     "type": "string"
+    },
+    "privateKey": {
+     "type": "string"
+    },
+    "privateKeyPassphrase": {
+     "type": "string"
+    },
+    "username": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "SftpSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "SftpAuth"
+    },
+    "sourceDeletionOption": {
+     "enum": [
+      "SOURCE_DELETION_OPTION_UNSPECIFIED",
+      "SOURCE_DELETION_NEVER",
+      "SOURCE_DELETION_ON_SUCCESS",
+      "SOURCE_DELETION_ON_SUCCESS_FILES_ONLY"
+     ],
+     "type": "string"
+    },
+    "sourceType": {
+     "enum": [
+      "URI_SOURCE_TYPE_UNSPECIFIED",
+      "FILES",
+      "FOLDERS",
+      "FOLDERS_RECURSIVE"
+     ],
+     "type": "string"
+    },
+    "uri": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "SymantecEventExportSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "OAuthRefreshToken"
+    }
+   },
+   "type": "object"
+  },
+  "ThinkstCanarySettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "HttpHeaderAuth"
+    },
+    "hostname": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ThreatConnectIoCSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "owners": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ThreatConnectIoCV3Settings": {
+   "properties": {
+    "authentication": {
+     "$ref": "UsernameSecretAuth"
+    },
+    "fields": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "owners": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "schedule": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "tqlQuery": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "TimestampMetadata": {
+   "properties": {
+    "isInterpolable": {
+     "type": "boolean"
+    },
+    "isSortable": {
+     "type": "boolean"
+    },
+    "timeFormat": {
+     "type": "string"
+    },
+    "timeGranularity": {
+     "type": "string"
+    },
+    "timeZone": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "TrellixHxAlertsSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "TrellixStarXAuthentication"
+    },
+    "endpoint": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "TrellixHxBulkAcqsSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "TrellixStarXAuthentication"
+    },
+    "endpoint": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "TrellixHxHostsSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "TrellixStarXAuthentication"
+    },
+    "endpoint": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "TrellixIAMAuthentication": {
+   "properties": {
+    "clientId": {
+     "type": "string"
+    },
+    "clientSecret": {
+     "type": "string"
+    },
+    "scope": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "TrellixLocalAuthentication": {
+   "properties": {
+    "password": {
+     "type": "string"
+    },
+    "tokenEndpoint": {
+     "type": "string"
+    },
+    "tokenHeader": {
+     "type": "string"
+    },
+    "username": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "TrellixStarXAuthentication": {
+   "properties": {
+    "msso": {
+     "$ref": "MssoAuthentication"
+    },
+    "trellixIam": {
+     "$ref": "TrellixIAMAuthentication"
+    },
+    "trellixLocal": {
+     "$ref": "TrellixLocalAuthentication"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateBigQueryExportRequest": {
+   "properties": {
+    "bigQueryExport": {
+     "$ref": "BigQueryExport"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateDataAccessLabelRequest": {
+   "properties": {
+    "dataAccessLabel": {
+     "$ref": "DataAccessLabel"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateDataAccessScopeRequest": {
+   "properties": {
+    "dataAccessScope": {
+     "$ref": "DataAccessScope"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateDataTableRequest": {
+   "properties": {
+    "dataTable": {
+     "$ref": "DataTable"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateDataTableRowRequest": {
+   "properties": {
+    "dataTableRow": {
+     "$ref": "DataTableRow"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateFeedRequest": {
+   "properties": {
+    "feed": {
+     "$ref": "Feed"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateFindingsRefinementDeploymentRequest": {
+   "properties": {
+    "findingsRefinementDeployment": {
+     "$ref": "FindingsRefinementDeployment"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateFindingsRefinementRequest": {
+   "properties": {
+    "findingsRefinement": {
+     "$ref": "FindingsRefinement"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateNativeDashboardRequest": {
+   "properties": {
+    "nativeDashboard": {
+     "$ref": "NativeDashboard"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateReferenceListRequest": {
+   "properties": {
+    "referenceList": {
+     "$ref": "ReferenceList"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateRuleDeploymentRequest": {
+   "properties": {
+    "ruleDeployment": {
+     "$ref": "RuleDeployment"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateRuleRequest": {
+   "properties": {
+    "rule": {
+     "$ref": "Rule"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateWatchlistRequest": {
+   "properties": {
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    },
+    "watchlist": {
+     "$ref": "Watchlist"
+    }
+   },
+   "type": "object"
+  },
+  "UsernameSecretAuth": {
+   "properties": {
+    "secret": {
+     "type": "string"
+    },
+    "user": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "VerifyReferenceListRequest": {
+   "properties": {
+    "entries": {
+     "items": {
+      "$ref": "ReferenceListEntry"
+     },
+     "type": "array"
+    },
+    "instance": {
+     "type": "string"
+    },
+    "syntaxType": {
+     "enum": [
+      "REFERENCE_LIST_SYNTAX_TYPE_UNSPECIFIED",
+      "REFERENCE_LIST_SYNTAX_TYPE_PLAIN_TEXT_STRING",
+      "REFERENCE_LIST_SYNTAX_TYPE_REGEX",
+      "REFERENCE_LIST_SYNTAX_TYPE_CIDR"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "VerifyReferenceListResponse": {
+   "properties": {
+    "errors": {
+     "items": {
+      "$ref": "ReferenceListError"
+     },
+     "type": "array"
+    },
+    "success": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "VerifyRuleTextRequest": {
+   "properties": {
+    "instance": {
+     "type": "string"
+    },
+    "ruleText": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "VerifyRuleTextResponse": {
+   "properties": {
+    "compilationDiagnostics": {
+     "items": {
+      "$ref": "CompilationDiagnostic"
+     },
+     "type": "array"
+    },
+    "success": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "Watchlist": {
+   "properties": {
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "entityCount": {
+     "$ref": "WatchlistEntityCount",
+     "readOnly": true
+    },
+    "entityPopulationMechanism": {
+     "$ref": "WatchlistEntityPopulationMechanism"
+    },
+    "multiplyingFactor": {
+     "type": "number"
+    },
+    "name": {
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "watchlistUserPreferences": {
+     "$ref": "WatchlistUserPreferences"
+    }
+   },
+   "type": "object"
+  },
+  "WatchlistEntityCount": {
+   "properties": {
+    "asset": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    },
+    "user": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "WatchlistEntityPopulationMechanism": {
+   "properties": {
+    "manual": {
+     "$ref": "WatchlistEntityPopulationMechanismManual"
+    }
+   },
+   "type": "object"
+  },
+  "WatchlistEntityPopulationMechanismManual": {
+   "properties": {},
+   "type": "object"
+  },
+  "WatchlistUserPreferences": {
+   "properties": {
+    "pinned": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "WebhookSettings": {
+   "properties": {},
+   "type": "object"
+  },
+  "WorkdayAuth": {
+   "properties": {
+    "clientId": {
+     "type": "string"
+    },
+    "clientSecret": {
+     "type": "string"
+    },
+    "refreshToken": {
+     "type": "string"
+    },
+    "secret": {
+     "type": "string"
+    },
+    "tokenEndpoint": {
+     "type": "string"
+    },
+    "user": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "WorkdaySettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "WorkdayAuth"
+    },
+    "hostname": {
+     "type": "string"
+    },
+    "tenantId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "WorkspaceActivitySettings": {
+   "properties": {
+    "applications": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "authentication": {
+     "$ref": "OAuthJWTCredentials"
+    },
+    "workspaceCustomerId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "WorkspaceAlertsSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "OAuthJWTCredentials"
+    },
+    "workspaceCustomerId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "WorkspaceChromeOSSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "OAuthJWTCredentials"
+    },
+    "workspaceCustomerId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "WorkspaceGroupsSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "OAuthJWTCredentials"
+    },
+    "workspaceCustomerId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "WorkspaceMobileSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "OAuthJWTCredentials"
+    },
+    "workspaceCustomerId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "WorkspacePrivilegesSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "OAuthJWTCredentials"
+    },
+    "workspaceCustomerId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "WorkspaceUsersSettings": {
+   "properties": {
+    "authentication": {
+     "$ref": "OAuthJWTCredentials"
+    },
+    "projectionType": {
+     "enum": [
+      "PROJECTION_TYPE_UNSPECIFIED",
+      "BASIC_PROJECTION",
+      "FULL_PROJECTION"
+     ],
+     "type": "string"
+    },
+    "workspaceCustomerId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "version": "v1"
+}

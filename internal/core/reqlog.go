@@ -2,6 +2,8 @@ package core
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"math/rand/v2"
 	"path"
 	"strings"
@@ -26,6 +28,7 @@ type Entry struct {
 	AccessKey  string            `json:"accessKey,omitempty"`
 	Principal  string            `json:"principal,omitempty"`
 	Error      string            `json:"error,omitempty"`
+	Console    bool              `json:"console,omitempty"` // a write made from the console, not an SDK call
 	Chaos      bool              `json:"chaos,omitempty"`
 	IAM        string            `json:"iam,omitempty"`   // "allow" or "deny: why" when enforcement is on
 	Trace      string            `json:"trace,omitempty"` // the flow (Ctx.Trace) this request belongs to
@@ -150,6 +153,23 @@ type Rule struct {
 	Code        string  `json:"code,omitempty"`
 	Message     string  `json:"message,omitempty"`
 	Hits        int     `json:"hits"`
+}
+
+// Check reports what is wrong with a rule that comes from outside (the API, the console or MCP): it
+// must inject an error status, latency or both, and its rate is a probability. pogi.yaml checks the
+// same limits in internal/config.
+func (r Rule) Check() error {
+	switch {
+	case r.Status == 0 && r.LatencyMs == 0:
+		return errors.New("a rule needs an error status, latency or both")
+	case r.Status != 0 && (r.Status < 400 || r.Status > 599):
+		return fmt.Errorf("status %d is not an error status (400-599)", r.Status)
+	case r.LatencyMs < 0:
+		return fmt.Errorf("latency %dms is negative", r.LatencyMs)
+	case r.Probability < 0 || r.Probability > 1:
+		return fmt.Errorf("rate %v is not between 0 and 1", r.Probability)
+	}
+	return nil
 }
 
 // Chaos holds fault-injection rules.

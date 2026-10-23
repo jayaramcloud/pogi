@@ -1,0 +1,23 @@
+Third-party icons
+
+The SVG files in the aws/, azure/ and gcp/ folders are the cloud providers' own icons. pogi shows them
+next to its services in the console and in the Terraform diagram. They are copied unchanged. They are NOT under the MIT licence
+of the rest of this repository; each provider's terms apply to them.
+
+AWS (aws/): Architecture Icons from Amazon Web Services.
+  Terms: https://aws.amazon.com/architecture/icons/
+  "We allow customers and partners to use these toolkits and assets to create architecture diagrams."
+
+Azure (azure/): Azure Public Service Icons (V24) from Microsoft.
+  Terms: https://learn.microsoft.com/azure/architecture/icons/#icon-terms
+  Use is allowed in architecture diagrams, training materials or documentation. Do not crop, flip,
+  rotate, distort or reshape the icons.
+
+Google Cloud (gcp/): product and category icons from Google Cloud.
+  Terms: https://cloud.google.com/icons
+  The owner has read Google's terms. A product with no icon of its own shows the icon of its category.
+
+A service with no official icon shows one of pogi's own plain glyphs (not in this folder).
+
+All product names and logos belong to their owners. Their use here does not mean the owners
+sponsor or endorse pogi.

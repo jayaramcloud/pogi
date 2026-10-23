@@ -1263,7 +1263,7 @@ func (s *Service) Resources() []core.Table {
 		if e := cl.Pogi.Addr(); e != nil {
 			ep = fmt.Sprintf("%s:%d", e.Address, e.Port)
 		}
-		cls.Rows = append(cls.Rows, []string{cl.Name, cl.Engine + " " + cl.EngineVersion, cl.Pogi.State, ep, cl.ACLName, c.Region, c.Account})
+		cls.Rows = append(cls.Rows, []string{cl.Name, cl.Engine + " " + cl.EngineVersion, rds.StatusCell(cl.Pogi.State, &cl.Pogi), ep, cl.ACLName, c.Region, c.Account})
 	}
 	users := core.Table{Name: "Users", Columns: []string{"Name", "Authentication", "Access", "Region", "Account"}}
 	for _, k := range core.SortedKeys(s.st.Users) {

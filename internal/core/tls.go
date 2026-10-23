@@ -21,7 +21,7 @@ import (
 
 // certNames are the host names pogi's certificate covers; a stored certificate
 // with a different list is reissued.
-var certNames = []string{"localhost", "*.localhost", "host.docker.internal", "*.lambda-url.us-east-1.localhost", "*.execute-api.localhost", "*.vault.localhost", "*.blob.localhost", "*.queue.localhost", "*.table.localhost"}
+var certNames = []string{"localhost", "*.localhost", "host.docker.internal", "*.lambda-url.us-east-1.localhost", "*.execute-api.localhost", "*.vault.localhost", "*.blob.localhost", "*.queue.localhost", "*.table.localhost", "*.file.localhost", "*.dfs.localhost"}
 
 // CertPaths are the files of pogi's local certificate authority.
 func (h *Hub) CertPaths() (ca, cert, key string) {

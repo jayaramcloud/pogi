@@ -1,0 +1,3371 @@
+{
+ "name": "gkemulticloud",
+ "resources": {
+  "all": {
+   "methods": {
+    "gkemulticloud.projects.locations.attachedClusters.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/attachedClusters",
+     "httpMethod": "POST",
+     "id": "gkemulticloud.projects.locations.attachedClusters.create",
+     "parameters": {
+      "attachedClusterId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/attachedClusters",
+     "request": {
+      "$ref": "AttachedCluster"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.attachedClusters.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/attachedClusters/{attachedClustersId}",
+     "httpMethod": "DELETE",
+     "id": "gkemulticloud.projects.locations.attachedClusters.delete",
+     "parameters": {
+      "allowMissing": {
+       "location": "query"
+      },
+      "etag": {
+       "location": "query"
+      },
+      "ignoreErrors": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.attachedClusters.generateAttachedClusterAgentToken": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/attachedClusters/{attachedClustersId}:generateAttachedClusterAgentToken",
+     "httpMethod": "POST",
+     "id": "gkemulticloud.projects.locations.attachedClusters.generateAttachedClusterAgentToken",
+     "parameters": {
+      "attachedCluster": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+attached_cluster}:generateAttachedClusterAgentToken",
+     "request": {
+      "$ref": "GenerateAttachedClusterAgentTokenRequest"
+     },
+     "response": {
+      "$ref": "GenerateAttachedClusterAgentTokenResponse"
+     }
+    },
+    "gkemulticloud.projects.locations.attachedClusters.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/attachedClusters/{attachedClustersId}",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.attachedClusters.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "AttachedCluster"
+     }
+    },
+    "gkemulticloud.projects.locations.attachedClusters.importAttachedCluster": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/attachedClusters:import",
+     "httpMethod": "POST",
+     "id": "gkemulticloud.projects.locations.attachedClusters.importAttachedCluster",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/attachedClusters:import",
+     "request": {
+      "$ref": "ImportAttachedClusterRequest"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.attachedClusters.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/attachedClusters",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.attachedClusters.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/attachedClusters",
+     "response": {
+      "$ref": "ListAttachedClustersResponse"
+     }
+    },
+    "gkemulticloud.projects.locations.attachedClusters.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/attachedClusters/{attachedClustersId}",
+     "httpMethod": "PATCH",
+     "id": "gkemulticloud.projects.locations.attachedClusters.patch",
+     "parameters": {
+      "attachedCluster": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+attached_cluster.name}",
+     "request": {
+      "$ref": "AttachedCluster"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.attachedServerConfig.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/attachedServerConfig",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.attachedServerConfig.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "AttachedServerConfig"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters..well-known.openid-configuration.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}/.well-known/openid-configuration",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.awsClusters..well-known.openid-configuration.get",
+     "parameters": {
+      "awsCluster": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+aws_cluster}/.well-known/openid-configuration",
+     "response": {
+      "$ref": "AwsOpenIdConfig"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.awsNodePools.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}/awsNodePools",
+     "httpMethod": "POST",
+     "id": "gkemulticloud.projects.locations.awsClusters.awsNodePools.create",
+     "parameters": {
+      "awsNodePoolId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/awsNodePools",
+     "request": {
+      "$ref": "AwsNodePool"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.awsNodePools.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}/awsNodePools/{awsNodePoolsId}",
+     "httpMethod": "DELETE",
+     "id": "gkemulticloud.projects.locations.awsClusters.awsNodePools.delete",
+     "parameters": {
+      "allowMissing": {
+       "location": "query"
+      },
+      "etag": {
+       "location": "query"
+      },
+      "ignoreErrors": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.awsNodePools.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}/awsNodePools/{awsNodePoolsId}",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.awsClusters.awsNodePools.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "AwsNodePool"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.awsNodePools.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}/awsNodePools",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.awsClusters.awsNodePools.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/awsNodePools",
+     "response": {
+      "$ref": "ListAwsNodePoolsResponse"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.awsNodePools.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}/awsNodePools/{awsNodePoolsId}",
+     "httpMethod": "PATCH",
+     "id": "gkemulticloud.projects.locations.awsClusters.awsNodePools.patch",
+     "parameters": {
+      "awsNodePool": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+aws_node_pool.name}",
+     "request": {
+      "$ref": "AwsNodePool"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.awsNodePools.rollbackAwsNodePoolUpdate": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}/awsNodePools/{awsNodePoolsId}:rollback",
+     "httpMethod": "POST",
+     "id": "gkemulticloud.projects.locations.awsClusters.awsNodePools.rollbackAwsNodePoolUpdate",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:rollback",
+     "request": {
+      "$ref": "RollbackAwsNodePoolUpdateRequest"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters",
+     "httpMethod": "POST",
+     "id": "gkemulticloud.projects.locations.awsClusters.create",
+     "parameters": {
+      "awsClusterId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/awsClusters",
+     "request": {
+      "$ref": "AwsCluster"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}",
+     "httpMethod": "DELETE",
+     "id": "gkemulticloud.projects.locations.awsClusters.delete",
+     "parameters": {
+      "allowMissing": {
+       "location": "query"
+      },
+      "etag": {
+       "location": "query"
+      },
+      "ignoreErrors": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.generateAwsAccessToken": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}:generateAwsAccessToken",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.awsClusters.generateAwsAccessToken",
+     "parameters": {
+      "awsCluster": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+aws_cluster}:generateAwsAccessToken",
+     "response": {
+      "$ref": "GenerateAwsAccessTokenResponse"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.generateAwsClusterAgentToken": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}:generateAwsClusterAgentToken",
+     "httpMethod": "POST",
+     "id": "gkemulticloud.projects.locations.awsClusters.generateAwsClusterAgentToken",
+     "parameters": {
+      "awsCluster": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+aws_cluster}:generateAwsClusterAgentToken",
+     "request": {
+      "$ref": "GenerateAwsClusterAgentTokenRequest"
+     },
+     "response": {
+      "$ref": "GenerateAwsClusterAgentTokenResponse"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.awsClusters.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "AwsCluster"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.jwks.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}/jwks",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.awsClusters.jwks.get",
+     "parameters": {
+      "awsCluster": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+aws_cluster}/jwks",
+     "response": {
+      "$ref": "AwsJsonWebKeys"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.awsClusters.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/awsClusters",
+     "response": {
+      "$ref": "ListAwsClustersResponse"
+     }
+    },
+    "gkemulticloud.projects.locations.awsClusters.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsClusters/{awsClustersId}",
+     "httpMethod": "PATCH",
+     "id": "gkemulticloud.projects.locations.awsClusters.patch",
+     "parameters": {
+      "awsCluster": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+aws_cluster.name}",
+     "request": {
+      "$ref": "AwsCluster"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.awsServerConfig.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/awsServerConfig",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.awsServerConfig.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "AwsServerConfig"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClients.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClients",
+     "httpMethod": "POST",
+     "id": "gkemulticloud.projects.locations.azureClients.create",
+     "parameters": {
+      "azureClientId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/azureClients",
+     "request": {
+      "$ref": "AzureClient"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClients.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClients/{azureClientsId}",
+     "httpMethod": "DELETE",
+     "id": "gkemulticloud.projects.locations.azureClients.delete",
+     "parameters": {
+      "allowMissing": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClients.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClients/{azureClientsId}",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.azureClients.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "AzureClient"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClients.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClients",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.azureClients.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/azureClients",
+     "response": {
+      "$ref": "ListAzureClientsResponse"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters..well-known.openid-configuration.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}/.well-known/openid-configuration",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.azureClusters..well-known.openid-configuration.get",
+     "parameters": {
+      "azureCluster": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+azure_cluster}/.well-known/openid-configuration",
+     "response": {
+      "$ref": "AzureOpenIdConfig"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.azureNodePools.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}/azureNodePools",
+     "httpMethod": "POST",
+     "id": "gkemulticloud.projects.locations.azureClusters.azureNodePools.create",
+     "parameters": {
+      "azureNodePoolId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/azureNodePools",
+     "request": {
+      "$ref": "AzureNodePool"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.azureNodePools.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}/azureNodePools/{azureNodePoolsId}",
+     "httpMethod": "DELETE",
+     "id": "gkemulticloud.projects.locations.azureClusters.azureNodePools.delete",
+     "parameters": {
+      "allowMissing": {
+       "location": "query"
+      },
+      "etag": {
+       "location": "query"
+      },
+      "ignoreErrors": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.azureNodePools.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}/azureNodePools/{azureNodePoolsId}",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.azureClusters.azureNodePools.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "AzureNodePool"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.azureNodePools.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}/azureNodePools",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.azureClusters.azureNodePools.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/azureNodePools",
+     "response": {
+      "$ref": "ListAzureNodePoolsResponse"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.azureNodePools.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}/azureNodePools/{azureNodePoolsId}",
+     "httpMethod": "PATCH",
+     "id": "gkemulticloud.projects.locations.azureClusters.azureNodePools.patch",
+     "parameters": {
+      "azureNodePool": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+azure_node_pool.name}",
+     "request": {
+      "$ref": "AzureNodePool"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters",
+     "httpMethod": "POST",
+     "id": "gkemulticloud.projects.locations.azureClusters.create",
+     "parameters": {
+      "azureClusterId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/azureClusters",
+     "request": {
+      "$ref": "AzureCluster"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}",
+     "httpMethod": "DELETE",
+     "id": "gkemulticloud.projects.locations.azureClusters.delete",
+     "parameters": {
+      "allowMissing": {
+       "location": "query"
+      },
+      "etag": {
+       "location": "query"
+      },
+      "ignoreErrors": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.generateAzureAccessToken": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}:generateAzureAccessToken",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.azureClusters.generateAzureAccessToken",
+     "parameters": {
+      "azureCluster": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+azure_cluster}:generateAzureAccessToken",
+     "response": {
+      "$ref": "GenerateAzureAccessTokenResponse"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.generateAzureClusterAgentToken": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}:generateAzureClusterAgentToken",
+     "httpMethod": "POST",
+     "id": "gkemulticloud.projects.locations.azureClusters.generateAzureClusterAgentToken",
+     "parameters": {
+      "azureCluster": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+azure_cluster}:generateAzureClusterAgentToken",
+     "request": {
+      "$ref": "GenerateAzureClusterAgentTokenRequest"
+     },
+     "response": {
+      "$ref": "GenerateAzureClusterAgentTokenResponse"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.azureClusters.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "AzureCluster"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.jwks.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}/jwks",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.azureClusters.jwks.get",
+     "parameters": {
+      "azureCluster": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+azure_cluster}/jwks",
+     "response": {
+      "$ref": "AzureJsonWebKeys"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.azureClusters.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/azureClusters",
+     "response": {
+      "$ref": "ListAzureClustersResponse"
+     }
+    },
+    "gkemulticloud.projects.locations.azureClusters.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureClusters/{azureClustersId}",
+     "httpMethod": "PATCH",
+     "id": "gkemulticloud.projects.locations.azureClusters.patch",
+     "parameters": {
+      "azureCluster": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      },
+      "validateOnly": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+azure_cluster.name}",
+     "request": {
+      "$ref": "AzureCluster"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "gkemulticloud.projects.locations.azureServerConfig.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/azureServerConfig",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.azureServerConfig.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "AzureServerConfig"
+     }
+    },
+    "gkemulticloud.projects.locations.generateAttachedClusterInstallManifest": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}:generateAttachedClusterInstallManifest",
+     "httpMethod": "GET",
+     "id": "gkemulticloud.projects.locations.generateAttachedClusterInstallManifest",
+     "parameters": {
+      "attachedClusterId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "platformVersion": {
+       "location": "query"
+      },
+      "proxyConfig": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}:generateAttachedClusterInstallManifest",
+     "response": {
+      "$ref": "GenerateAttachedClusterInstallManifestResponse"
+     }
+    }
+   }
+  }
+ },
+ "rootUrl": "https://gkemulticloud.googleapis.com/",
+ "schemas": {
+  "AttachedCluster": {
+   "properties": {
+    "annotations": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "authorization": {
+     "$ref": "AttachedClustersAuthorization"
+    },
+    "binaryAuthorization": {
+     "$ref": "BinaryAuthorization"
+    },
+    "clusterRegion": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "distribution": {
+     "type": "string"
+    },
+    "errors": {
+     "items": {
+      "$ref": "AttachedClusterError"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "fleet": {
+     "$ref": "Fleet"
+    },
+    "kubernetesVersion": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "loggingConfig": {
+     "$ref": "LoggingConfig"
+    },
+    "monitoringConfig": {
+     "$ref": "MonitoringConfig"
+    },
+    "name": {
+     "type": "string"
+    },
+    "oidcConfig": {
+     "$ref": "AttachedOidcConfig"
+    },
+    "platformVersion": {
+     "type": "string"
+    },
+    "proxyConfig": {
+     "$ref": "AttachedProxyConfig"
+    },
+    "reconciling": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "securityPostureConfig": {
+     "$ref": "SecurityPostureConfig"
+    },
+    "state": {
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "PROVISIONING",
+      "RUNNING",
+      "RECONCILING",
+      "STOPPING",
+      "ERROR",
+      "DEGRADED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "systemComponentsConfig": {
+     "$ref": "SystemComponentsConfig"
+    },
+    "tags": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "uid": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "workloadIdentityConfig": {
+     "$ref": "WorkloadIdentityConfig",
+     "readOnly": true
+    }
+   },
+   "type": "object"
+  },
+  "AttachedClusterError": {
+   "properties": {
+    "message": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AttachedClusterGroup": {
+   "properties": {
+    "group": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AttachedClusterUser": {
+   "properties": {
+    "username": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AttachedClustersAuthorization": {
+   "properties": {
+    "adminGroups": {
+     "items": {
+      "$ref": "AttachedClusterGroup"
+     },
+     "type": "array"
+    },
+    "adminUsers": {
+     "items": {
+      "$ref": "AttachedClusterUser"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AttachedOidcConfig": {
+   "properties": {
+    "issuerUrl": {
+     "type": "string"
+    },
+    "jwks": {
+     "format": "byte",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AttachedPlatformVersionInfo": {
+   "properties": {
+    "enabled": {
+     "type": "boolean"
+    },
+    "endOfLife": {
+     "type": "boolean"
+    },
+    "endOfLifeDate": {
+     "type": "object"
+    },
+    "releaseDate": {
+     "type": "object"
+    },
+    "version": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AttachedProxyConfig": {
+   "properties": {
+    "kubernetesSecret": {
+     "$ref": "KubernetesSecret"
+    }
+   },
+   "type": "object"
+  },
+  "AttachedServerConfig": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "validVersions": {
+     "items": {
+      "$ref": "AttachedPlatformVersionInfo"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AwsAuthorization": {
+   "properties": {
+    "adminGroups": {
+     "items": {
+      "$ref": "AwsClusterGroup"
+     },
+     "type": "array"
+    },
+    "adminUsers": {
+     "items": {
+      "$ref": "AwsClusterUser"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AwsAutoscalingGroupMetricsCollection": {
+   "properties": {
+    "granularity": {
+     "type": "string"
+    },
+    "metrics": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AwsCluster": {
+   "properties": {
+    "annotations": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "authorization": {
+     "$ref": "AwsAuthorization"
+    },
+    "awsRegion": {
+     "type": "string"
+    },
+    "binaryAuthorization": {
+     "$ref": "BinaryAuthorization"
+    },
+    "clusterCaCertificate": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "controlPlane": {
+     "$ref": "AwsControlPlane"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "endpoint": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "errors": {
+     "items": {
+      "$ref": "AwsClusterError"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "fleet": {
+     "$ref": "Fleet"
+    },
+    "loggingConfig": {
+     "$ref": "LoggingConfig"
+    },
+    "monitoringConfig": {
+     "$ref": "MonitoringConfig"
+    },
+    "name": {
+     "type": "string"
+    },
+    "networking": {
+     "$ref": "AwsClusterNetworking"
+    },
+    "reconciling": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "state": {
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "PROVISIONING",
+      "RUNNING",
+      "RECONCILING",
+      "STOPPING",
+      "ERROR",
+      "DEGRADED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "uid": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "workloadIdentityConfig": {
+     "$ref": "WorkloadIdentityConfig",
+     "readOnly": true
+    }
+   },
+   "type": "object"
+  },
+  "AwsClusterError": {
+   "properties": {
+    "message": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsClusterGroup": {
+   "properties": {
+    "group": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsClusterNetworking": {
+   "properties": {
+    "perNodePoolSgRulesDisabled": {
+     "type": "boolean"
+    },
+    "podAddressCidrBlocks": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "serviceAddressCidrBlocks": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "vpcId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsClusterUser": {
+   "properties": {
+    "username": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsConfigEncryption": {
+   "properties": {
+    "kmsKeyArn": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsControlPlane": {
+   "properties": {
+    "awsServicesAuthentication": {
+     "$ref": "AwsServicesAuthentication"
+    },
+    "configEncryption": {
+     "$ref": "AwsConfigEncryption"
+    },
+    "databaseEncryption": {
+     "$ref": "AwsDatabaseEncryption"
+    },
+    "iamInstanceProfile": {
+     "type": "string"
+    },
+    "instancePlacement": {
+     "$ref": "AwsInstancePlacement"
+    },
+    "instanceType": {
+     "type": "string"
+    },
+    "mainVolume": {
+     "$ref": "AwsVolumeTemplate"
+    },
+    "proxyConfig": {
+     "$ref": "AwsProxyConfig"
+    },
+    "rootVolume": {
+     "$ref": "AwsVolumeTemplate"
+    },
+    "securityGroupIds": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "sshConfig": {
+     "$ref": "AwsSshConfig"
+    },
+    "subnetIds": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "tags": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "version": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsDatabaseEncryption": {
+   "properties": {
+    "kmsKeyArn": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsInstancePlacement": {
+   "properties": {
+    "tenancy": {
+     "enum": [
+      "TENANCY_UNSPECIFIED",
+      "DEFAULT",
+      "DEDICATED",
+      "HOST"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsJsonWebKeys": {
+   "properties": {
+    "keys": {
+     "items": {
+      "$ref": "Jwk"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AwsK8sVersionInfo": {
+   "properties": {
+    "enabled": {
+     "type": "boolean"
+    },
+    "endOfLife": {
+     "type": "boolean"
+    },
+    "endOfLifeDate": {
+     "type": "object"
+    },
+    "releaseDate": {
+     "type": "object"
+    },
+    "version": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsNodeConfig": {
+   "properties": {
+    "autoscalingMetricsCollection": {
+     "$ref": "AwsAutoscalingGroupMetricsCollection"
+    },
+    "configEncryption": {
+     "$ref": "AwsConfigEncryption"
+    },
+    "iamInstanceProfile": {
+     "type": "string"
+    },
+    "imageType": {
+     "type": "string"
+    },
+    "instancePlacement": {
+     "$ref": "AwsInstancePlacement"
+    },
+    "instanceType": {
+     "type": "string"
+    },
+    "labels": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "proxyConfig": {
+     "$ref": "AwsProxyConfig"
+    },
+    "rootVolume": {
+     "$ref": "AwsVolumeTemplate"
+    },
+    "securityGroupIds": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "spotConfig": {
+     "$ref": "SpotConfig"
+    },
+    "sshConfig": {
+     "$ref": "AwsSshConfig"
+    },
+    "tags": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "taints": {
+     "items": {
+      "$ref": "NodeTaint"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AwsNodeManagement": {
+   "properties": {
+    "autoRepair": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "AwsNodePool": {
+   "properties": {
+    "annotations": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "autoscaling": {
+     "$ref": "AwsNodePoolAutoscaling"
+    },
+    "config": {
+     "$ref": "AwsNodeConfig"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "errors": {
+     "items": {
+      "$ref": "AwsNodePoolError"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "kubeletConfig": {
+     "$ref": "NodeKubeletConfig"
+    },
+    "management": {
+     "$ref": "AwsNodeManagement"
+    },
+    "maxPodsConstraint": {
+     "$ref": "MaxPodsConstraint"
+    },
+    "name": {
+     "type": "string"
+    },
+    "reconciling": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "state": {
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "PROVISIONING",
+      "RUNNING",
+      "RECONCILING",
+      "STOPPING",
+      "ERROR",
+      "DEGRADED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "subnetId": {
+     "type": "string"
+    },
+    "uid": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateSettings": {
+     "$ref": "UpdateSettings"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "version": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsNodePoolAutoscaling": {
+   "properties": {
+    "maxNodeCount": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "minNodeCount": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "AwsNodePoolError": {
+   "properties": {
+    "message": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsOpenIdConfig": {
+   "properties": {
+    "claims_supported": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "grant_types": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "id_token_signing_alg_values_supported": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "issuer": {
+     "type": "string"
+    },
+    "jwks_uri": {
+     "type": "string"
+    },
+    "response_types_supported": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "subject_types_supported": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AwsProxyConfig": {
+   "properties": {
+    "secretArn": {
+     "type": "string"
+    },
+    "secretVersion": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsServerConfig": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "supportedAwsRegions": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "validVersions": {
+     "items": {
+      "$ref": "AwsK8sVersionInfo"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AwsServicesAuthentication": {
+   "properties": {
+    "roleArn": {
+     "type": "string"
+    },
+    "roleSessionName": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsSshConfig": {
+   "properties": {
+    "ec2KeyPair": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AwsVolumeTemplate": {
+   "properties": {
+    "iops": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "kmsKeyArn": {
+     "type": "string"
+    },
+    "sizeGib": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "throughput": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "volumeType": {
+     "enum": [
+      "VOLUME_TYPE_UNSPECIFIED",
+      "GP2",
+      "GP3"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureAuthorization": {
+   "properties": {
+    "adminGroups": {
+     "items": {
+      "$ref": "AzureClusterGroup"
+     },
+     "type": "array"
+    },
+    "adminUsers": {
+     "items": {
+      "$ref": "AzureClusterUser"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AzureClient": {
+   "properties": {
+    "annotations": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "applicationId": {
+     "type": "string"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "pemCertificate": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "reconciling": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "tenantId": {
+     "type": "string"
+    },
+    "uid": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureCluster": {
+   "properties": {
+    "annotations": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "authorization": {
+     "$ref": "AzureAuthorization"
+    },
+    "azureClient": {
+     "type": "string"
+    },
+    "azureRegion": {
+     "type": "string"
+    },
+    "azureServicesAuthentication": {
+     "$ref": "AzureServicesAuthentication"
+    },
+    "clusterCaCertificate": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "controlPlane": {
+     "$ref": "AzureControlPlane"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "endpoint": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "errors": {
+     "items": {
+      "$ref": "AzureClusterError"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "fleet": {
+     "$ref": "Fleet"
+    },
+    "loggingConfig": {
+     "$ref": "LoggingConfig"
+    },
+    "managedResources": {
+     "$ref": "AzureClusterResources",
+     "readOnly": true
+    },
+    "monitoringConfig": {
+     "$ref": "MonitoringConfig"
+    },
+    "name": {
+     "type": "string"
+    },
+    "networking": {
+     "$ref": "AzureClusterNetworking"
+    },
+    "reconciling": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "resourceGroupId": {
+     "type": "string"
+    },
+    "state": {
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "PROVISIONING",
+      "RUNNING",
+      "RECONCILING",
+      "STOPPING",
+      "ERROR",
+      "DEGRADED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "uid": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "workloadIdentityConfig": {
+     "$ref": "WorkloadIdentityConfig",
+     "readOnly": true
+    }
+   },
+   "type": "object"
+  },
+  "AzureClusterError": {
+   "properties": {
+    "message": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureClusterGroup": {
+   "properties": {
+    "group": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureClusterNetworking": {
+   "properties": {
+    "podAddressCidrBlocks": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "serviceAddressCidrBlocks": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "serviceLoadBalancerSubnetId": {
+     "type": "string"
+    },
+    "virtualNetworkId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureClusterResources": {
+   "properties": {
+    "controlPlaneApplicationSecurityGroupId": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "networkSecurityGroupId": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureClusterUser": {
+   "properties": {
+    "username": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureConfigEncryption": {
+   "properties": {
+    "keyId": {
+     "type": "string"
+    },
+    "publicKey": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureControlPlane": {
+   "properties": {
+    "configEncryption": {
+     "$ref": "AzureConfigEncryption"
+    },
+    "databaseEncryption": {
+     "$ref": "AzureDatabaseEncryption"
+    },
+    "endpointSubnetId": {
+     "type": "string"
+    },
+    "mainVolume": {
+     "$ref": "AzureDiskTemplate"
+    },
+    "proxyConfig": {
+     "$ref": "AzureProxyConfig"
+    },
+    "replicaPlacements": {
+     "items": {
+      "$ref": "ReplicaPlacement"
+     },
+     "type": "array"
+    },
+    "rootVolume": {
+     "$ref": "AzureDiskTemplate"
+    },
+    "sshConfig": {
+     "$ref": "AzureSshConfig"
+    },
+    "subnetId": {
+     "type": "string"
+    },
+    "tags": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "version": {
+     "type": "string"
+    },
+    "vmSize": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureDatabaseEncryption": {
+   "properties": {
+    "keyId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureDiskTemplate": {
+   "properties": {
+    "sizeGib": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "AzureJsonWebKeys": {
+   "properties": {
+    "keys": {
+     "items": {
+      "$ref": "Jwk"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AzureK8sVersionInfo": {
+   "properties": {
+    "enabled": {
+     "type": "boolean"
+    },
+    "endOfLife": {
+     "type": "boolean"
+    },
+    "endOfLifeDate": {
+     "type": "object"
+    },
+    "releaseDate": {
+     "type": "object"
+    },
+    "version": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureNodeConfig": {
+   "properties": {
+    "configEncryption": {
+     "$ref": "AzureConfigEncryption"
+    },
+    "imageType": {
+     "type": "string"
+    },
+    "labels": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "proxyConfig": {
+     "$ref": "AzureProxyConfig"
+    },
+    "rootVolume": {
+     "$ref": "AzureDiskTemplate"
+    },
+    "sshConfig": {
+     "$ref": "AzureSshConfig"
+    },
+    "tags": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "taints": {
+     "items": {
+      "$ref": "NodeTaint"
+     },
+     "type": "array"
+    },
+    "vmSize": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureNodeManagement": {
+   "properties": {
+    "autoRepair": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "AzureNodePool": {
+   "properties": {
+    "annotations": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "autoscaling": {
+     "$ref": "AzureNodePoolAutoscaling"
+    },
+    "azureAvailabilityZone": {
+     "type": "string"
+    },
+    "config": {
+     "$ref": "AzureNodeConfig"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "errors": {
+     "items": {
+      "$ref": "AzureNodePoolError"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "management": {
+     "$ref": "AzureNodeManagement"
+    },
+    "maxPodsConstraint": {
+     "$ref": "MaxPodsConstraint"
+    },
+    "name": {
+     "type": "string"
+    },
+    "reconciling": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "state": {
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "PROVISIONING",
+      "RUNNING",
+      "RECONCILING",
+      "STOPPING",
+      "ERROR",
+      "DEGRADED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "subnetId": {
+     "type": "string"
+    },
+    "uid": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "version": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureNodePoolAutoscaling": {
+   "properties": {
+    "maxNodeCount": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "minNodeCount": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "AzureNodePoolError": {
+   "properties": {
+    "message": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureOpenIdConfig": {
+   "properties": {
+    "claims_supported": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "grant_types": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "id_token_signing_alg_values_supported": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "issuer": {
+     "type": "string"
+    },
+    "jwks_uri": {
+     "type": "string"
+    },
+    "response_types_supported": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "subject_types_supported": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AzureProxyConfig": {
+   "properties": {
+    "resourceGroupId": {
+     "type": "string"
+    },
+    "secretId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureServerConfig": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "supportedAzureRegions": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "validVersions": {
+     "items": {
+      "$ref": "AzureK8sVersionInfo"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AzureServicesAuthentication": {
+   "properties": {
+    "applicationId": {
+     "type": "string"
+    },
+    "tenantId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AzureSshConfig": {
+   "properties": {
+    "authorizedKey": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "BinaryAuthorization": {
+   "properties": {
+    "evaluationMode": {
+     "enum": [
+      "EVALUATION_MODE_UNSPECIFIED",
+      "DISABLED",
+      "PROJECT_SINGLETON_POLICY_ENFORCE"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CloudMonitoringConfig": {
+   "properties": {
+    "enabled": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "CreateAttachedClusterRequest": {
+   "properties": {
+    "attachedCluster": {
+     "$ref": "AttachedCluster"
+    },
+    "attachedClusterId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "CreateAwsClusterRequest": {
+   "properties": {
+    "awsCluster": {
+     "$ref": "AwsCluster"
+    },
+    "awsClusterId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "CreateAwsNodePoolRequest": {
+   "properties": {
+    "awsNodePool": {
+     "$ref": "AwsNodePool"
+    },
+    "awsNodePoolId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "CreateAzureClientRequest": {
+   "properties": {
+    "azureClient": {
+     "$ref": "AzureClient"
+    },
+    "azureClientId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "CreateAzureClusterRequest": {
+   "properties": {
+    "azureCluster": {
+     "$ref": "AzureCluster"
+    },
+    "azureClusterId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "CreateAzureNodePoolRequest": {
+   "properties": {
+    "azureNodePool": {
+     "$ref": "AzureNodePool"
+    },
+    "azureNodePoolId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteAttachedClusterRequest": {
+   "properties": {
+    "allowMissing": {
+     "type": "boolean"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "ignoreErrors": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteAwsClusterRequest": {
+   "properties": {
+    "allowMissing": {
+     "type": "boolean"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "ignoreErrors": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteAwsNodePoolRequest": {
+   "properties": {
+    "allowMissing": {
+     "type": "boolean"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "ignoreErrors": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteAzureClientRequest": {
+   "properties": {
+    "allowMissing": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteAzureClusterRequest": {
+   "properties": {
+    "allowMissing": {
+     "type": "boolean"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "ignoreErrors": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteAzureNodePoolRequest": {
+   "properties": {
+    "allowMissing": {
+     "type": "boolean"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "ignoreErrors": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "Empty": {
+   "type": "object"
+  },
+  "Fleet": {
+   "properties": {
+    "membership": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "project": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAttachedClusterAgentTokenRequest": {
+   "properties": {
+    "attachedCluster": {
+     "type": "string"
+    },
+    "audience": {
+     "type": "string"
+    },
+    "grantType": {
+     "type": "string"
+    },
+    "options": {
+     "type": "string"
+    },
+    "requestedTokenType": {
+     "type": "string"
+    },
+    "scope": {
+     "type": "string"
+    },
+    "subjectToken": {
+     "type": "string"
+    },
+    "subjectTokenType": {
+     "type": "string"
+    },
+    "version": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAttachedClusterAgentTokenResponse": {
+   "properties": {
+    "access_token": {
+     "type": "string"
+    },
+    "expires_in": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "token_type": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAttachedClusterInstallManifestRequest": {
+   "properties": {
+    "attachedClusterId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "platformVersion": {
+     "type": "string"
+    },
+    "proxyConfig": {
+     "$ref": "AttachedProxyConfig"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAttachedClusterInstallManifestResponse": {
+   "properties": {
+    "manifest": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAwsAccessTokenRequest": {
+   "properties": {
+    "awsCluster": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAwsAccessTokenResponse": {
+   "properties": {
+    "accessToken": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "expirationTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAwsClusterAgentTokenRequest": {
+   "properties": {
+    "audience": {
+     "type": "string"
+    },
+    "awsCluster": {
+     "type": "string"
+    },
+    "grantType": {
+     "type": "string"
+    },
+    "nodePoolId": {
+     "type": "string"
+    },
+    "options": {
+     "type": "string"
+    },
+    "requestedTokenType": {
+     "type": "string"
+    },
+    "scope": {
+     "type": "string"
+    },
+    "subjectToken": {
+     "type": "string"
+    },
+    "subjectTokenType": {
+     "type": "string"
+    },
+    "version": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAwsClusterAgentTokenResponse": {
+   "properties": {
+    "access_token": {
+     "type": "string"
+    },
+    "expires_in": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "token_type": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAzureAccessTokenRequest": {
+   "properties": {
+    "azureCluster": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAzureAccessTokenResponse": {
+   "properties": {
+    "accessToken": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "expirationTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAzureClusterAgentTokenRequest": {
+   "properties": {
+    "audience": {
+     "type": "string"
+    },
+    "azureCluster": {
+     "type": "string"
+    },
+    "grantType": {
+     "type": "string"
+    },
+    "nodePoolId": {
+     "type": "string"
+    },
+    "options": {
+     "type": "string"
+    },
+    "requestedTokenType": {
+     "type": "string"
+    },
+    "scope": {
+     "type": "string"
+    },
+    "subjectToken": {
+     "type": "string"
+    },
+    "subjectTokenType": {
+     "type": "string"
+    },
+    "version": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAzureClusterAgentTokenResponse": {
+   "properties": {
+    "access_token": {
+     "type": "string"
+    },
+    "expires_in": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "token_type": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAttachedClusterRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAttachedServerConfigRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAwsClusterRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAwsJsonWebKeysRequest": {
+   "properties": {
+    "awsCluster": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAwsNodePoolRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAwsOpenIdConfigRequest": {
+   "properties": {
+    "awsCluster": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAwsServerConfigRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAzureClientRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAzureClusterRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAzureJsonWebKeysRequest": {
+   "properties": {
+    "azureCluster": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAzureNodePoolRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAzureOpenIdConfigRequest": {
+   "properties": {
+    "azureCluster": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetAzureServerConfigRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ImportAttachedClusterRequest": {
+   "properties": {
+    "distribution": {
+     "type": "string"
+    },
+    "fleetMembership": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "platformVersion": {
+     "type": "string"
+    },
+    "proxyConfig": {
+     "$ref": "AttachedProxyConfig"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "Jwk": {
+   "properties": {
+    "alg": {
+     "type": "string"
+    },
+    "crv": {
+     "type": "string"
+    },
+    "e": {
+     "type": "string"
+    },
+    "kid": {
+     "type": "string"
+    },
+    "kty": {
+     "type": "string"
+    },
+    "n": {
+     "type": "string"
+    },
+    "use": {
+     "type": "string"
+    },
+    "x": {
+     "type": "string"
+    },
+    "y": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "KubernetesSecret": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "namespace": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Label": {
+   "properties": {
+    "key": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAttachedClustersRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAttachedClustersResponse": {
+   "properties": {
+    "attachedClusters": {
+     "items": {
+      "$ref": "AttachedCluster"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAwsClustersRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAwsClustersResponse": {
+   "properties": {
+    "awsClusters": {
+     "items": {
+      "$ref": "AwsCluster"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAwsNodePoolsRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAwsNodePoolsResponse": {
+   "properties": {
+    "awsNodePools": {
+     "items": {
+      "$ref": "AwsNodePool"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAzureClientsRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAzureClientsResponse": {
+   "properties": {
+    "azureClients": {
+     "items": {
+      "$ref": "AzureClient"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAzureClustersRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAzureClustersResponse": {
+   "properties": {
+    "azureClusters": {
+     "items": {
+      "$ref": "AzureCluster"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAzureNodePoolsRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListAzureNodePoolsResponse": {
+   "properties": {
+    "azureNodePools": {
+     "items": {
+      "$ref": "AzureNodePool"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "LoggingComponentConfig": {
+   "properties": {
+    "enableComponents": {
+     "items": {
+      "enum": [
+       "COMPONENT_UNSPECIFIED",
+       "SYSTEM_COMPONENTS",
+       "WORKLOADS"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "LoggingConfig": {
+   "properties": {
+    "componentConfig": {
+     "$ref": "LoggingComponentConfig"
+    }
+   },
+   "type": "object"
+  },
+  "ManagedPrometheusConfig": {
+   "properties": {
+    "enabled": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "MaxPodsConstraint": {
+   "properties": {
+    "maxPodsPerNode": {
+     "format": "int64",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "MonitoringConfig": {
+   "properties": {
+    "cloudMonitoringConfig": {
+     "$ref": "CloudMonitoringConfig"
+    },
+    "managedPrometheusConfig": {
+     "$ref": "ManagedPrometheusConfig"
+    }
+   },
+   "type": "object"
+  },
+  "NodeKubeletConfig": {
+   "properties": {
+    "cpuCfsQuota": {
+     "type": "boolean"
+    },
+    "cpuCfsQuotaPeriod": {
+     "type": "string"
+    },
+    "cpuManagerPolicy": {
+     "type": "string"
+    },
+    "insecureKubeletReadonlyPortEnabled": {
+     "type": "boolean"
+    },
+    "podPidsLimit": {
+     "format": "int64",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "NodeTaint": {
+   "properties": {
+    "effect": {
+     "enum": [
+      "EFFECT_UNSPECIFIED",
+      "NO_SCHEDULE",
+      "PREFER_NO_SCHEDULE",
+      "NO_EXECUTE"
+     ],
+     "type": "string"
+    },
+    "key": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Operation": {
+   "properties": {
+    "done": {
+     "type": "boolean"
+    },
+    "error": {
+     "type": "object"
+    },
+    "metadata": {
+     "type": "object"
+    },
+    "name": {
+     "type": "string"
+    },
+    "response": {
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "OperationMetadata": {
+   "properties": {
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "endTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "errorDetail": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "requestedCancellation": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "statusDetail": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "target": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "verb": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ReplicaPlacement": {
+   "properties": {
+    "azureAvailabilityZone": {
+     "type": "string"
+    },
+    "subnetId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "RollbackAwsNodePoolUpdateRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "respectPdb": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "SecurityPostureConfig": {
+   "properties": {
+    "vulnerabilityMode": {
+     "enum": [
+      "VULNERABILITY_MODE_UNSPECIFIED",
+      "VULNERABILITY_DISABLED",
+      "VULNERABILITY_ENTERPRISE"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "SpotConfig": {
+   "properties": {
+    "instanceTypes": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "SurgeSettings": {
+   "properties": {
+    "maxSurge": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "maxUnavailable": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "SystemComponentsConfig": {
+   "properties": {
+    "labels": {
+     "items": {
+      "$ref": "Label"
+     },
+     "type": "array"
+    },
+    "tolerations": {
+     "items": {
+      "$ref": "Toleration"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "Toleration": {
+   "properties": {
+    "effect": {
+     "enum": [
+      "EFFECT_UNSPECIFIED",
+      "EFFECT_NO_SCHEDULE",
+      "EFFECT_PREFER_NO_SCHEDULE",
+      "EFFECT_NO_EXECUTE"
+     ],
+     "type": "string"
+    },
+    "key": {
+     "type": "string"
+    },
+    "keyOperator": {
+     "enum": [
+      "KEY_OPERATOR_UNSPECIFIED",
+      "KEY_OPERATOR_EQUAL",
+      "KEY_OPERATOR_EXISTS"
+     ],
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateAttachedClusterRequest": {
+   "properties": {
+    "attachedCluster": {
+     "$ref": "AttachedCluster"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateAwsClusterRequest": {
+   "properties": {
+    "awsCluster": {
+     "$ref": "AwsCluster"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateAwsNodePoolRequest": {
+   "properties": {
+    "awsNodePool": {
+     "$ref": "AwsNodePool"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateAzureClusterRequest": {
+   "properties": {
+    "azureCluster": {
+     "$ref": "AzureCluster"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateAzureNodePoolRequest": {
+   "properties": {
+    "azureNodePool": {
+     "$ref": "AzureNodePool"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    },
+    "validateOnly": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateSettings": {
+   "properties": {
+    "surgeSettings": {
+     "$ref": "SurgeSettings"
+    }
+   },
+   "type": "object"
+  },
+  "WorkloadIdentityConfig": {
+   "properties": {
+    "identityProvider": {
+     "type": "string"
+    },
+    "issuerUri": {
+     "type": "string"
+    },
+    "workloadPool": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "version": "v1"
+}

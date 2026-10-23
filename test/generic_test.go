@@ -27,7 +27,7 @@ func TestGeneratedServices(t *testing.T) {
 	for _, s := range srv.Hub.Services() {
 		names[s.Info().Name] = fmt.Sprintf("%T", s)
 	}
-	for _, n := range []string{"codeartifact", "swf", "elb", "servicecatalog", "route53resolver", "efs", "backup", "dlm", "globalaccelerator", "guardduty", "service-quotas"} {
+	for _, n := range []string{"codeartifact", "swf", "elb", "servicecatalog", "route53resolver", "efs", "backup", "dlm", "globalaccelerator", "guardduty", "service-quotas", "amplify", "polly", "shield", "codecommit", "location", "keyspaces", "fsx", "resource-groups", "codestar-connections"} {
 		if names[n] != "*generic.Service" {
 			t.Errorf("%s is %q, want a generated service", n, names[n])
 		}

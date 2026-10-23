@@ -1,0 +1,2685 @@
+{
+ "name": "cloudsecuritycompliance",
+ "resources": {
+  "all": {
+   "methods": {
+    "cloudsecuritycompliance.folders.locations.frameworkAuditScopeReports.generateFrameworkAuditScopeReport": {
+     "flatPath": "v1/folders/{foldersId}/locations/{locationsId}/frameworkAuditScopeReports:generateFrameworkAuditScopeReport",
+     "httpMethod": "POST",
+     "id": "cloudsecuritycompliance.folders.locations.frameworkAuditScopeReports.generateFrameworkAuditScopeReport",
+     "parameters": {
+      "scope": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+scope}/frameworkAuditScopeReports:generateFrameworkAuditScopeReport",
+     "request": {
+      "$ref": "GenerateFrameworkAuditScopeReportRequest"
+     },
+     "response": {
+      "$ref": "GenerateFrameworkAuditScopeReportResponse"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.cloudControlDeployments.get": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/cloudControlDeployments/{cloudControlDeploymentsId}",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.cloudControlDeployments.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "CloudControlDeployment"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.cloudControlDeployments.list": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/cloudControlDeployments",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.cloudControlDeployments.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "orderBy": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/cloudControlDeployments",
+     "response": {
+      "$ref": "ListCloudControlDeploymentsResponse"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.cloudControls.create": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/cloudControls",
+     "httpMethod": "POST",
+     "id": "cloudsecuritycompliance.organizations.locations.cloudControls.create",
+     "parameters": {
+      "cloudControlId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/cloudControls",
+     "request": {
+      "$ref": "CloudControl"
+     },
+     "response": {
+      "$ref": "CloudControl"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.cloudControls.delete": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/cloudControls/{cloudControlsId}",
+     "httpMethod": "DELETE",
+     "id": "cloudsecuritycompliance.organizations.locations.cloudControls.delete",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Empty"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.cloudControls.get": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/cloudControls/{cloudControlsId}",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.cloudControls.get",
+     "parameters": {
+      "majorRevisionId": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "CloudControl"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.cloudControls.list": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/cloudControls",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.cloudControls.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/cloudControls",
+     "response": {
+      "$ref": "ListCloudControlsResponse"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.cloudControls.patch": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/cloudControls/{cloudControlsId}",
+     "httpMethod": "PATCH",
+     "id": "cloudsecuritycompliance.organizations.locations.cloudControls.patch",
+     "parameters": {
+      "cloudControl": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+cloud_control.name}",
+     "request": {
+      "$ref": "CloudControl"
+     },
+     "response": {
+      "$ref": "CloudControl"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.cmEnrollment.calculateEffectiveCmEnrollment": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/cmEnrollment:calculate",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.cmEnrollment.calculateEffectiveCmEnrollment",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:calculate",
+     "response": {
+      "$ref": "CalculateEffectiveCmEnrollmentResponse"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.cmEnrollment.patch": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/cmEnrollment",
+     "httpMethod": "PATCH",
+     "id": "cloudsecuritycompliance.organizations.locations.cmEnrollment.patch",
+     "parameters": {
+      "cmEnrollment": {
+       "location": "path"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+cm_enrollment.name}",
+     "request": {
+      "$ref": "CmEnrollment"
+     },
+     "response": {
+      "$ref": "CmEnrollment"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.findingSummaries.list": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/findingSummaries",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.findingSummaries.list",
+     "parameters": {
+      "endTime": {
+       "location": "query"
+      },
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/findingSummaries",
+     "response": {
+      "$ref": "ListFindingSummariesResponse"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworkAudits.create": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworkAudits",
+     "httpMethod": "POST",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworkAudits.create",
+     "parameters": {
+      "frameworkAuditId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/frameworkAudits",
+     "request": {
+      "$ref": "FrameworkAudit"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworkAudits.get": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworkAudits/{frameworkAuditsId}",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworkAudits.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "FrameworkAudit"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworkAudits.list": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworkAudits",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworkAudits.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/frameworkAudits",
+     "response": {
+      "$ref": "ListFrameworkAuditsResponse"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworkComplianceReports.aggregateFrameworkComplianceReport": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworkComplianceReports/{frameworkComplianceReportsId}:aggregate",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworkComplianceReports.aggregateFrameworkComplianceReport",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "interval": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:aggregate",
+     "response": {
+      "$ref": "AggregateFrameworkComplianceReportResponse"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworkComplianceReports.controlComplianceSummaries.list": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworkComplianceReports/{frameworkComplianceReportsId}/controlComplianceSummaries",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworkComplianceReports.controlComplianceSummaries.list",
+     "parameters": {
+      "endTime": {
+       "location": "query"
+      },
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/controlComplianceSummaries",
+     "response": {
+      "$ref": "ListControlComplianceSummariesResponse"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworkComplianceReports.fetchFrameworkComplianceReport": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworkComplianceReports/{frameworkComplianceReportsId}:fetch",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworkComplianceReports.fetchFrameworkComplianceReport",
+     "parameters": {
+      "endTime": {
+       "location": "query"
+      },
+      "filter": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:fetch",
+     "response": {
+      "$ref": "FrameworkComplianceReport"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworkComplianceSummaries.list": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworkComplianceSummaries",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworkComplianceSummaries.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "view": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/frameworkComplianceSummaries",
+     "response": {
+      "$ref": "ListFrameworkComplianceSummariesResponse"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworkDeployments.create": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworkDeployments",
+     "httpMethod": "POST",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworkDeployments.create",
+     "parameters": {
+      "frameworkDeploymentId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/frameworkDeployments",
+     "request": {
+      "$ref": "FrameworkDeployment"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworkDeployments.delete": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworkDeployments/{frameworkDeploymentsId}",
+     "httpMethod": "DELETE",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworkDeployments.delete",
+     "parameters": {
+      "etag": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworkDeployments.get": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworkDeployments/{frameworkDeploymentsId}",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworkDeployments.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "FrameworkDeployment"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworkDeployments.list": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworkDeployments",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworkDeployments.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "orderBy": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/frameworkDeployments",
+     "response": {
+      "$ref": "ListFrameworkDeploymentsResponse"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworks.create": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworks",
+     "httpMethod": "POST",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworks.create",
+     "parameters": {
+      "frameworkId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/frameworks",
+     "request": {
+      "$ref": "Framework"
+     },
+     "response": {
+      "$ref": "Framework"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworks.delete": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworks/{frameworksId}",
+     "httpMethod": "DELETE",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworks.delete",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Empty"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworks.get": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworks/{frameworksId}",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworks.get",
+     "parameters": {
+      "majorRevisionId": {
+       "location": "query"
+      },
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Framework"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworks.list": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworks",
+     "httpMethod": "GET",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworks.list",
+     "parameters": {
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/frameworks",
+     "response": {
+      "$ref": "ListFrameworksResponse"
+     }
+    },
+    "cloudsecuritycompliance.organizations.locations.frameworks.patch": {
+     "flatPath": "v1/organizations/{organizationsId}/locations/{locationsId}/frameworks/{frameworksId}",
+     "httpMethod": "PATCH",
+     "id": "cloudsecuritycompliance.organizations.locations.frameworks.patch",
+     "parameters": {
+      "framework": {
+       "location": "path"
+      },
+      "majorRevisionId": {
+       "location": "query"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+framework.name}",
+     "request": {
+      "$ref": "Framework"
+     },
+     "response": {
+      "$ref": "Framework"
+     }
+    }
+   }
+  }
+ },
+ "rootUrl": "https://cloudsecuritycompliance.googleapis.com/",
+ "schemas": {
+  "AggregateFrameworkComplianceReportRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "interval": {
+     "type": "object"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AggregateFrameworkComplianceReportResponse": {
+   "properties": {
+    "aggregatedComplianceReports": {
+     "items": {
+      "$ref": "AggregatedComplianceReport"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AggregatedComplianceReport": {
+   "properties": {
+    "controlAssessmentDetails": {
+     "$ref": "ControlAssessmentDetails"
+    },
+    "reportTime": {
+     "format": "google-datetime",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AllowedValues": {
+   "properties": {
+    "values": {
+     "items": {
+      "$ref": "ParamValue"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AttributeSubstitutionRule": {
+   "properties": {
+    "attribute": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "AuditConfig": {
+   "properties": {
+    "destinations": {
+     "items": {
+      "$ref": "AuditConfigCmEligibleDestination"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "AuditConfigCmEligibleDestination": {
+   "properties": {
+    "gcsBucket": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "BucketDestination": {
+   "properties": {
+    "bucketUri": {
+     "type": "string"
+    },
+    "frameworkAuditFormat": {
+     "enum": [
+      "FORMAT_UNSPECIFIED",
+      "ODF"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CELExpression": {
+   "properties": {
+    "expression": {
+     "type": "string"
+    },
+    "resourceTypesValues": {
+     "$ref": "StringList"
+    }
+   },
+   "type": "object"
+  },
+  "CalculateEffectiveCmEnrollmentRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CalculateEffectiveCmEnrollmentResponse": {
+   "properties": {
+    "cmEnrollment": {
+     "$ref": "CmEnrollment"
+    }
+   },
+   "type": "object"
+  },
+  "CloudControl": {
+   "properties": {
+    "categories": {
+     "items": {
+      "enum": [
+       "CLOUD_CONTROL_CATEGORY_UNSPECIFIED",
+       "CC_CATEGORY_INFRASTRUCTURE",
+       "CC_CATEGORY_ARTIFICIAL_INTELLIGENCE",
+       "CC_CATEGORY_PHYSICAL_SECURITY",
+       "CC_CATEGORY_DATA_SECURITY",
+       "CC_CATEGORY_NETWORK_SECURITY",
+       "CC_CATEGORY_INCIDENT_MANAGEMENT",
+       "CC_CATEGORY_IDENTITY_AND_ACCESS_MANAGEMENT",
+       "CC_CATEGORY_ENCRYPTION",
+       "CC_CATEGORY_LOGS_MANAGEMENT_AND_INFRASTRUCTURE",
+       "CC_CATEGORY_HR_ADMIN_AND_PROCESSES",
+       "CC_CATEGORY_THIRD_PARTY_AND_SUB_PROCESSOR_MANAGEMENT",
+       "CC_CATEGORY_LEGAL_AND_DISCLOSURES",
+       "CC_CATEGORY_VULNERABILITY_MANAGEMENT",
+       "CC_CATEGORY_PRIVACY",
+       "CC_CATEGORY_BCDR",
+       "CC_CATEGORY_ADMIN_ACCESS",
+       "CC_CATEGORY_DATA_RESIDENCY",
+       "CC_CATEGORY_RESOURCE_USAGE_RESTRICTION",
+       "CC_CATEGORY_SERVICE_SPECIFIC"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "findingCategory": {
+     "type": "string"
+    },
+    "majorRevisionId": {
+     "format": "int64",
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "parameterSpec": {
+     "items": {
+      "$ref": "ParameterSpec"
+     },
+     "type": "array"
+    },
+    "relatedFrameworks": {
+     "items": {
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "remediationSteps": {
+     "type": "string"
+    },
+    "rules": {
+     "items": {
+      "$ref": "Rule"
+     },
+     "type": "array"
+    },
+    "severity": {
+     "enum": [
+      "SEVERITY_UNSPECIFIED",
+      "CRITICAL",
+      "HIGH",
+      "MEDIUM",
+      "LOW"
+     ],
+     "type": "string"
+    },
+    "supportedCloudProviders": {
+     "items": {
+      "enum": [
+       "CLOUD_PROVIDER_UNSPECIFIED",
+       "AWS",
+       "AZURE",
+       "GCP"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "supportedEnforcementModes": {
+     "items": {
+      "enum": [
+       "ENFORCEMENT_MODE_UNSPECIFIED",
+       "PREVENTIVE",
+       "DETECTIVE",
+       "AUDIT"
+      ],
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "supportedTargetResourceTypes": {
+     "items": {
+      "enum": [
+       "TARGET_RESOURCE_TYPE_UNSPECIFIED",
+       "TARGET_RESOURCE_CRM_TYPE_ORG",
+       "TARGET_RESOURCE_CRM_TYPE_FOLDER",
+       "TARGET_RESOURCE_CRM_TYPE_PROJECT",
+       "TARGET_RESOURCE_TYPE_APPLICATION"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "CloudControlAssessmentDetails": {
+   "properties": {
+    "evaluationState": {
+     "enum": [
+      "EVALUATION_STATE_UNSPECIFIED",
+      "EVALUATION_STATE_PASSED",
+      "EVALUATION_STATE_FAILED",
+      "EVALUATION_STATE_NOT_ASSESSED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "findingsCount": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "CloudControlAuditDetails": {
+   "properties": {
+    "cloudControl": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "cloudControlDescription": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "cloudControlId": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "complianceState": {
+     "enum": [
+      "COMPLIANCE_STATE_UNSPECIFIED",
+      "COMPLIANT",
+      "VIOLATION",
+      "MANUAL_REVIEW_NEEDED",
+      "ERROR",
+      "AUDIT_NOT_SUPPORTED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "findings": {
+     "items": {
+      "$ref": "FindingDetails"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "reportSummary": {
+     "$ref": "ReportSummary",
+     "readOnly": true
+    }
+   },
+   "type": "object"
+  },
+  "CloudControlDeployment": {
+   "properties": {
+    "cloudControlMetadata": {
+     "$ref": "CloudControlMetadata"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "deploymentState": {
+     "enum": [
+      "DEPLOYMENT_STATE_UNSPECIFIED",
+      "DEPLOYMENT_STATE_VALIDATING",
+      "DEPLOYMENT_STATE_CREATING",
+      "DEPLOYMENT_STATE_DELETING",
+      "DEPLOYMENT_STATE_UPDATING",
+      "DEPLOYMENT_STATE_FAILED",
+      "DEPLOYMENT_STATE_READY",
+      "DEPLOYMENT_STATE_PARTIALLY_DEPLOYED",
+      "DEPLOYMENT_STATE_PARTIALLY_DELETED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "frameworkDeploymentReferences": {
+     "items": {
+      "$ref": "FrameworkDeploymentReference"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "name": {
+     "type": "string"
+    },
+    "parameterSubstitutedCloudControl": {
+     "$ref": "CloudControl",
+     "readOnly": true
+    },
+    "targetResource": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "targetResourceConfig": {
+     "$ref": "TargetResourceConfig"
+    },
+    "targetResourceDisplayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CloudControlDeploymentReference": {
+   "properties": {
+    "cloudControlDeployment": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CloudControlDetails": {
+   "properties": {
+    "majorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "parameters": {
+     "items": {
+      "$ref": "Parameter"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "CloudControlGroupAuditDetails": {
+   "properties": {
+    "cloudControlDetails": {
+     "items": {
+      "$ref": "CloudControlAuditDetails"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "cloudControlGroupId": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "complianceState": {
+     "enum": [
+      "COMPLIANCE_STATE_UNSPECIFIED",
+      "COMPLIANT",
+      "VIOLATION",
+      "MANUAL_REVIEW_NEEDED",
+      "ERROR",
+      "AUDIT_NOT_SUPPORTED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "controlFamily": {
+     "$ref": "ControlFamily",
+     "readOnly": true
+    },
+    "controlId": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "customerResponsibilityDescription": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "customerResponsibilityImplementation": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "displayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "googleResponsibilityDescription": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "googleResponsibilityImplementation": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "reportSummary": {
+     "$ref": "ReportSummary",
+     "readOnly": true
+    },
+    "responsibilityType": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CloudControlMetadata": {
+   "properties": {
+    "cloudControlDetails": {
+     "$ref": "CloudControlDetails"
+    },
+    "enforcementMode": {
+     "enum": [
+      "ENFORCEMENT_MODE_UNSPECIFIED",
+      "PREVENTIVE",
+      "DETECTIVE",
+      "AUDIT"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CloudControlReport": {
+   "properties": {
+    "categories": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "cloudControl": {
+     "type": "string"
+    },
+    "cloudControlAssessmentDetails": {
+     "$ref": "CloudControlAssessmentDetails"
+    },
+    "cloudControlDeployment": {
+     "type": "string"
+    },
+    "cloudControlType": {
+     "enum": [
+      "TYPE_UNSPECIFIED",
+      "CUSTOM",
+      "BUILT_IN"
+     ],
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "enforcementMode": {
+     "enum": [
+      "ENFORCEMENT_MODE_UNSPECIFIED",
+      "PREVENTIVE",
+      "DETECTIVE",
+      "AUDIT"
+     ],
+     "type": "string"
+    },
+    "findingCategory": {
+     "type": "string"
+    },
+    "findingSeverity": {
+     "enum": [
+      "SEVERITY_UNSPECIFIED",
+      "CRITICAL",
+      "HIGH",
+      "MEDIUM",
+      "LOW"
+     ],
+     "type": "string"
+    },
+    "frameworkMajorRevisionIds": {
+     "items": {
+      "format": "int64",
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "majorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "manualCloudControlAssessmentDetails": {
+     "$ref": "ManualCloudControlAssessmentDetails"
+    },
+    "minorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "rules": {
+     "items": {
+      "$ref": "Rule"
+     },
+     "type": "array"
+    },
+    "similarControls": {
+     "items": {
+      "$ref": "SimilarControls"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "CmEnrollment": {
+   "properties": {
+    "auditConfig": {
+     "$ref": "AuditConfig"
+    },
+    "enrolled": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Control": {
+   "properties": {
+    "additionalContentUri": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "controlFamily": {
+     "$ref": "ControlFamily",
+     "readOnly": true
+    },
+    "customerResponsibilityDescription": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "customerResponsibilityImplementation": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "displayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "family": {
+     "enum": [
+      "FAMILY_UNSPECIFIED",
+      "AC",
+      "AT",
+      "AU",
+      "CA",
+      "CM",
+      "CP",
+      "IA",
+      "IR",
+      "MA",
+      "MP",
+      "PE",
+      "PL",
+      "PS",
+      "RA",
+      "SA",
+      "SC",
+      "SI",
+      "SR"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "googleResponsibilityDescription": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "googleResponsibilityImplementation": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "relatedFrameworks": {
+     "items": {
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "responsibilityType": {
+     "enum": [
+      "REGULATORY_CONTROL_RESPONSIBILITY_TYPE_UNSPECIFIED",
+      "GOOGLE",
+      "CUSTOMER",
+      "SHARED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "sharedResponsibilityDescription": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ControlAssessmentDetails": {
+   "properties": {
+    "assessedPassingControls": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "failingControls": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "notAssessedControls": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "passingControls": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "ControlComplianceSummary": {
+   "properties": {
+    "cloudControlReports": {
+     "items": {
+      "$ref": "CloudControlReport"
+     },
+     "type": "array"
+    },
+    "complianceFrameworks": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "control": {
+     "type": "string"
+    },
+    "controlResponsibilityType": {
+     "enum": [
+      "REGULATORY_CONTROL_RESPONSIBILITY_TYPE_UNSPECIFIED",
+      "GOOGLE",
+      "CUSTOMER",
+      "SHARED"
+     ],
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "isFakeControl": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    },
+    "overallEvaluationState": {
+     "enum": [
+      "EVALUATION_STATE_UNSPECIFIED",
+      "EVALUATION_STATE_PASSED",
+      "EVALUATION_STATE_FAILED",
+      "EVALUATION_STATE_NOT_ASSESSED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "similarControls": {
+     "items": {
+      "$ref": "SimilarControls"
+     },
+     "type": "array"
+    },
+    "totalFindingsCount": {
+     "format": "int32",
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "ControlFamily": {
+   "properties": {
+    "displayName": {
+     "type": "string"
+    },
+    "familyId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateCloudControlRequest": {
+   "properties": {
+    "cloudControl": {
+     "$ref": "CloudControl"
+    },
+    "cloudControlId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateFrameworkAuditRequest": {
+   "properties": {
+    "frameworkAudit": {
+     "$ref": "FrameworkAudit"
+    },
+    "frameworkAuditId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateFrameworkDeploymentRequest": {
+   "properties": {
+    "frameworkDeployment": {
+     "$ref": "FrameworkDeployment"
+    },
+    "frameworkDeploymentId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateFrameworkRequest": {
+   "properties": {
+    "framework": {
+     "$ref": "Framework"
+    },
+    "frameworkId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteCloudControlRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteFrameworkDeploymentRequest": {
+   "properties": {
+    "etag": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteFrameworkRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Empty": {
+   "type": "object"
+  },
+  "EvidenceDetails": {
+   "properties": {
+    "evidencePath": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "resource": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "service": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FetchFrameworkComplianceReportRequest": {
+   "properties": {
+    "endTime": {
+     "format": "google-datetime",
+     "type": "string"
+    },
+    "filter": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FindingDetails": {
+   "properties": {
+    "complianceState": {
+     "enum": [
+      "COMPLIANCE_STATE_UNSPECIFIED",
+      "COMPLIANT",
+      "VIOLATION",
+      "MANUAL_REVIEW_NEEDED",
+      "ERROR",
+      "AUDIT_NOT_SUPPORTED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "evidence": {
+     "$ref": "EvidenceDetails",
+     "readOnly": true
+    },
+    "name": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "observation": {
+     "$ref": "ObservationDetails",
+     "readOnly": true
+    }
+   },
+   "type": "object"
+  },
+  "FindingSummary": {
+   "properties": {
+    "findingCategory": {
+     "type": "string"
+    },
+    "findingClass": {
+     "enum": [
+      "FINDING_CLASS_UNSPECIFIED",
+      "THREAT",
+      "VULNERABILITY",
+      "MISCONFIGURATION",
+      "OBSERVATION",
+      "SCC_ERROR",
+      "POSTURE_VIOLATION",
+      "TOXIC_COMBINATION",
+      "SENSITIVE_DATA_RISK",
+      "CHOKEPOINT"
+     ],
+     "type": "string"
+    },
+    "findingCount": {
+     "format": "int64",
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "relatedFrameworks": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "severity": {
+     "enum": [
+      "SEVERITY_UNSPECIFIED",
+      "CRITICAL",
+      "HIGH",
+      "MEDIUM",
+      "LOW"
+     ],
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FolderCreationConfig": {
+   "properties": {
+    "folderDisplayName": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Framework": {
+   "properties": {
+    "category": {
+     "items": {
+      "enum": [
+       "FRAMEWORK_CATEGORY_UNSPECIFIED",
+       "INDUSTRY_DEFINED_STANDARD",
+       "ASSURED_WORKLOADS",
+       "DATA_SECURITY",
+       "GOOGLE_BEST_PRACTICES",
+       "CUSTOM_FRAMEWORK"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "cloudControlDetails": {
+     "items": {
+      "$ref": "CloudControlDetails"
+     },
+     "type": "array"
+    },
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "majorRevisionId": {
+     "format": "int64",
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "supportedCloudProviders": {
+     "items": {
+      "enum": [
+       "CLOUD_PROVIDER_UNSPECIFIED",
+       "AWS",
+       "AZURE",
+       "GCP"
+      ],
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "supportedEnforcementModes": {
+     "items": {
+      "enum": [
+       "ENFORCEMENT_MODE_UNSPECIFIED",
+       "PREVENTIVE",
+       "DETECTIVE",
+       "AUDIT"
+      ],
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "supportedTargetResourceTypes": {
+     "items": {
+      "enum": [
+       "TARGET_RESOURCE_TYPE_UNSPECIFIED",
+       "TARGET_RESOURCE_CRM_TYPE_ORG",
+       "TARGET_RESOURCE_CRM_TYPE_FOLDER",
+       "TARGET_RESOURCE_CRM_TYPE_PROJECT",
+       "TARGET_RESOURCE_TYPE_APPLICATION"
+      ],
+      "type": "string"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "type": {
+     "enum": [
+      "FRAMEWORK_TYPE_UNSPECIFIED",
+      "BUILT_IN",
+      "CUSTOM"
+     ],
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FrameworkAudit": {
+   "properties": {
+    "cloudControlAuditDetails": {
+     "items": {
+      "$ref": "CloudControlAuditDetails"
+     },
+     "type": "array"
+    },
+    "cloudControlGroupAuditDetails": {
+     "items": {
+      "$ref": "CloudControlGroupAuditDetails"
+     },
+     "type": "array"
+    },
+    "complianceFramework": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "complianceState": {
+     "enum": [
+      "COMPLIANCE_STATE_UNSPECIFIED",
+      "COMPLIANT",
+      "VIOLATION",
+      "MANUAL_REVIEW_NEEDED",
+      "ERROR",
+      "AUDIT_NOT_SUPPORTED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "finishTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "frameworkAuditDestination": {
+     "$ref": "FrameworkAuditDestination"
+    },
+    "frameworkAuditId": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "name": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "operationId": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "reportSummary": {
+     "$ref": "ReportSummary",
+     "readOnly": true
+    },
+    "scope": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "startTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "state": {
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "SCHEDULED",
+      "RUNNING",
+      "UPLOADING",
+      "FAILED",
+      "SUCCEEDED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FrameworkAuditDestination": {
+   "properties": {
+    "bucket": {
+     "$ref": "BucketDestination"
+    }
+   },
+   "type": "object"
+  },
+  "FrameworkComplianceReport": {
+   "properties": {
+    "controlAssessmentDetails": {
+     "$ref": "ControlAssessmentDetails"
+    },
+    "framework": {
+     "type": "string"
+    },
+    "frameworkCategories": {
+     "items": {
+      "enum": [
+       "FRAMEWORK_CATEGORY_UNSPECIFIED",
+       "INDUSTRY_DEFINED_STANDARD",
+       "ASSURED_WORKLOADS",
+       "DATA_SECURITY",
+       "GOOGLE_BEST_PRACTICES",
+       "CUSTOM_FRAMEWORK"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "frameworkDescription": {
+     "type": "string"
+    },
+    "frameworkDisplayName": {
+     "type": "string"
+    },
+    "frameworkType": {
+     "enum": [
+      "FRAMEWORK_TYPE_UNSPECIFIED",
+      "BUILT_IN",
+      "CUSTOM"
+     ],
+     "type": "string"
+    },
+    "majorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "minorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "supportedCloudProviders": {
+     "items": {
+      "enum": [
+       "CLOUD_PROVIDER_UNSPECIFIED",
+       "AWS",
+       "AZURE",
+       "GCP"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "targetResourceDetails": {
+     "items": {
+      "$ref": "TargetResourceDetails"
+     },
+     "type": "array"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FrameworkComplianceSummary": {
+   "properties": {
+    "controlAssessmentDetails": {
+     "$ref": "ControlAssessmentDetails"
+    },
+    "controlsPassingTrend": {
+     "$ref": "Trend",
+     "readOnly": true
+    },
+    "findingCount": {
+     "format": "int64",
+     "readOnly": true,
+     "type": "string"
+    },
+    "framework": {
+     "type": "string"
+    },
+    "frameworkCategories": {
+     "items": {
+      "enum": [
+       "FRAMEWORK_CATEGORY_UNSPECIFIED",
+       "INDUSTRY_DEFINED_STANDARD",
+       "ASSURED_WORKLOADS",
+       "DATA_SECURITY",
+       "GOOGLE_BEST_PRACTICES",
+       "CUSTOM_FRAMEWORK"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "frameworkDisplayName": {
+     "type": "string"
+    },
+    "frameworkType": {
+     "enum": [
+      "FRAMEWORK_TYPE_UNSPECIFIED",
+      "BUILT_IN",
+      "CUSTOM"
+     ],
+     "type": "string"
+    },
+    "majorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "minorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "supportedCloudProviders": {
+     "items": {
+      "enum": [
+       "CLOUD_PROVIDER_UNSPECIFIED",
+       "AWS",
+       "AZURE",
+       "GCP"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "targetResourceDetails": {
+     "items": {
+      "$ref": "TargetResourceDetails"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "FrameworkDeployment": {
+   "properties": {
+    "cloudControlDeploymentReferences": {
+     "items": {
+      "$ref": "CloudControlDeploymentReference"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "cloudControlMetadata": {
+     "items": {
+      "$ref": "CloudControlMetadata"
+     },
+     "type": "array"
+    },
+    "computedTargetResource": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "deploymentState": {
+     "enum": [
+      "DEPLOYMENT_STATE_UNSPECIFIED",
+      "DEPLOYMENT_STATE_VALIDATING",
+      "DEPLOYMENT_STATE_CREATING",
+      "DEPLOYMENT_STATE_DELETING",
+      "DEPLOYMENT_STATE_UPDATING",
+      "DEPLOYMENT_STATE_FAILED",
+      "DEPLOYMENT_STATE_READY",
+      "DEPLOYMENT_STATE_PARTIALLY_DEPLOYED",
+      "DEPLOYMENT_STATE_PARTIALLY_DELETED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "etag": {
+     "type": "string"
+    },
+    "framework": {
+     "$ref": "FrameworkReference"
+    },
+    "name": {
+     "type": "string"
+    },
+    "targetResourceConfig": {
+     "$ref": "TargetResourceConfig"
+    },
+    "targetResourceDisplayName": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "FrameworkDeploymentReference": {
+   "properties": {
+    "frameworkDeployment": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "frameworkDisplayName": {
+     "type": "string"
+    },
+    "frameworkReference": {
+     "$ref": "FrameworkReference"
+    }
+   },
+   "type": "object"
+  },
+  "FrameworkReference": {
+   "properties": {
+    "framework": {
+     "type": "string"
+    },
+    "majorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateFrameworkAuditScopeReportRequest": {
+   "properties": {
+    "complianceFramework": {
+     "type": "string"
+    },
+    "reportFormat": {
+     "enum": [
+      "FORMAT_UNSPECIFIED",
+      "ODF"
+     ],
+     "type": "string"
+    },
+    "scope": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateFrameworkAuditScopeReportResponse": {
+   "properties": {
+    "complianceFramework": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "scopeReportContents": {
+     "format": "byte",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetCloudControlDeploymentRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetCloudControlRequest": {
+   "properties": {
+    "majorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetFrameworkAuditRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetFrameworkDeploymentRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetFrameworkRequest": {
+   "properties": {
+    "majorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "IntRange": {
+   "properties": {
+    "max": {
+     "format": "int64",
+     "type": "string"
+    },
+    "min": {
+     "format": "int64",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListCloudControlDeploymentsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "orderBy": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListCloudControlDeploymentsResponse": {
+   "properties": {
+    "cloudControlDeployments": {
+     "items": {
+      "$ref": "CloudControlDeployment"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListCloudControlsRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListCloudControlsResponse": {
+   "properties": {
+    "cloudControls": {
+     "items": {
+      "$ref": "CloudControl"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListControlComplianceSummariesRequest": {
+   "properties": {
+    "endTime": {
+     "format": "google-datetime",
+     "type": "string"
+    },
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListControlComplianceSummariesResponse": {
+   "properties": {
+    "controlComplianceSummaries": {
+     "items": {
+      "$ref": "ControlComplianceSummary"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFindingSummariesRequest": {
+   "properties": {
+    "endTime": {
+     "format": "google-datetime",
+     "type": "string"
+    },
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFindingSummariesResponse": {
+   "properties": {
+    "findingSummaries": {
+     "items": {
+      "$ref": "FindingSummary"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFrameworkAuditsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFrameworkAuditsResponse": {
+   "properties": {
+    "frameworkAudits": {
+     "items": {
+      "$ref": "FrameworkAudit"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFrameworkComplianceSummariesRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "view": {
+     "enum": [
+      "FRAMEWORK_COMPLIANCE_SUMMARY_VIEW_UNSPECIFIED",
+      "FRAMEWORK_COMPLIANCE_SUMMARY_VIEW_BASIC",
+      "FRAMEWORK_COMPLIANCE_SUMMARY_VIEW_FULL"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFrameworkComplianceSummariesResponse": {
+   "properties": {
+    "frameworkComplianceSummaries": {
+     "items": {
+      "$ref": "FrameworkComplianceSummary"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFrameworkDeploymentsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "orderBy": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFrameworkDeploymentsResponse": {
+   "properties": {
+    "frameworkDeployments": {
+     "items": {
+      "$ref": "FrameworkDeployment"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFrameworksRequest": {
+   "properties": {
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListFrameworksResponse": {
+   "properties": {
+    "frameworks": {
+     "items": {
+      "$ref": "Framework"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ManualCloudControlAssessmentDetails": {
+   "properties": {
+    "manualCloudControlGuide": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ObservationDetails": {
+   "properties": {
+    "currentValue": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "expectedValue": {
+     "type": "string"
+    },
+    "guidance": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Operation": {
+   "properties": {
+    "done": {
+     "type": "boolean"
+    },
+    "error": {
+     "type": "object"
+    },
+    "metadata": {
+     "type": "object"
+    },
+    "name": {
+     "type": "string"
+    },
+    "response": {
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "OperationMetadata": {
+   "properties": {
+    "apiVersion": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "endTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "requestedCancellation": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "statusMessage": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "target": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "verb": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ParamValue": {
+   "properties": {
+    "boolValue": {
+     "type": "boolean"
+    },
+    "numberValue": {
+     "type": "number"
+    },
+    "oneofValue": {
+     "$ref": "Parameter"
+    },
+    "stringListValue": {
+     "$ref": "StringList"
+    },
+    "stringValue": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Parameter": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "parameterValue": {
+     "$ref": "ParamValue"
+    }
+   },
+   "type": "object"
+  },
+  "ParameterSpec": {
+   "properties": {
+    "defaultValue": {
+     "$ref": "ParamValue"
+    },
+    "description": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "isRequired": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": "string"
+    },
+    "subParameters": {
+     "items": {
+      "$ref": "ParameterSpec"
+     },
+     "type": "array"
+    },
+    "substitutionRules": {
+     "items": {
+      "$ref": "ParameterSubstitutionRule"
+     },
+     "type": "array"
+    },
+    "validation": {
+     "$ref": "Validation"
+    },
+    "valueType": {
+     "enum": [
+      "VALUE_TYPE_UNSPECIFIED",
+      "STRING",
+      "BOOLEAN",
+      "STRINGLIST",
+      "NUMBER",
+      "ONEOF"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ParameterSubstitutionRule": {
+   "properties": {
+    "attributeSubstitutionRule": {
+     "$ref": "AttributeSubstitutionRule"
+    },
+    "placeholderSubstitutionRule": {
+     "$ref": "PlaceholderSubstitutionRule"
+    }
+   },
+   "type": "object"
+  },
+  "PlaceholderSubstitutionRule": {
+   "properties": {
+    "attribute": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ProjectCreationConfig": {
+   "properties": {
+    "billingAccountId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "projectDisplayName": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "RegexpPattern": {
+   "properties": {
+    "pattern": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ReportSummary": {
+   "properties": {
+    "compliantCount": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    },
+    "errorCount": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    },
+    "manualReviewNeededCount": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    },
+    "totalCount": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    },
+    "violationCount": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "Rule": {
+   "properties": {
+    "celExpression": {
+     "$ref": "CELExpression"
+    },
+    "description": {
+     "type": "string"
+    },
+    "ruleActionTypes": {
+     "items": {
+      "enum": [
+       "RULE_ACTION_TYPE_UNSPECIFIED",
+       "RULE_ACTION_TYPE_PREVENTIVE",
+       "RULE_ACTION_TYPE_DETECTIVE",
+       "RULE_ACTION_TYPE_AUDIT"
+      ],
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "SimilarControls": {
+   "properties": {
+    "controlId": {
+     "type": "string"
+    },
+    "framework": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "StringList": {
+   "properties": {
+    "values": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "TargetResourceConfig": {
+   "properties": {
+    "existingTargetResource": {
+     "type": "string"
+    },
+    "targetResourceCreationConfig": {
+     "$ref": "TargetResourceCreationConfig"
+    }
+   },
+   "type": "object"
+  },
+  "TargetResourceCreationConfig": {
+   "properties": {
+    "folderCreationConfig": {
+     "$ref": "FolderCreationConfig"
+    },
+    "projectCreationConfig": {
+     "$ref": "ProjectCreationConfig"
+    }
+   },
+   "type": "object"
+  },
+  "TargetResourceDetails": {
+   "properties": {
+    "createTime": {
+     "format": "google-datetime",
+     "type": "string"
+    },
+    "frameworkDeployment": {
+     "type": "string"
+    },
+    "majorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "minorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "targetResource": {
+     "type": "string"
+    },
+    "targetResourceDisplayName": {
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Trend": {
+   "properties": {
+    "duration": {
+     "format": "google-duration",
+     "readOnly": true,
+     "type": "string"
+    },
+    "valuePercent": {
+     "readOnly": true,
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateCloudControlRequest": {
+   "properties": {
+    "cloudControl": {
+     "$ref": "CloudControl"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateCmEnrollmentRequest": {
+   "properties": {
+    "cmEnrollment": {
+     "$ref": "CmEnrollment"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateFrameworkRequest": {
+   "properties": {
+    "framework": {
+     "$ref": "Framework"
+    },
+    "majorRevisionId": {
+     "format": "int64",
+     "type": "string"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Validation": {
+   "properties": {
+    "allowedValues": {
+     "$ref": "AllowedValues"
+    },
+    "intRange": {
+     "$ref": "IntRange"
+    },
+    "regexpPattern": {
+     "$ref": "RegexpPattern"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "version": "v1"
+}

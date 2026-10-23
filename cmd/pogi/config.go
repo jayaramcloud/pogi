@@ -113,6 +113,11 @@ func loadConfig(path string, apply func(*pogi.Config)) (pogi.Config, error) {
 	cfg.IAM = cmp.Or(cfg.IAM, defaults.IAM)
 	cfg.SMTPPort = cmp.Or(cfg.SMTPPort, defaults.SMTPPort)
 	apply(&cfg)
+	// Flags and environment variables get the same checks as pogi.yaml (which Load already passed).
+	f := asFile(cfg)
+	if err := cmp.Or(f.Check(), pogi.CheckServices(cfg.Services)); err != nil {
+		return cfg, fmt.Errorf("a flag or environment variable is wrong: %w", err)
+	}
 	return cfg, nil
 }
 
@@ -120,19 +125,29 @@ func loadConfig(path string, apply func(*pogi.Config)) (pogi.Config, error) {
 func envConfig(path string) (pogi.Config, error) {
 	fs := flag.NewFlagSet("start", flag.ContinueOnError)
 	apply := serverFlags(fs)
-	applyEnvDefaults(fs)
+	if err := applyEnvDefaults(fs); err != nil {
+		return pogi.Config{}, err
+	}
 	return loadConfig(path, apply)
 }
 
 func configCmd(args []string) error {
-	if len(args) == 0 {
-		return errors.New("usage: pogi config init [--force] [path] | validate [path] | print [path]")
-	}
-	fs := flag.NewFlagSet("config "+args[0], flag.ExitOnError)
+	const use = "pogi config init [--force] [path] | validate [path] | print [path]"
+	fs := flag.NewFlagSet("config", flag.ContinueOnError)
+	setUsage(fs, "Write a starter pogi.yaml, check one, or print the settings pogi would run with.", use, "pogi config init && pogi config validate")
 	force := fs.Bool("force", false, "init: overwrite an existing file")
-	fs.Parse(args[1:])
-	path := fs.Arg(0)
-	switch args[0] {
+	if len(args) > 0 && isHelp(args[0]) {
+		args = []string{"-h"} // "pogi config help"; parseArgs prints the help
+	}
+	pos, err := parseMax(fs, args, 2) // the subcommand and a path; flags may come anywhere
+	if err != nil {
+		return err
+	}
+	if len(pos) == 0 {
+		return usagef("usage: %s", use)
+	}
+	sub, path := pos[0], at(pos, 1)
+	switch sub {
 	case "init":
 		path = or(path, "pogi.yaml")
 		if _, err := os.Stat(path); err == nil && !*force {
@@ -165,7 +180,7 @@ func configCmd(args []string) error {
 		enc.SetIndent(2)
 		return enc.Encode(asFile(cfg))
 	default:
-		return fmt.Errorf("unknown config command %q (init | validate | print)", args[0])
+		return usagef("unknown config command %q (init | validate | print)", sub)
 	}
 	return nil
 }
@@ -193,9 +208,9 @@ func asFile(cfg pogi.Config) config.File {
 	}
 	f.Storage = config.Storage{Mode: or(cfg.Storage, "memory"), Dir: or(cfg.DataDir, "~/.pogi"), FlushInterval: cfg.FlushInterval, Services: cfg.StorageModes}
 	f.IAM = config.IAM{Mode: cfg.IAM, ValidateSignatures: cfg.ValidateSigs}
-	f.Lambda = config.Lambda{Executor: cfg.Lambda, WarmPool: cfg.WarmPool}
+	f.Lambda = config.Lambda{Executor: cfg.Lambda, WarmPool: cfg.WarmPool, InitTimeout: cfg.LambdaInit}
 	f.Docker = config.Docker{Host: cfg.DockerHost, Network: cfg.DockerNetwork, Images: cfg.DockerImages}
-	f.AI = config.AI{Endpoint: cfg.AIEndpoint, APIKey: mask(cfg.AIKey), Models: cfg.AIModels}
+	f.AI = config.AI{Endpoint: cfg.AIEndpoint, APIKey: mask(cfg.AIKey), Models: cfg.AIModels, Timeout: cfg.AITimeout}
 	f.Email = config.Email{SMTPPort: cfg.SMTPPort, Relay: cfg.SMTPRelay}
 	if u, err := url.Parse(cfg.SMTPRelay); err == nil {
 		f.Email.Relay = u.Redacted() // its password masked
@@ -217,12 +232,20 @@ func mask(secret string) string {
 // servicesCmd lists the services of a running pogi, or else every service
 // and whether the current config (pogi.yaml and environment) enables it.
 func servicesCmd(args []string) error {
-	fs := flag.NewFlagSet("services", flag.ExitOnError)
+	fs := flag.NewFlagSet("services", flag.ContinueOnError)
+	setUsage(fs, "List the running pogi's services, or, when none runs, every service and whether the config enables it.",
+		"pogi services [flags]", "pogi services --json")
 	ep := endpointFlag(fs)
-	fs.Parse(args)
+	asJSON := fs.Bool("json", false, "print the services as JSON")
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
 	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	var st core.Status
 	if err := api(*ep, "GET", "/_pogi/api/info", nil, &st); err == nil {
+		if *asJSON {
+			return printJSON(st.Services)
+		}
 		fmt.Fprintln(tw, "CLOUD\tSERVICE\tTITLE\tRESOURCES\tREQUESTS")
 		for _, s := range st.Services {
 			fmt.Fprintf(tw, "%s\t%s\t%s\t%d\t%d\n", s.Cloud, s.Name, s.Title, s.Resources, s.Requests)
@@ -234,6 +257,9 @@ func servicesCmd(args []string) error {
 		return err
 	}
 	fmt.Fprintf(os.Stderr, "pogi is not running at %s; the current config enables:\n\n", *ep)
+	if *asJSON {
+		return printJSON(pogi.Services(cfg))
+	}
 	fmt.Fprintln(tw, "CLOUD\tSERVICE\tENABLED")
 	for _, s := range pogi.Services(cfg) {
 		fmt.Fprintf(tw, "%s\t%s\t%s\n", s.Cloud, s.Name, map[bool]string{true: "yes", false: "no"}[s.Enabled])
@@ -243,14 +269,17 @@ func servicesCmd(args []string) error {
 
 // waitCmd polls until pogi is ready, for CI: pogi start & pogi wait.
 func waitCmd(args []string) error {
-	fs := flag.NewFlagSet("wait", flag.ExitOnError)
+	fs := flag.NewFlagSet("wait", flag.ContinueOnError)
+	setUsage(fs, "Wait until pogi is ready, for CI.", "pogi wait [flags]", "pogi start --headless & pogi wait --timeout 2m")
 	ep := endpointFlag(fs)
 	timeout := fs.Duration("timeout", time.Minute, "give up after this long")
-	fs.Parse(args)
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
 	deadline := time.Now().Add(*timeout)
 	for {
 		var st core.Status
-		// ponytail: a request that hangs outlives --timeout; give api a context if that bites
+		// ponytail: a request that hangs can outlive --timeout by up to apiClient's 2 minutes; give api a context if that bites
 		err := api(*ep, "GET", "/_pogi/api/info", nil, &st)
 		if err == nil && st.Ready {
 			fmt.Println("ready:", *ep)
@@ -309,6 +338,7 @@ iam:
 lambda:
   executor: auto
   # warmPool: 4              # environments kept warm per function
+  # initTimeout: 10s         # longest a new environment may take to start (AWS's limit); raise it on a busy machine
 
 # The container engine for real databases and Lambda's docker mode.
 # docker:
@@ -322,6 +352,7 @@ lambda:
 #   endpoint: http://localhost:11434/v1
 #   apiKey: ${OPENAI_API_KEY:-}
 #   models: {"anthropic.claude-*": llama3.1}
+#   timeout: 5m              # longest one model call
 
 # SES's SMTP interface: mail sent to it shows in the console inbox, as from
 # SendRawEmail. A relay also gets every message SES sends (Mailpit, MailHog).

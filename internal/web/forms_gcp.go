@@ -224,6 +224,7 @@ func (ui *UI) gcpSubmit(svc, op string, in map[string]any) error {
 	}
 	req, _ := http.NewRequest(verb, "http://localhost"+uri, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(core.ConsoleHeader, "1")
 	status, resp := ui.hub.DoService(svc, req)
 	if status >= 300 {
 		return gcpError(status, resp)
@@ -291,6 +292,7 @@ func (ui *UI) gcpBulkDelete(svc, table, name string) error {
 		return fmt.Errorf("%s %s cannot be deleted in bulk", svc, table)
 	}
 	req, _ := http.NewRequest(http.MethodDelete, "http://localhost"+pathVar.ReplaceAllLiteralString(m.tmpl, name), nil)
+	req.Header.Set(core.ConsoleHeader, "1")
 	if status, resp := ui.hub.DoService(svc, req); status >= 300 {
 		return gcpError(status, resp)
 	}

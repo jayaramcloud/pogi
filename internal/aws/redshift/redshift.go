@@ -1337,7 +1337,7 @@ func (s *Service) Resources() []core.Table {
 		if v.Endpoint != nil {
 			ep = fmt.Sprintf("%s:%d", v.Endpoint.Address, v.Endpoint.Port)
 		}
-		t.Rows = append(t.Rows, []string{v.ClusterIdentifier, v.NodeType, strconv.Itoa(v.NumberOfNodes), v.ClusterStatus, ep, v.DBName, c.Region, c.Account})
+		t.Rows = append(t.Rows, []string{v.ClusterIdentifier, v.NodeType, strconv.Itoa(v.NumberOfNodes), rds.StatusCell(v.ClusterStatus, &s.st.Clusters[k].Pogi), ep, v.DBName, c.Region, c.Account})
 	}
 	return []core.Table{t}
 }

@@ -1,0 +1,86 @@
+# One Google API per line: api, version, the Terraform google provider's endpoint argument
+# (without "_custom_endpoint"), then the title shown in the console.
+# The api and version name a discovery document in the pinned google.golang.org/api module.
+dns v1 dns Cloud DNS
+file v1 filestore Filestore
+certificatemanager v1 certificate_manager Certificate Manager
+looker v1 looker Looker
+privateca v1 privateca Certificate Authority Service
+healthcare v1 healthcare Cloud Healthcare
+dataplex v1 dataplex Dataplex
+bigquerydatatransfer v1 bigquery_data_transfer BigQuery Data Transfer
+storagetransfer v1 storage_transfer Storage Transfer
+cloudbuild v1 cloud_build Cloud Build
+clouddeploy v1 clouddeploy Cloud Deploy
+apikeys v2 apikeys API Keys
+servicedirectory v1 service_directory Service Directory
+binaryauthorization v1 binary_authorization Binary Authorization
+containeranalysis v1 container_analysis Container Analysis
+essentialcontacts v1 essential_contacts Essential Contacts
+orgpolicy v2 org_policy Organization Policy
+cloudasset v1 cloud_asset Cloud Asset Inventory
+dataproc v1 dataproc Dataproc
+composer v1 composer Cloud Composer
+dataflow v1b3 dataflow Dataflow
+memcache v1 memcache Memorystore for Memcached
+vpcaccess v1 vpc_access Serverless VPC Access
+networkconnectivity v1 network_connectivity Network Connectivity Center
+alloydb v1 alloydb AlloyDB
+datastream v1 datastream Datastream
+analyticshub v1 bigquery_analytics_hub Analytics Hub
+biglake v1 biglake BigLake
+datafusion v1 data_fusion Cloud Data Fusion
+dataform v1 dataform Dataform
+metastore v1 dataproc_metastore Dataproc Metastore
+datamigration v1 database_migration_service Database Migration Service
+oracledatabase v1 oracle_database Oracle Database@Google Cloud
+backupdr v1 backup_dr Backup and DR Service
+netapp v1 netapp NetApp Volumes
+parallelstore v1 parallelstore Parallelstore
+lustre v1 lustre Managed Lustre
+transcoder v1 transcoder Transcoder API
+memorystore v1 memorystore Memorystore for Valkey
+apigee v1 apigee Apigee
+apihub v1 apihub API hub
+apphub v1 apphub App Hub
+integrations v1 integrations Application Integration
+connectors v1 integration_connectors Integration Connectors
+servicemanagement v1 service_management Cloud Endpoints
+developerconnect v1 developer_connect Developer Connect
+securesourcemanager v1 secure_source_manager Secure Source Manager
+parametermanager v1 parameter_manager Parameter Manager
+billingbudgets v1 billing_budgets Cloud Billing budgets
+migrationcenter v1 migration_center Migration Center
+blockchainnodeengine v1 blockchain_node_engine Blockchain Node Engine
+firebaseappcheck v1 firebase_app_check Firebase App Check
+firebaseapphosting v1 firebase_app_hosting Firebase App Hosting
+firebasedataconnect v1 firebase_data_connect Firebase Data Connect
+licensemanager v1 license_manager License Manager
+networkmanagement v1 network_management,network_managementv1 Network Intelligence Center
+networksecurity v1 network_security Cloud NGFW
+networkservices v1 network_services Cloud Service Mesh
+domains v1 clouddomains Cloud Domains
+vmwareengine v1 vmwareengine VMware Engine
+edgecontainer v1 edgecontainer Google Distributed Cloud
+gkemulticloud v1 container_aws,container_azure,container_attached GKE Multi-Cloud
+gkebackup v1 gke_backup Backup for GKE
+appengine v1 app_engine App Engine
+workstations v1 workstations Cloud Workstations
+hypercomputecluster v1 hypercomputecluster Cluster Director
+osconfig v1 os_config VM Manager
+cloudquotas v1 cloud_quotas Cloud Quotas
+config v1 config Infrastructure Manager
+accesscontextmanager v1 access_context_manager VPC Service Controls
+managedidentities v1 active_directory Managed Service for Microsoft Active Directory
+assuredworkloads v1 assured_workloads Assured Workloads
+beyondcorp v1 beyondcorp Chrome Enterprise Premium
+chronicle v1 chronicle Google Security Operations
+cloudidentity v1 cloud_identity Cloud Identity
+ids v1 cloud_ids Cloud IDS
+cloudsecuritycompliance v1 cloud_security_compliance Compliance Manager
+dlp v2 data_loss_prevention Sensitive Data Protection
+iap v1 iap Identity-Aware Proxy
+privilegedaccessmanager v1 privileged_access_manager Privileged Access Manager
+recaptchaenterprise v1 recaptcha_enterprise reCAPTCHA
+securitycenter v1 security_center Security Command Center
+publicca v1 public_ca Public Certificate Authority

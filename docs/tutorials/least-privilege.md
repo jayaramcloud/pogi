@@ -5,16 +5,16 @@ description: Record what your code calls, get a least-privilege policy, then enf
 
 # Least privilege
 
-By the end, you have the smallest set of permissions your code needs, and you've proved it works. All on your machine.
+By the end, you have the smallest set of permissions your code needs, and you've proved it works, all on your machine.
 
-IAM (identity and access management) decides who may call what in a cloud. Least privilege means giving code the permissions it needs and no more. The hard part is knowing which ones those are. You do it in four moves:
+IAM (the rules for who may call what) controls access in a cloud. Least privilege means giving code the permissions it needs and no more. The hard part is knowing which ones those are. You do it in four moves:
 
 1. Record the calls a user makes.
 2. Read the policy pogi writes from them.
-3. Switch to strict mode, where every call without a policy fails.
-4. Attach the policy. Allowed calls pass and everything else still fails.
+3. Switch to strict mode, where every call that no policy allows fails.
+4. Attach the policy. The recorded calls pass and everything else still fails.
 
-Before you start: pogi is running, your shell has `eval "$(pogi env)"` loaded, and the AWS CLI is installed. See [First run](first-run.md).
+You need pogi running, the AWS CLI installed, and `eval "$(pogi env)"` loaded in your shell. See [First run](first-run.md).
 
 ## 1. Create a user and a key
 
@@ -40,7 +40,7 @@ pogi status | head -1
 The first command prints nothing. The second shows the mode at the end of its line:
 
 ```text title="Output"
-pogi 0.1.0 at http://localhost:7644 · up 57s · region us-east-1 · persistence false · iam soft
+pogi 0.2.0 at http://localhost:7644 · up 57s · region us-east-1 · persistence false · iam soft
 ```
 
 ## 3. Run your code as that user
@@ -56,7 +56,7 @@ aws sns list-topics
 ```
 
 ```text title="Output"
-2026-10-13 21:08:23 demo
+2026-10-23 12:09:35 demo
 {
     "TopicArn": "arn:aws:sns:us-east-1:000000000000:alerts"
 }
@@ -69,7 +69,7 @@ aws sns list-topics
 }
 ```
 
-Every call was allowed, and pogi wrote down each action and the resource it touched. Calls signed with the default `test` credentials are never recorded. Only calls from an IAM user's access key, or from an assumed role, are.
+pogi allowed every call and wrote down each action and the resource it touched. It never records calls signed with the default `test` credentials. It records calls from an IAM user's access key or an assumed role.
 
 ## 4. Read the policy
 
@@ -100,25 +100,25 @@ curl "http://localhost:7644/_pogi/iam/policy?principal=arn:aws:iam::000000000000
 }
 ```
 
-There is one statement for each action. Resources are narrowed to the ARNs (resource names) your code used. Add `&fmt=tf` to the address to get Terraform instead.
+There is one statement for each action. Resources are narrowed to the ARNs your code used (an ARN is the ID AWS gives a resource). Add `&fmt=tf` to the address to get Terraform instead.
 
-The console shows the same. Open **IAM policy**. For each user and role you see the actions called, whether strict mode would deny them, and the policy in JSON or Terraform.
+The console shows the same. Open **IAM policy**. For each principal (the user or role that makes a call) it lists the actions called, whether strict mode would deny them, and the policy in JSON or Terraform.
 
 ![The IAM page in soft mode: three called actions flagged "would deny" and the generated JSON policy.](../images/i1-recorded.jpg)
 
 ## 5. Switch to strict mode
 
-Strict mode denies every call that no policy allows. The `dev` user has no policy yet.
+Strict mode denies every call that no policy allows. The `dev` user has no policy yet, so nothing it calls would pass.
 
 ```bash
 curl -X POST -d mode=strict http://localhost:7644/_pogi/iam/mode
 ```
 
-This prints nothing. Then the IAM page flags every recorded action:
+It prints nothing. The IAM page now flags every recorded action:
 
 ![The IAM page in strict mode before the policy is attached: three called actions flagged "would deny".](../images/i2-denied.jpg)
 
-Don't run the user's calls yet. Strict mode records denied calls too, so attaching later would allow them.
+Don't run the user's calls yet. Strict mode records denied calls too, so a policy built after that would allow them.
 
 ## 6. Attach the policy
 
@@ -133,7 +133,7 @@ curl -X POST --data-urlencode "principal=arn:aws:iam::000000000000:user/dev" \
   http://localhost:7644/_pogi/iam/attach
 ```
 
-This prints nothing either. To check, open a new terminal and run `eval "$(pogi env)"`. That gives you the default credentials, which are never checked. Then:
+It prints nothing either. To check, open a new terminal and run `eval "$(pogi env)"`. That loads the default credentials, which pogi never checks. Then run:
 
 ```bash
 aws iam list-attached-user-policies --user-name dev
@@ -158,7 +158,7 @@ Back on the IAM page, all three actions now show "allowed".
 
 ## 7. Run your code again
 
-Run as the `dev` user again, with the key from step 1. In the terminal where you set the key, run:
+In the terminal where you set the `dev` key, run the calls again:
 
 ```bash
 aws s3 ls
@@ -168,7 +168,7 @@ aws sns publish --topic-arn arn:aws:sns:us-east-1:000000000000:alerts --message 
 ```
 
 ```text title="Output"
-2026-10-14 01:58:01 demo
+2026-10-23 12:09:35 demo
 arn:aws:sns:us-east-1:000000000000:alerts
 
 aws: [ERROR]: An error occurred (AccessDeniedException) when calling the ListQueues operation: User: arn:aws:iam::000000000000:user/dev is not authorized to perform: sqs:ListQueues on resource: * because no identity-based policy allows the sqs:ListQueues action
@@ -176,9 +176,9 @@ aws: [ERROR]: An error occurred (AccessDeniedException) when calling the ListQue
 aws: [ERROR]: An error occurred (AccessDenied) when calling the Publish operation: User: arn:aws:iam::000000000000:user/dev is not authorized to perform: sns:Publish on resource: arn:aws:sns:us-east-1:000000000000:alerts because no identity-based policy allows the sns:Publish action
 ```
 
-The two calls you recorded pass. The two you did not record fail with `AccessDenied`, with the same message AWS gives. In the console, Activity has an **IAM denied** filter. The IAM page now lists the two denied calls too, flagged "would deny".
+The two calls you recorded pass. The two you didn't record fail with `AccessDenied`, the same error AWS gives. In the console, Activity has an **IAM denied** filter, and the IAM page lists the two denied calls, flagged "would deny".
 
-Your code can now make the calls it made, and no others. If it needs another action, run it in soft mode, then attach again. pogi keeps the older versions of the policy.
+Your code can now make the calls it made, and no others. If it needs another action, run it in soft mode, then attach again.
 
 ## The same on Google Cloud and Azure
 
@@ -236,7 +236,7 @@ pogi records calls made with an access token of a service account you created in
 
 pogi records calls made with the token of a service principal or managed identity that you created. It turns them into a least-privilege custom role. The Azure tab shows the role as JSON or as Azure CLI commands, and has the same **Attach** button.
 
-Calls made with pogi's default credentials are never recorded or denied on any cloud.
+pogi never records or denies calls made with its default credentials, on any cloud.
 
 ## See also
 

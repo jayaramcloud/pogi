@@ -2,11 +2,14 @@ package core
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -54,12 +57,14 @@ type Config struct {
 	StorageModes  map[string]string // per-service storage mode
 	ValidateSigs  bool              // check SigV4 signatures
 	WarmPool      int               // Lambda environments kept warm per function
+	LambdaInit    time.Duration     // longest a new Lambda environment may take to start; 0 means 10s, AWS's init limit
 	DockerHost    string            // container engine socket or URL; empty: auto-detect
 	DockerNetwork string            // network for managed containers
 	DockerImages  map[string]string // image overrides, e.g. "rds.postgres"
 	AIEndpoint    string            // OpenAI-compatible endpoint for Bedrock and friends
 	AIKey         string            //
 	AIModels      map[string]string // model id glob → local model
+	AITimeout     time.Duration     // longest one model call; 0 means 5 minutes
 	SMTPRelay     string            // smtp://[user:pass@]host:port that SES also delivers every message to (Mailpit, MailHog)
 	File          *config.File      // pogi.yaml, for seeding, identities, chaos and stacks
 }
@@ -67,15 +72,16 @@ type Config struct {
 // Hub owns the services of one pogi instance and routes requests to them.
 // There are no globals: several hubs can live in one process (tests).
 type Hub struct {
-	Cfg      Config
-	Log      *slog.Logger
-	Requests *RequestLog
-	Spans    *SpanLog // steps of flows that are not requests: deliveries, invocations, redrives
-	Chaos    *Chaos
-	Started  time.Time
-	Init     *InitHooks
-	URL      string // base URL once listening, e.g. http://localhost:7644
-	GRPC     *grpc.Server
+	closeOnce sync.Once // Close runs once
+	Cfg       Config
+	Log       *slog.Logger
+	Requests  *RequestLog
+	Spans     *SpanLog // steps of flows that are not requests: deliveries, invocations, redrives
+	Chaos     *Chaos
+	Started   time.Time
+	Init      *InitHooks
+	URL       string // base URL once listening, e.g. http://localhost:7644
+	GRPC      *grpc.Server
 
 	// Ready is set once serving, just before "Ready." is printed (pogi wait).
 	Ready atomic.Bool
@@ -110,6 +116,8 @@ type Hub struct {
 	resets     []func(services []string)
 	addrs      map[string]string
 	stores     map[string]*store // services kept on disk; set by OpenStorage
+	lock       *os.File          // the data folder lock, held from OpenStorage to Close
+	probs      problems          // pogi-wide problems for status and the bell
 	docker     func() *docker.Client
 	amqp       func() *amqp.Server
 	shut       shutdownLog // what shutdown stopped; see ShutdownList
@@ -264,11 +272,16 @@ func (h *Hub) serve(svc Service, c *Ctx, w http.ResponseWriter, r *http.Request)
 	c.Bearer, _ = strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 	c.RawQuery, c.Header = r.URL.RawQuery, r.Header
 	c.Internal = r.Header.Get(internalHeader) != "" && r.RemoteAddr == "" // in-process only, never from the network
+	c.ctx = r.Context()
 	r = r.WithContext(context.WithValue(r.Context(), ctxKey{}, c))
 	if h.Cfg.ValidateSigs {
 		c.req = r.Clone(r.Context()) // as received: services may rewrite the URL (SQS)
 	}
 	if c.Internal {
+		if r.Header.Get(ConsoleHeader) != "" {
+			h.serveConsole(svc, c, w, r)
+			return
+		}
 		svc.ServeHTTP(w, r)
 		return
 	}
@@ -301,16 +314,55 @@ func (h *Hub) serve(svc Service, c *Ctx, w http.ResponseWriter, r *http.Request)
 	}
 	h.Requests.Add(Entry{
 		Time: start, Cloud: c.Cloud, Service: c.Service, Op: c.Op, Method: r.Method,
-		Path: r.URL.RequestURI(), Status: rec.status, Ms: float64(time.Since(start).Microseconds()) / 1000,
+		Path: redactPath(r.URL.RequestURI()), Status: rec.status, Ms: float64(time.Since(start).Microseconds()) / 1000,
 		Account: c.Account, Region: c.Region, RequestID: c.RequestID, AccessKey: c.AccessKey, Principal: c.Principal,
 		Error: c.ErrCode, Chaos: c.Chaos, IAM: c.IAM, Trace: c.Trace,
-		ReqHeaders: flatHeaders(r.Header), ReqBody: preview(c.body, r.Header.Get("Content-Type")),
-		RespBody: preview(rec.body.Bytes(), rec.Header().Get("Content-Type")),
+		ReqHeaders: flatHeaders(r.Header), ReqBody: preview(c.body, r.Header.Get("Content-Type"), r.URL.Path),
+		RespBody: preview(rec.body.Bytes(), rec.Header().Get("Content-Type"), r.URL.Path),
 	})
+}
+
+// serveConsole serves a write the console made in-process and logs it, marked as from the console.
+// Chaos and IAM do not apply to the console, so it skips them, as other internal calls do.
+func (h *Hub) serveConsole(svc Service, c *Ctx, w http.ResponseWriter, r *http.Request) {
+	rec := &recorder{ResponseWriter: w}
+	start := time.Now()
+	svc.ServeHTTP(rec, r)
+	if rec.status == 0 {
+		rec.status = http.StatusOK
+	}
+	op := c.Op
+	if _, t, ok := strings.Cut(r.Header.Get("X-Amz-Target"), "."); op == "" && ok {
+		op = t
+	}
+	h.Requests.Add(Entry{
+		Time: start, Cloud: c.Cloud, Service: c.Service, Op: cmp.Or(op, r.Method), Method: r.Method, Console: true,
+		Path: redactPath(r.URL.RequestURI()), Status: rec.status, Ms: float64(time.Since(start).Microseconds()) / 1000,
+		Account: c.Account, Region: c.Region, RequestID: c.RequestID, Error: c.ErrCode,
+		RespBody: preview(rec.body.Bytes(), rec.Header().Get("Content-Type"), r.URL.Path),
+	})
+}
+
+// LogConsole records a write the console made straight on a service (not through the hub), marked
+// "console". err is the write's result. Every such write goes through it: web's UI.write.
+func (h *Hub) LogConsole(service, op, target string, took time.Duration, err error) {
+	e := Entry{Time: time.Now().Add(-took), Service: service, Op: op, Method: http.MethodPost, Path: target, Status: http.StatusOK,
+		Ms: float64(took.Microseconds()) / 1000, Console: true, Account: DefaultAccount, Region: h.Cfg.Region}
+	if s := h.byName[service]; s != nil {
+		e.Cloud = s.Info().Cloud
+	}
+	if err != nil {
+		ce := AsError(err)
+		e.Status, e.Error, e.RespBody = ce.Status, ce.Code, ce.Msg
+	}
+	h.Requests.Add(e)
 }
 
 // route picks the service, following the smithy protocol-detection order.
 func (h *Hub) route(r *http.Request, signing string) Service {
+	if signing == "" && !strings.HasPrefix(r.Header.Get("Authorization"), "AWS ") {
+		googlePrefix(r) // never an AWS request: an S3 bucket may be named "redis"
+	}
 	if t := r.Header.Get("X-Amz-Target"); t != "" {
 		prefix, _, _ := strings.Cut(t, ".")
 		if s := h.targets[prefix]; s != nil {
@@ -613,7 +665,7 @@ func (r *recorder) Flush() {
 
 func (r *recorder) Unwrap() http.ResponseWriter { return r.ResponseWriter }
 
-func preview(b []byte, contentType string) string {
+func preview(b []byte, contentType, path string) string {
 	if len(b) == 0 {
 		return ""
 	}
@@ -626,34 +678,66 @@ func preview(b []byte, contentType string) string {
 		return fmt.Sprintf("[binary, %d bytes]", len(b))
 	}
 	// redact before cutting, so a secret on the boundary is not half shown
-	text := redact(string(b[:min(len(b), previewMax+4096)]))
+	text := redact(string(b[:min(len(b), previewMax+4096)]), path)
 	if len(cut) < len(b) {
 		return text[:min(len(text), previewMax)] + fmt.Sprintf("\n… [%d bytes total]", len(b))
 	}
 	return text
 }
 
-// secretFields are request and response fields the request log never shows.
-const secretFields = `password|proposedpassword|previouspassword|temporarypassword|new_password|secret_hash|secretstring|` +
-	`secretbinary|secretaccesskey|sessiontoken|refreshtoken|clientsecret|masteruserpassword|authtoken`
+// secretName matches the names of fields that hold secrets: any *password, any access, id, refresh, session,
+// auth, security or api token, and a few known secret names. The request log hides their values and keeps the names.
+const secretName = `[\w.-]*password|(?:access|id|refresh|session|auth|security|api|bearer)[_-]?token|` +
+	`secret_hash|secretstring|secretbinary|secretaccesskey|clientsecret`
 
 var (
-	secretJSON = regexp.MustCompile(`(?i)("(?:` + secretFields + `)"\s*:\s*)"(?:[^"\\]|\\.)*"`)
-	secretForm = regexp.MustCompile(`(?i)((?:^|&)(?:` + secretFields + `)=)[^&]*`)
-	secretXML  = regexp.MustCompile(`(?i)(<(?:` + secretFields + `)>)[^<]*`)
+	secretJSON = regexp.MustCompile(`(?i)("(?:` + secretName + `)"\s*:\s*)"(?:[^"\\]|\\.)*"`)
+	secretForm = regexp.MustCompile(`(?i)((?:^|&)(?:` + secretName + `)=)[^&]*`)
+	secretXML  = regexp.MustCompile(`(?i)(<(?:` + secretName + `)>)[^<]*`)
+	// Google Secret Manager payload, Lambda environment variables, and a "value" field.
+	secretPayload = regexp.MustCompile(`("payload"\s*:\s*\{\s*"data"\s*:\s*)"(?:[^"\\]|\\.)*"`)
+	secretEnv     = regexp.MustCompile(`(?i)"variables"\s*:\s*\{[^{}]*\}`)
+	envPair       = regexp.MustCompile(`("(?:[^"\\]|\\.)*"\s*:\s*)"(?:[^"\\]|\\.)*"`)
+	secretValue   = regexp.MustCompile(`(?i)("value"\s*:\s*)"(?:[^"\\]|\\.)*"`)
+	// a query parameter or header whose name says it holds a secret or key
+	secretParam = regexp.MustCompile(`(?i)^(?:[\w.-]*(?:password|secret|signature)|[\w.-]*(?:^|[-_]|api)key|(?:[\w.-]*[-_])?token)$`)
 )
 
-// redact hides secret values in JSON, form-encoded and XML bodies.
-func redact(s string) string {
+// redact hides secret values in JSON, form-encoded and XML bodies. path is the request path: Key Vault
+// secrets are plain "value" fields, and SSM ones are "Value" only when the text says SecureString.
+func redact(s, path string) string {
 	s = secretJSON.ReplaceAllString(s, `$1"[redacted]"`)
 	s = secretForm.ReplaceAllString(s, `${1}[redacted]`)
-	return secretXML.ReplaceAllString(s, `${1}[redacted]`)
+	s = secretXML.ReplaceAllString(s, `${1}[redacted]`)
+	s = secretPayload.ReplaceAllString(s, `$1"[redacted]"`)
+	s = secretEnv.ReplaceAllStringFunc(s, func(m string) string { return envPair.ReplaceAllString(m, `$1"[redacted]"`) })
+	if strings.Contains(path, "/secrets/") || strings.Contains(s, `"SecureString"`) {
+		s = secretValue.ReplaceAllString(s, `$1"[redacted]"`)
+	}
+	return s
+}
+
+// redactPath hides the values of secret query parameters, such as X-Amz-Security-Token and key.
+func redactPath(uri string) string {
+	path, q, ok := strings.Cut(uri, "?")
+	if !ok {
+		return uri
+	}
+	parts := strings.Split(q, "&")
+	for i, p := range parts {
+		if k, _, ok := strings.Cut(p, "="); ok {
+			if name, err := url.QueryUnescape(k); err == nil && secretParam.MatchString(name) {
+				parts[i] = k + "=[redacted]"
+			}
+		}
+	}
+	return path + "?" + strings.Join(parts, "&")
 }
 
 func flatHeaders(h http.Header) map[string]string {
 	out := make(map[string]string, len(h))
 	for k, v := range h {
-		if k == "Authorization" {
+		if k == "Authorization" || secretParam.MatchString(k) {
 			out[k] = "[redacted]"
 			continue
 		}

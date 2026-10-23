@@ -320,7 +320,7 @@ func (s *Service) routes() {
 func decode(r *http.Request, v any) error {
 	if b := core.Body(r); len(b) > 0 {
 		if err := json.Unmarshal(b, v); err != nil {
-			return core.Errorf(400, "InvalidRequestContentException", "Could not parse request body into json: %v", err)
+			return core.Errorf(400, "InvalidRequestContentException", "Could not parse request body into json: %s", core.PlainJSON(err))
 		}
 	}
 	return nil
@@ -455,6 +455,9 @@ func (s *Service) loadCode(code codeInput) (cfg Config, err error) {
 		return cfg, invalid("Please provide a source for function code.")
 	}
 	cfg.PackageType = "Zip"
+	if err := core.CheckZipPaths(cfg.Code); err != nil {
+		return cfg, invalid("%v", err)
+	}
 	if cfg.Code != nil {
 		h := sha256.Sum256(cfg.Code)
 		cfg.CodeSha256 = base64.StdEncoding.EncodeToString(h[:])

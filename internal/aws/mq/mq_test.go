@@ -22,6 +22,7 @@ import (
 	pogimq "github.com/nrndev/pogi/internal/aws/mq"
 	"github.com/nrndev/pogi/internal/awstest"
 	"github.com/nrndev/pogi/internal/core"
+	"github.com/nrndev/pogi/internal/docker"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -316,7 +317,8 @@ func running(t *testing.T, c *mq.Client, svc *pogimq.Service, id string) *mq.Des
 			t.Fatalf("broker %s: %s", d.BrokerState, b)
 		}
 		if time.Now().After(end) {
-			t.Fatalf("broker %s is still %s", id, d.BrokerState)
+			b, _ := json.Marshal(svc.Inspect("Brokers", id))
+			t.Fatalf("broker %s is still %s: %s", id, d.BrokerState, b)
 		}
 	}
 }
@@ -467,6 +469,21 @@ func TestActiveMQInDocker(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := *out.BrokerId
+	name := docker.Name("mq", id)
+	t.Cleanup(func() { // a failure explains itself: the container's state and last lines (a reboot once hung 5 minutes)
+		if !t.Failed() {
+			return
+		}
+		if in, err := h.Docker().Inspect(ctx, name); err == nil {
+			t.Logf("container %s: %s, running=%v, exit=%d, out of memory=%v", name, in.State.Status, in.State.Running, in.State.ExitCode, in.State.OOMKilled)
+		}
+		var lines []string
+		h.Docker().Logs(ctx, name, false, func(l string) { lines = append(lines, l) })
+		if len(lines) > 40 {
+			lines = lines[len(lines)-40:]
+		}
+		t.Logf("last log lines:\n%s", strings.Join(lines, "\n"))
+	})
 	d := running(t, c, svc, id)
 	addr := endpoint(t, d, "stomp")
 
@@ -507,6 +524,23 @@ func TestActiveMQInDocker(t *testing.T) {
 	}
 	if _, _, f := stomp(t, addr, "app", pw); !strings.HasPrefix(f, "CONNECTED") {
 		t.Fatalf("connect as app after reboot: %q", f)
+	}
+
+	// a container that stops on its own (out of memory, a crash) makes the broker CRITICAL_ACTION_REQUIRED, saying why
+	if err := h.Docker().Stop(ctx, name); err != nil {
+		t.Fatal(err)
+	}
+	for end := time.Now().Add(30 * time.Second); ; time.Sleep(250 * time.Millisecond) {
+		if d := describe(t, c, id); d.BrokerState == types.BrokerStateCriticalActionRequired {
+			b, _ := json.Marshal(svc.Inspect("Brokers", id))
+			if !strings.Contains(string(b), "stopped: exit") {
+				t.Fatalf("a stopped broker should say why: %s", b)
+			}
+			break
+		}
+		if time.Now().After(end) {
+			t.Fatalf("broker %s is still %s after its container stopped", id, describe(t, c, id).BrokerState)
+		}
 	}
 	gone(t, h, c, id)
 }

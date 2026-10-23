@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -339,11 +340,7 @@ func (m *mapModel) svg(cloud, hl string, flowNodes map[string]bool, hot map[stri
 		fmt.Fprintf(&b, `<path class="edge%s" d="%s" marker-end="url(#%s)"/><text class="elabel%s" x="%d" y="%d" text-anchor="middle">%s</text>`,
 			cls, d, marker, map[bool]string{true: " dim", false: ""}[strings.HasSuffix(cls, " dim")], mx, (y1+y2)/2-6, html.EscapeString(e.Label))
 		if e.Live {
-			dur := 1.6 + float64(i%4)*.35
-			if e.Bad {
-				dur = 3.4
-			}
-			fmt.Fprintf(&b, `<circle class="pulse%s" r="3.5"><animateMotion dur="%.2fs" repeatCount="indefinite" path="%s"/></circle>`, map[bool]string{true: " bad", false: ""}[e.Bad], dur, d)
+			b.WriteString(pulse(i, e.Bad, d))
 		}
 	}
 	for _, n := range m.nodes {
@@ -362,8 +359,8 @@ func (m *mapModel) svg(cloud, hl string, flowNodes map[string]bool, hot map[stri
 			cloud = core.AWS
 		}
 		fmt.Fprintf(&b, `<a class="%s" href="/_pogi/map/node?id=%[2]s" data-drawer="/_pogi/map/node?id=%[2]s"><title>%s</title><rect x="%d" y="%d" width="%d" height="%d" rx="8"/>`+
-			`<circle cx="%d" cy="%d" r="3.5" fill="var(--%s)"/><text class="ty" x="%d" y="%.1f">%s</text><text class="nm" x="%d" y="%d">%s</text>`,
-			cls, url.QueryEscape(n.ID), html.EscapeString(n.Type+" "+n.ID), n.x, n.y, mapW, mapH, n.x+14, n.y+16, cloud, n.x+24, float64(n.y)+19.5, html.EscapeString(n.Type), n.x+12, n.y+38, html.EscapeString(mapClip(n.Name, 21)))
+			`%s<circle cx="%d" cy="%d" r="3" fill="var(--%s)"/><text class="ty" x="%d" y="%.1f">%s</text><text class="nm" x="%d" y="%d">%s</text>`,
+			cls, url.QueryEscape(n.ID), html.EscapeString(n.Type+" "+n.ID), n.x, n.y, mapW, mapH, svcIconSVG(cloud, n.Svc, n.x+10, n.y+7, 18), n.x+27, n.y+9, cloud, n.x+34, float64(n.y)+19.5, html.EscapeString(n.Type), n.x+12, n.y+38, html.EscapeString(mapClip(n.Name, 21)))
 		if ct := cmp.Or(n.Ct, n.Count); ct != "" { // errors first, else what the resource holds
 			fmt.Fprintf(&b, `<text class="ct" x="%d" y="%.1f" text-anchor="end"%s>%s</text>`, n.x+mapW-10, float64(n.y)+19.5, map[bool]string{true: ` fill="var(--bad)"`, false: ""}[n.Err], html.EscapeString(ct))
 		}
@@ -445,6 +442,8 @@ func (ui *UI) mapPage(w http.ResponseWriter, r *http.Request) {
 	ui.render(w, r, "map", "Map", "map", pg)
 }
 
+var iconLinks = regexp.MustCompile(`href="/_pogi/icons/([^"]+)"`)
+
 // exportColors are the light theme's colors, for an SVG that has no stylesheet to ask.
 var exportColors = strings.NewReplacer("var(--panel)", "#ffffff", "var(--sunken)", "#f4f4f5", "var(--line2)", "#d4d4d8", "var(--text)", "#18181b",
 	"var(--dim)", "#52525b", "var(--faint)", "#6b6b74", "var(--accent)", "#c4176f", "var(--bad)", "#b91c1c", "var(--aws)", "#ff9900",
@@ -461,6 +460,12 @@ func (ui *UI) mapSVG(w http.ResponseWriter, r *http.Request) {
 	pg, _ := ui.mapDraw(r)
 	svg := strings.Replace(string(pg.SVG), `<svg class="map" `, `<svg xmlns="http://www.w3.org/2000/svg" class="map" `, 1)
 	i := strings.Index(svg, ">") + 1
+	svg = iconLinks.ReplaceAllStringFunc(svg, func(h string) string { // an icon file stands alone as a data URI
+		if d, ok := iconData(iconLinks.FindStringSubmatch(h)[1]); ok {
+			return `href="` + d + `"`
+		}
+		return h
+	})
 	svg = exportColors.Replace(svg[:i] + exportStyle + svg[i:])
 	w.Header().Set("Content-Type", "image/svg+xml")
 	w.Header().Set("Content-Disposition", `attachment; filename="pogi-map`+map[bool]string{true: "", false: "-" + pg.Cloud}[pg.Cloud == ""]+`.svg"`)
@@ -493,4 +498,14 @@ func (ui *UI) mapNode(w http.ResponseWriter, r *http.Request) {
 		pg.Open = "/_pogi/resources/" + n.Svc
 	}
 	ui.renderX(w, r, "map", n.Name, "map", n.Type+" · "+cloudNames[n.Cloud], pg)
+}
+
+// pulse is a traffic dot riding along line i's path d, on the Map and the Terraform diagram; a
+// failed call makes it slow and red. The Terraform page script draws the same markup when it refreshes.
+func pulse(id int, bad bool, d string) string {
+	dur := 1.6 + float64(id%4)*.35
+	if bad {
+		dur = 3.4
+	}
+	return fmt.Sprintf(`<circle class="pulse%s" data-line="%d" r="3.5"><animateMotion dur="%.2fs" repeatCount="indefinite" path="%s"/></circle>`, map[bool]string{true: " bad", false: ""}[bad], id, dur, d)
 }

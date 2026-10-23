@@ -62,7 +62,7 @@ func protoPreview(v any) string {
 	if err != nil {
 		return ""
 	}
-	return preview(b, "application/json")
+	return preview(b, "application/json", "")
 }
 
 func (h *Hub) chaosGRPC(c *Ctx) error {

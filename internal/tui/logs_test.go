@@ -1,13 +1,13 @@
 package tui
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/nrndev/pogi"
 	"github.com/nrndev/pogi/internal/core"
 )
@@ -15,7 +15,7 @@ import (
 // load runs the model's fetch against a live pogi and feeds the result back.
 func load(t *testing.T, m *model) {
 	t.Helper()
-	msg := m.fetch()()
+	msg := m.fetch(false)()
 	d, ok := msg.(dataMsg)
 	if !ok || d.err != nil {
 		t.Fatalf("fetch = %#v", msg)
@@ -43,11 +43,11 @@ func TestLogsTab(t *testing.T) {
 		t.Fatalf("write entries: %v %v", res, err)
 	}
 
-	m := &model{endpoint: srv.URL, tab: 5}
+	m := &model{endpoint: srv.URL, tab: tabLogs}
 	m.Update(tea.WindowSizeMsg{Width: 120, Height: 30})
 	load(t, m)
-	out := m.render()
-	for _, s := range []string{"Logs", "aws /app/api", "booting api", "ERROR upstream timed out", "gcp worker", "queue is deep", "p pause"} {
+	out := ansi.Strip(m.render())
+	for _, s := range []string{"3 lines · 2 sources", "TIME", "LEVEL", "/app/api", "booting api", "ERROR upstream timed out", "worker", "WARNING", "queue is deep", "p pause"} {
 		if !strings.Contains(out, s) {
 			t.Errorf("logs tab lacks %q:\n%s", s, out)
 		}
@@ -56,59 +56,68 @@ func TestLogsTab(t *testing.T) {
 		t.Errorf("events are not oldest first:\n%s", out)
 	}
 
+	// w keeps warnings and errors; / filters by text
+	m.key(tea.KeyPressMsg{Code: 'w', Text: "w"})
+	if out := ansi.Strip(m.render()); strings.Contains(out, "booting api") || !strings.Contains(out, "queue is deep") || !strings.Contains(out, "2 lines") {
+		t.Errorf("warnings and errors only:\n%s", out)
+	}
+	m.key(tea.KeyPressMsg{Code: 'w', Text: "w"})
+	m.key(tea.KeyPressMsg{Code: '/', Text: "/"})
+	for _, r := range "deep" {
+		m.key(tea.KeyPressMsg{Code: r, Text: string(r)})
+	}
+	if out := ansi.Strip(m.render()); strings.Contains(out, "booting api") || !strings.Contains(out, "1 line ") {
+		t.Errorf("text filter:\n%s", out)
+	}
+	m.key(tea.KeyPressMsg{Code: tea.KeyEnter})
+	m.logFilter = ""
+
 	// paused: new events do not move the view
 	m.key(tea.KeyPressMsg{Code: 'p', Text: "p"})
 	call("PutLogEvents", map[string]any{"logGroupName": "/app/api", "logStreamName": "s", "logEvents": []any{map[string]any{"timestamp": now, "message": "late event"}}})
 	load(t, m)
-	if out := m.render(); strings.Contains(out, "late event") || !strings.Contains(out, "[paused]") {
+	if out := ansi.Strip(m.render()); strings.Contains(out, "late event") || !strings.Contains(out, "paused") {
 		t.Errorf("paused tail moved:\n%s", out)
 	}
 	m.key(tea.KeyPressMsg{Code: 'p', Text: "p"})
 	load(t, m)
-	if out := m.render(); !strings.Contains(out, "late event") {
+	if out := ansi.Strip(m.render()); !strings.Contains(out, "late event") {
 		t.Errorf("resumed tail did not catch up:\n%s", out)
 	}
 
 	// the key switches to the tab from anywhere
 	m.tab = 0
 	m.key(tea.KeyPressMsg{Code: '6', Text: "6"})
-	if m.tab != 5 {
+	if m.tab != tabLogs {
 		t.Errorf("key 6 went to tab %d", m.tab)
 	}
 }
 
-func TestManyServicesAcrossClouds(t *testing.T) {
-	m := &model{endpoint: "http://localhost:7644"}
-	m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
-	st := core.Status{Version: "test"}
-	res := map[string][]core.Table{}
-	for i := 0; i < 40; i++ {
-		cloud := []string{core.AWS, core.GCP, core.Azure}[i%3]
-		name := fmt.Sprintf("svc%02d", i)
-		st.Services = append(st.Services, core.ServiceStatus{Name: name, Cloud: cloud, Title: "Service " + name, Resources: map[bool]int{true: 2}[i == 1 || i == 2]})
-		res[name] = []core.Table{{Name: "Things", Columns: []string{"Name"}, Rows: [][]string{{"thing-of-" + name}}}}
+// The Flows tab reads the spans a live pogi recorded.
+func TestFlowsTabLoadsSpans(t *testing.T) {
+	srv := pogi.Start(t)
+	srv.Hub.OnDeliver("sqs", func(string, *core.Message) error { return nil })
+	srv.Hub.Deliver("arn:aws:sqs:us-east-1:000000000000:orders", &core.Message{Body: "x", Trace: "1-a-b", From: "arn:aws:sns:us-east-1:000000000000:alerts"})
+	m := &model{endpoint: srv.URL, tab: tabFlows}
+	m.Update(tea.WindowSizeMsg{Width: 120, Height: 30})
+	load(t, m)
+	if out := ansi.Strip(m.render()); !strings.Contains(out, "alerts") || !strings.Contains(out, "orders") || !strings.Contains(out, "1-a-b") {
+		t.Errorf("flows tab:\n%s", out)
 	}
-	m.Update(dataMsg{status: st, res: res})
+}
 
-	// the dashboard lists services in use and counts the idle ones, per cloud
-	out := m.render()
-	for _, s := range []string{"GCP", "AZURE", "Service svc01", "Service svc02", "+ 14 services with nothing", "+ 12 services with nothing"} {
-		if !strings.Contains(out, s) {
-			t.Errorf("dashboard lacks %q:\n%s", s, out)
-		}
+// With CloudWatch Logs off the tab still shows Google Cloud's logs, not an error: it does not ask
+// for a service that is off, which the API answers with 404.
+func TestLogsTabWithoutCloudWatchLogs(t *testing.T) {
+	srv := pogi.Start(t, pogi.Config{Services: []string{"logging"}})
+	entries := `{"entries":[{"logName":"projects/` + core.DefaultProject + `/logs/worker","resource":{"type":"global"},"severity":"WARNING","textPayload":"queue is deep"}]}`
+	if res, err := http.Post(srv.URL+"/v2/entries:write", "application/json", strings.NewReader(entries)); err != nil || res.StatusCode != 200 {
+		t.Fatalf("write entries: %v %v", res, err)
 	}
-	if strings.Contains(out, "Service svc03") {
-		t.Errorf("dashboard lists an idle service:\n%s", out)
-	}
-
-	// the resource tab can reach a service far down the list and shows it selected
-	m.tab, m.svc = 2, 37
-	out = m.render()
-	if !strings.Contains(out, "svc37") || !strings.Contains(out, "thing-of-svc37") || !strings.Contains(out, "‹") {
-		t.Errorf("resources tab does not show the selected service:\n%s", out)
-	}
-	m.key(tea.KeyPressMsg{Code: tea.KeyLeft})
-	if m.svc != 36 {
-		t.Errorf("left moved to service %d", m.svc)
+	m := &model{endpoint: srv.URL, tab: tabLogs}
+	m.Update(tea.WindowSizeMsg{Width: 120, Height: 30})
+	load(t, m)
+	if out := ansi.Strip(m.render()); !strings.Contains(out, "queue is deep") {
+		t.Errorf("logs tab lacks the Google Cloud entry:\n%s", out)
 	}
 }

@@ -47,6 +47,42 @@ const maxAPI = 54
 
 var errNoEngine = errors.New("no container engine is running (start Docker, Podman, Colima or OrbStack, or set DOCKER_HOST)")
 
+// CallLimit is how long one engine call (create, start, inspect, remove, exec) may take before pogi gives up on it.
+// Pulls have their own limits; Logs and Wait follow their contexts. Tests shorten it.
+var CallLimit = 2 * time.Minute
+
+// engineError is a failure of the connection to the engine, as a plain sentence with the raw error after it.
+type engineError struct {
+	plain string
+	err   error
+}
+
+func (e *engineError) Error() string {
+	if e.err == nil {
+		return e.plain
+	}
+	return e.plain + " — " + e.err.Error()
+}
+func (e *engineError) Unwrap() error { return e.err }
+
+// errTimeout is a call that got no answer within CallLimit.
+var errTimeout = &engineError{plain: "Docker stopped answering"}
+
+// lost says what a connection error means: the engine isn't there (a dial failed) or it went away
+// in the middle of a call. Other errors come back unchanged.
+func lost(err error) error {
+	var oe *net.OpError
+	switch {
+	case err == nil:
+		return nil
+	case errors.As(err, &oe) && oe.Op == "dial":
+		return &engineError{"Docker isn't running", err}
+	case errors.As(err, &oe), errors.Is(err, io.EOF), errors.Is(err, io.ErrUnexpectedEOF), errors.Is(err, syscall.ECONNRESET), errors.Is(err, syscall.EPIPE):
+		return &engineError{"Docker stopped answering", err}
+	}
+	return err
+}
+
 // Options configure a Client; the zero value finds the engine the docker CLI would.
 type Options struct {
 	Host    string            // engine socket or URL; empty: $DOCKER_HOST, then the usual sockets
@@ -98,6 +134,8 @@ type Client struct {
 	checked time.Time      // last lookup that found nothing
 	netOK   bool           // the network exists
 	addrs   map[int]string // nested: where the container that publishes a host port is (see Addr)
+
+	tasks Tasks // downloads and starts, for the console
 
 	nestMu   sync.Mutex
 	nestDone bool
@@ -321,6 +359,15 @@ type apiError struct {
 
 func (e *apiError) Error() string { return "docker: " + e.msg }
 
+// EngineDown reports whether err is the engine not answering (not running, cut off, or too slow).
+func EngineDown(err error) bool {
+	var e *engineError
+	return errors.Is(err, errNoEngine) || errors.As(err, &e)
+}
+
+// NotFound reports whether the engine said the container (or image) doesn't exist.
+func NotFound(err error) bool { return status(err) == http.StatusNotFound }
+
 func status(err error) int {
 	var e *apiError
 	if errors.As(err, &e) {
@@ -360,7 +407,13 @@ func (cn *conn) call(ctx context.Context, method, path string, in any, hdr ...st
 	}
 	resp, err := cn.http.Do(req)
 	if err != nil {
-		return nil, err
+		if context.Cause(ctx) == errTimeout {
+			return nil, errTimeout
+		}
+		if ctx.Err() != nil { // the caller gave up
+			return nil, err
+		}
+		return nil, lost(err)
 	}
 	if resp.StatusCode >= 400 {
 		defer resp.Body.Close()
@@ -373,17 +426,29 @@ func (cn *conn) call(ctx context.Context, method, path string, in any, hdr ...st
 }
 
 // do is call for a request without a stream; out (when not nil) gets the JSON answer.
+// It gives up after CallLimit.
 func (cn *conn) do(ctx context.Context, method, path string, in, out any) error {
+	ctx, cancel := context.WithTimeoutCause(ctx, CallLimit, errTimeout)
+	defer cancel()
+	return cn.run(ctx, method, path, in, out)
+}
+
+// run is do without the time limit, for calls that take as long as they take (Wait, Commit).
+func (cn *conn) run(ctx context.Context, method, path string, in, out any) error {
 	resp, err := cn.call(ctx, method, path, in)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 	if out == nil {
-		_, err := io.Copy(io.Discard, resp.Body)
-		return err
+		_, err = io.Copy(io.Discard, resp.Body)
+	} else {
+		err = json.NewDecoder(resp.Body).Decode(out)
 	}
-	return json.NewDecoder(resp.Body).Decode(out)
+	if err != nil && context.Cause(ctx) == errTimeout {
+		return errTimeout
+	}
+	return lost(err)
 }
 
 func (c *Client) send(ctx context.Context, method, path string, in any, hdr ...string) (*http.Response, error) {
@@ -400,6 +465,15 @@ func (c *Client) do(ctx context.Context, method, path string, in, out any) error
 		return errNoEngine
 	}
 	return cn.do(ctx, method, path, in, out)
+}
+
+// long is do without the time limit.
+func (c *Client) long(ctx context.Context, method, path string, in, out any) error {
+	cn := c.find()
+	if cn == nil {
+		return errNoEngine
+	}
+	return cn.run(ctx, method, path, in, out)
 }
 
 // Container is what Create makes. Only Image is required.
@@ -426,21 +500,30 @@ type Container struct {
 	Tmpfs      map[string]string // container path → mount options ("" for defaults)
 }
 
+// Resolve is the image a service runs for image: the docker.images override of "<service>.<image name>", and
+// the images of cloud registries from pogi's own. Create uses it, and so does pogi pull.
+func (c *Client) Resolve(service, image string) string {
+	if o := c.opt.Images[service+"."+imageName(image)]; o != "" {
+		image = o
+	}
+	if c.opt.ECR != "" {
+		image = localImage(image, c.opt.ECR)
+	}
+	return image
+}
+
 // Create makes a container, pulling its image when missing, and returns its id.
 func (c *Client) Create(ctx context.Context, ct *Container) (string, error) {
 	cn := c.find()
 	if cn == nil {
 		return "", errNoEngine
 	}
-	image := ct.Image
-	if o := c.opt.Images[ct.Service+"."+imageName(image)]; o != "" {
-		image = o
-	}
-	if c.opt.ECR != "" {
-		image = localImage(image, c.opt.ECR)
-	}
-	if err := c.do(ctx, "GET", "/images/"+image+"/json", nil, nil); status(err) == http.StatusNotFound {
-		if err := c.Pull(ctx, image); err != nil {
+	image := c.Resolve(ct.Service, ct.Image)
+	switch err := c.do(ctx, "GET", "/images/"+image+"/json", nil, nil); {
+	case EngineDown(err): // the other calls would wait their turn to fail too
+		return "", err
+	case status(err) == http.StatusNotFound:
+		if err := c.pullFor(ctx, image, ct.Service, ct.Resource); err != nil {
 			return "", err
 		}
 	}
@@ -534,18 +617,23 @@ func (c *Client) ensureNetwork(ctx context.Context) error {
 
 // Pull pulls an image (its latest tag when it names none) with the
 // credentials of ~/.docker/config.json, logging progress.
-func (c *Client) Pull(ctx context.Context, image string) error {
+func (c *Client) Pull(ctx context.Context, image string) error { return c.pullFor(ctx, image, "", "") }
+
+// pullFor is Pull for the resource that needs the image; the console shows the download in its row.
+func (c *Client) pullFor(ctx context.Context, image, service, resource string) (err error) {
 	if !strings.Contains(image, "@") && !strings.Contains(image[strings.LastIndex(image, "/")+1:], ":") {
 		image += ":latest" // without a tag the engine pulls every tag
 	}
+	tr := c.Track(service, resource, "download", image)
+	defer func() { tr.End(err) }()
 	cn := c.find()
 	if cn == nil {
 		return errNoEngine
 	}
-	err := c.pull(ctx, cn, image, "")
+	err = c.pull(ctx, cn, image, "", tr)
 	if p := emulated(cn.arch, err); p != "" {
 		c.opt.Log.Warn("image has no build for this machine's CPU; pulling the "+p+" build, which runs under emulation (slower)", "image", image)
-		err = c.pull(ctx, cn, image, p)
+		err = c.pull(ctx, cn, image, p, tr)
 	}
 	return err
 }
@@ -565,28 +653,55 @@ func emulated(arch string, err error) string {
 	return ""
 }
 
-// pull pulls one image, for platform when it is not "" (os/arch).
-func (c *Client) pull(ctx context.Context, cn *conn, image, platform string) error {
+// pull pulls one image, for platform when it is not "" (os/arch). It fails when no bytes arrive for
+// stallLimit, or after pullLimit in all.
+func (c *Client) pull(ctx context.Context, cn *conn, image, platform string, tr *Tracker) error {
 	start := time.Now()
 	c.opt.Log.Info("pulling image", "image", image)
 	q := url.Values{"fromImage": {image}}
 	if platform != "" {
 		q.Set("platform", platform)
 	}
-	resp, err := cn.call(ctx, "POST", "/images/create?"+q.Encode(), nil, "X-Registry-Auth", auth(image))
+	pctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	defer time.AfterFunc(pullLimit, func() { cancel(errTooLong) }).Stop()
+	stall := time.AfterFunc(stallLimit, func() { cancel(errStalled) })
+	defer stall.Stop()
+	fail := func(err error) error {
+		err = lost(err) // an engine that went away is not the registry's fault
+		if ctx.Err() == nil && pctx.Err() != nil {
+			err = context.Cause(pctx)
+		}
+		return &pullError{image, err}
+	}
+	resp, err := cn.call(pctx, "POST", "/images/create?"+q.Encode(), nil, "X-Registry-Auth", auth(image))
 	if err != nil {
-		return err
+		return fail(err)
 	}
 	defer resp.Body.Close()
-	for dec := json.NewDecoder(resp.Body); ; {
-		var m struct{ ID, Status, Progress, Error string }
+	ls := layers{}
+	for dec := json.NewDecoder(&stallReader{resp.Body, stall}); ; {
+		var m struct {
+			ID, Status, Progress, Error string
+			ProgressDetail              struct{ Current, Total int64 }
+		}
 		if err := dec.Decode(&m); err == io.EOF {
 			break
 		} else if err != nil {
-			return err
+			return fail(err)
 		}
 		if m.Error != "" {
-			return fmt.Errorf("pull %s: %s", image, m.Error)
+			return fail(errors.New(m.Error))
+		}
+		if m.ID != "" {
+			switch d := m.ProgressDetail; {
+			case d.Total > 0 && m.Status == "Downloading": // not "Extracting", which counts again from 0
+				tr.Progress(ls.add(m.ID, d.Current, d.Total))
+			case m.Status == "Download complete" || m.Status == "Pull complete" || m.Status == "Already exists":
+				if v, ok := ls[m.ID]; ok { // the layer is whole: its done is its total
+					tr.Progress(ls.add(m.ID, v[1], v[1]))
+				}
+			}
 		}
 		if m.Progress == "" {
 			c.opt.Log.Debug("pulling image", "image", image, "layer", m.ID, "status", m.Status)
@@ -608,7 +723,7 @@ func (c *Client) HasImage(ctx context.Context, image string) (bool, error) {
 // Commit saves a container's filesystem as the image repo:tag.
 func (c *Client) Commit(ctx context.Context, id, repo, tag string) error {
 	q := url.Values{"container": {id}, "repo": {repo}, "tag": {tag}}
-	return c.do(ctx, "POST", "/commit?"+q.Encode(), map[string]any{}, nil)
+	return c.long(ctx, "POST", "/commit?"+q.Encode(), map[string]any{}, nil)
 }
 
 // RemoveImage deletes an image by name; a missing one, or one a container
@@ -630,10 +745,14 @@ func imageName(image string) string {
 	return n
 }
 
-// Start starts a created or stopped container.
+// Start starts a created or stopped container, and returns once the engine
+// says which host port publishes each of its ports (see published).
 func (c *Client) Start(ctx context.Context, id string) error {
 	defer c.forget()
-	return c.do(ctx, "POST", "/containers/"+id+"/start", nil, nil)
+	if err := c.do(ctx, "POST", "/containers/"+id+"/start", nil, nil); err != nil {
+		return err
+	}
+	return c.published(ctx, id)
 }
 
 // Stop stops a container, killing it after its stop timeout.
@@ -641,19 +760,76 @@ func (c *Client) Stop(ctx context.Context, id string) error {
 	return c.do(ctx, "POST", "/containers/"+id+"/stop", nil, nil)
 }
 
-// Restart stops a container and starts it again.
+// Restart stops a container and starts it again, and returns once the engine
+// says which host port publishes each of its ports (see published).
 func (c *Client) Restart(ctx context.Context, id string) error {
 	defer c.forget()
-	return c.do(ctx, "POST", "/containers/"+id+"/restart", nil, nil)
+	if err := c.do(ctx, "POST", "/containers/"+id+"/restart", nil, nil); err != nil {
+		return err
+	}
+	return c.published(ctx, id)
+}
+
+// publishWait is how long published waits for the engine to name the host ports.
+var publishWait = 30 * time.Second
+
+// published waits until the engine names a host port for every port the
+// container publishes. Docker fills them in a moment after start returns, so
+// under load an Inspect right after start can read port 0 for one of them:
+// an ActiveMQ reboot then waited on 127.0.0.1:0 until its 5-minute limit.
+// A container that is no longer running is left to the caller to explain.
+func (c *Client) published(ctx context.Context, id string) error {
+	end := time.Now().Add(publishWait)
+	for {
+		in, err := c.Inspect(ctx, id)
+		if err != nil {
+			return err
+		}
+		missing, nm := "", in.HostConfig.NetworkMode
+		for k, bs := range in.HostConfig.PortBindings {
+			if len(bs) > 0 && in.hostPort(k) == 0 && nm != "host" && !strings.HasPrefix(nm, "container:") { // those publish nothing
+				missing = k
+			}
+		}
+		switch {
+		case missing == "" || !in.State.Running:
+			return nil
+		case time.Now().After(end):
+			return fmt.Errorf("docker started %s but did not publish its port %s within %v", id, missing, publishWait)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
 }
 
 // Remove deletes a container, running or not, with its anonymous volumes;
-// a missing one is no error.
+// a missing one is no error. When another call is already removing it
+// (409), Remove waits until it is gone: until then its named volumes are
+// still in use, and removing them right after would fail (a leaked volume).
 func (c *Client) Remove(ctx context.Context, id string) error {
 	defer c.forget()
 	err := c.do(ctx, "DELETE", "/containers/"+id+"?force=1&v=1", nil, nil)
-	if s := status(err); s == http.StatusNotFound || s == http.StatusConflict { // gone, or going
+	switch status(err) {
+	case http.StatusNotFound:
 		return nil
+	case http.StatusConflict:
+		ctx, cancel := context.WithTimeout(ctx, CallLimit) // like any other engine call
+		defer cancel()
+		for {
+			if _, err := c.Inspect(ctx, id); NotFound(err) {
+				return nil
+			} else if err != nil {
+				return err
+			}
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(50 * time.Millisecond):
+			}
+		}
 	}
 	return err
 }
@@ -665,6 +841,11 @@ func (c *Client) RemoveVolume(ctx context.Context, name string) error {
 		return nil
 	}
 	return err
+}
+
+// HasVolume reports whether a named volume exists.
+func (c *Client) HasVolume(ctx context.Context, name string) bool {
+	return c.do(ctx, "GET", "/volumes/"+url.PathEscape(name), nil, nil) == nil
 }
 
 // volumeName is the named volume a bind ("volume:/path"), or "" for a host path.
@@ -696,12 +877,17 @@ type Info struct {
 	Name  string
 	Image string
 	State struct {
-		Status   string // created, running, exited…
-		Running  bool
-		ExitCode int
+		Status    string // created, running, exited…
+		Running   bool
+		ExitCode  int
+		OOMKilled bool // the engine killed it for lack of memory
 	}
 	Config struct {
 		Labels map[string]string
+	}
+	HostConfig struct {
+		NetworkMode  string
+		PortBindings map[string][]struct{ HostIp, HostPort string } // what was asked for: HostPort "" means any free one
 	}
 	Mounts          []Mount
 	NetworkSettings struct {
@@ -714,8 +900,11 @@ type Info struct {
 }
 
 // HostPort is the host port that publishes a container's tcp port, or 0.
-func (i *Info) HostPort(port int) int {
-	for _, b := range i.NetworkSettings.Ports[strconv.Itoa(port)+"/tcp"] {
+func (i *Info) HostPort(port int) int { return i.hostPort(strconv.Itoa(port) + "/tcp") }
+
+// hostPort is the host port that publishes key ("5432/tcp"), or 0.
+func (i *Info) hostPort(key string) int {
+	for _, b := range i.NetworkSettings.Ports[key] {
 		if p, _ := strconv.Atoi(b.HostPort); p > 0 {
 			return p
 		}
@@ -735,8 +924,54 @@ func (c *Client) Inspect(ctx context.Context, id string) (*Info, error) {
 // Wait blocks until a container stops and returns its exit code.
 func (c *Client) Wait(ctx context.Context, id string) (int, error) {
 	var out struct{ StatusCode int }
-	err := c.do(ctx, "POST", "/containers/"+id+"/wait", nil, &out)
+	err := c.long(ctx, "POST", "/containers/"+id+"/wait", nil, &out)
 	return out.StatusCode, err
+}
+
+// Watch calls exited once, with a plain sentence, when the container stops on its own: "killed: out of memory
+// (raise Docker's memory limit)", or "stopped: exit <code> — <last log line>". It says nothing when ctx ends, or
+// when the engine can't be asked (then nothing is known). Call it after the container starts.
+func (c *Client) Watch(ctx context.Context, id string, exited func(note string)) {
+	go func() {
+		code, err := c.Wait(ctx, id)
+		if err != nil || ctx.Err() != nil {
+			return
+		}
+		ictx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		if in, err := c.Inspect(ictx, id); err == nil {
+			switch {
+			case in.State.Running: // restarted since: whoever restarted it watches it again
+				return
+			case in.State.OOMKilled:
+				exited("killed: out of memory (raise Docker's memory limit)")
+				return
+			}
+		}
+		note := "stopped: exit " + strconv.Itoa(code)
+		if l := c.lastLine(ictx, id); l != "" {
+			note += " — " + l
+		}
+		exited(note)
+	}()
+}
+
+// lastLine is the last line a container wrote, or "".
+func (c *Client) lastLine(ctx context.Context, id string) string {
+	resp, err := c.send(ctx, "GET", "/containers/"+id+"/logs?stdout=1&stderr=1&tail=5", nil)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	last := ""
+	w := &lines{fn: func(l string) {
+		if l = strings.TrimSpace(l); l != "" {
+			last = l
+		}
+	}}
+	demux(resp.Body, w, w)
+	w.flush()
+	return last
 }
 
 // Logs calls line with each line a container wrote to stdout or stderr;
@@ -893,6 +1128,8 @@ func (c *Client) Mine(ctx context.Context) []Summary {
 	if c.opt.DataDir != "" {
 		label = LabelData + "=" + c.opt.DataDir
 	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second) // a dead engine must not hold up shutdown
+	defer cancel()
 	list, _ := c.List(ctx, label)
 	return list
 }

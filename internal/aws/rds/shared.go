@@ -34,6 +34,9 @@ import (
 // NoDocker is the note of a resource created while Docker was not available.
 const NoDocker = "Docker is not available: the API works, but no database runs behind this endpoint"
 
+// Removed is the note of a resource whose container was gone when pogi started it again.
+const Removed = "its container was removed while pogi was stopped, so it was recreated empty"
+
 // Spec is a database container.
 type Spec struct {
 	Name  string // container name
@@ -42,6 +45,7 @@ type Spec struct {
 	Host  int      // preferred host port; 0 means any free one
 	Env   []string // KEY=value
 	Args  []string // after the image; "{port}" becomes the host port
+	Data  string   // where the server keeps its data in the container; Box mounts the volume <name>-data there ("" keeps none)
 	Entry []string // replaces the image's entrypoint when set
 	Hello string   // what a client sends first ("" when the server speaks first); any reply means ready
 	Init  []string // command run in the container once the server answers (errors ignored)
@@ -52,6 +56,7 @@ type Spec struct {
 // (not embedded: core flattens embedded structs into API responses), so it
 // shows in Save and Inspect only.
 type Server struct {
+	ID        string `json:"id,omitempty"`        // the resource's identifier, which the console's row shows (the container name may carry an account and region)
 	Container string `json:"container,omitempty"` // empty: created without Docker, nothing runs
 	State     string `json:"state"`
 	HostPort  int    `json:"hostPort,omitempty"`  // preferred until the container runs, then the real one
@@ -117,23 +122,42 @@ func (b *Box) Up(srv *Server, sp Spec, verb string) {
 		b.lock.Lock()
 		seed := srv.Seed // read here: a restore sets it right after Up, in the same lock hold
 		b.lock.Unlock()
-		port, err := b.up(sp, verb, seed)
-		core.Go("rds.Up", func() { // waiting for the server must not hold up a delete
+		port, note, err := b.up(sp, verb, seed, b.resource(srv, sp.Name))
+		exit := make(chan string, 1) // the container stopped on its own
+		if err == nil {
+			b.d.Watch(b.ctx, sp.Name, func(n string) {
+				exit <- n
+				b.done(srv, func() {
+					if srv.State == "available" { // not mid-reboot, stop or delete
+						srv.State, srv.Note = b.fail, n
+						b.hub.Log.Warn("database container stopped", "container", sp.Name, "note", n)
+					}
+				})
+			})
+		}
+		start := b.d.Track(b.label, b.resource(srv, sp.Name), "start", sp.Image) // until the server answers
+		core.Go("rds.Up", func() {                                               // waiting for the server must not hold up a delete
 			if err == nil {
-				err = b.wait(srv, port, sp.Hello)
+				err = b.wait(srv, port, sp.Hello, exit)
 			}
 			if err == nil && len(sp.Init) > 0 {
 				b.exec(sp.Name, sp.Init...)
 			}
+			start.End(err)
 			if err != nil && b.ctx.Err() == nil {
 				b.hub.Log.Warn("database container failed", "container", sp.Name, "err", err)
 			}
 			b.done(srv, func() {
 				if err != nil {
-					srv.State, srv.Note = b.fail, err.Error()
+					srv.State, srv.Note = b.fail, docker.Plain(err)
 					return
 				}
-				srv.State, srv.HostPort, srv.Note, srv.Seed = "available", port, "", ""
+				srv.State, srv.HostPort, srv.Note, srv.Seed = "available", port, note, ""
+				select {
+				case n := <-exit: // it stopped just as it became ready
+					srv.State, srv.Note = b.fail, n
+				default:
+				}
 			})
 		})
 	})
@@ -192,14 +216,27 @@ func (b *Box) Put(name, path string, data []byte) error {
 	return b.d.CopyTo(b.ctx, name, "/", &tb)
 }
 
-// Remove deletes a container and its anonymous volumes in the background.
+// Remove deletes a container and its data volume in the background.
 func (b *Box) Remove(name string) {
-	b.serial(name, func() { b.d.Remove(b.ctx, name) })
+	b.serial(name, func() { b.rm(b.ctx, name) })
 }
+
+// rm deletes a container with its data volume (a missing one is no error).
+func (b *Box) rm(ctx context.Context, name string) error {
+	err := b.d.Remove(ctx, name)
+	if err == nil {
+		err = b.d.RemoveVolume(ctx, volume(name))
+	}
+	return err
+}
+
+// volume is the name of the data volume of a container.
+func volume(container string) string { return container + "-data" }
 
 // Serve gives a new resource its server: a fresh container, or without
 // Docker only an address (want, else def) and a note. Lock held.
 func (b *Box) Serve(srv *Server, account, region, id string, want, def int, spec func() Spec, docker bool) {
+	srv.ID = id
 	if !docker {
 		srv.State, srv.HostPort, srv.Note = "available", cmp.Or(want, def), NoDocker
 		b.hub.Log.Warn(NoDocker, "service", b.label, "id", id)
@@ -239,8 +276,10 @@ func (b *Box) Close(keep map[string]bool) {
 	}
 	b.mu.Unlock()
 	sort.Strings(rm)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // a dead engine must not hold up shutdown
+	defer cancel()
 	for _, n := range rm {
-		b.d.Remove(context.Background(), n)
+		b.rm(ctx, n)
 	}
 }
 
@@ -277,35 +316,73 @@ func (b *Box) done(srv *Server, apply func()) {
 	b.hub.MarkDirty()
 }
 
-// up starts the container and returns its host port; a fresh one gets seed.
-func (b *Box) up(sp Spec, verb, seed string) (int, error) {
+// up starts the container and returns its host port; a fresh one gets seed. A container that is gone or won't
+// start is made again on the same data volume, so its data stays; the note says the data is gone only when
+// the volume is gone too. Verb "run" is a fresh start: the old volume goes first, as the images load their
+// init scripts only into an empty data folder.
+func (b *Box) up(sp Spec, verb, seed, resource string) (port int, note string, err error) {
+	var gone error
 	switch verb {
 	case "start":
-		if b.d.Start(b.ctx, sp.Name) == nil {
-			return b.port(sp)
-		}
+		gone = b.d.Start(b.ctx, sp.Name)
 	case "restart":
-		if b.d.Restart(b.ctx, sp.Name) == nil {
-			return b.port(sp)
+		gone = b.d.Restart(b.ctx, sp.Name)
+	}
+	if verb != "run" {
+		if gone == nil {
+			port, err = b.port(sp)
+			return port, "", err
+		}
+		if docker.EngineDown(gone) || b.ctx.Err() != nil {
+			return 0, "", gone // the engine is the problem, not the container: don't remove what may be there
+		}
+		kept := sp.Data != "" && b.d.HasVolume(b.ctx, volume(sp.Name))
+		switch {
+		case kept && docker.NotFound(gone): // nothing is lost: no note
+		case kept:
+			note = "its container would not start again (" + docker.Plain(gone) + "), so it was recreated with its data"
+		case docker.NotFound(gone):
+			note = Removed
+		default:
+			note = "its container would not start again (" + docker.Plain(gone) + "), so it was recreated empty"
 		}
 	}
-	var err error
 	for _, want := range []int{sp.Host, 0} { // the preferred port may be taken by the time the engine binds it
 		host := freePort(want)
-		ct := &docker.Container{Name: sp.Name, Image: sp.Image, Service: b.label, Resource: strings.TrimPrefix(sp.Name, "pogi-"+b.label+"-"),
+		ct := &docker.Container{Name: sp.Name, Image: sp.Image, Service: b.label, Resource: resource,
 			Env: sp.Env, Entrypoint: sp.Entry, Ports: map[int]int{sp.Port: host}}
+		if sp.Data != "" {
+			ct.Binds = []string{volume(sp.Name) + ":" + sp.Data}
+		}
 		for _, a := range sp.Args {
 			ct.Cmd = append(ct.Cmd, strings.ReplaceAll(a, "{port}", strconv.Itoa(host)))
 		}
-		b.d.Remove(b.ctx, sp.Name) // a leftover of a crashed run
+		if err = b.d.Remove(b.ctx, sp.Name); docker.EngineDown(err) { // a leftover of a crashed run
+			return 0, "", err
+		}
+		if verb == "run" && sp.Data != "" {
+			if err = b.d.RemoveVolume(b.ctx, volume(sp.Name)); docker.EngineDown(err) {
+				return 0, "", err
+			}
+		}
 		if err = b.run(ct, seed); err == nil {
-			return b.port(sp)
+			port, err = b.port(sp)
+			return port, note, err
 		}
 		if sp.Host == 0 {
 			break
 		}
 	}
-	return 0, err
+	return 0, "", err
+}
+
+// resource is the pogi.resource label of a container: the identifier Serve saved, else (a state saved by an
+// older pogi) the container name without its prefix.
+func (b *Box) resource(srv *Server, name string) string {
+	if srv.ID != "" {
+		return srv.ID
+	}
+	return strings.TrimPrefix(name, "pogi-"+b.label+"-")
 }
 
 // run creates and starts a container. A seed file goes in first, as
@@ -350,7 +427,7 @@ func (b *Box) port(sp Spec) (int, error) {
 // wait polls until the server answers hello. Docker Desktop accepts
 // connections before the server listens and then drops them, so a reply is
 // required, not just a connection.
-func (b *Box) wait(srv *Server, port int, hello string) error {
+func (b *Box) wait(srv *Server, port int, hello string, exit <-chan string) error {
 	addr := b.d.Addr(port)
 	for end := time.Now().Add(5 * time.Minute); time.Now().Before(end); {
 		if c, err := net.DialTimeout("tcp", addr, time.Second); err == nil {
@@ -371,6 +448,8 @@ func (b *Box) wait(srv *Server, port int, hello string) error {
 		select {
 		case <-b.ctx.Done():
 			return b.ctx.Err()
+		case n := <-exit: // the container is gone: no point in waiting for the rest of the five minutes
+			return errors.New(n)
 		case <-time.After(250 * time.Millisecond):
 		}
 	}
@@ -573,3 +652,34 @@ func Alter(engine, user, old, pw string) []string { return alter(engine, user, o
 
 // TSQL runs a T-SQL batch as sa in a SQL Server container, retrying while it starts.
 func TSQL(sa, batch string) []string { return tsql(sa, batch) }
+
+// MongoSpec is the MongoDB container of DocumentDB, for Cosmos DB's MongoDB API
+// accounts: the root user is user, with password pw.
+func MongoSpec(user, pw string, host int) Spec {
+	sp, _ := otherSpec("docdb", user, pw, host)
+	return sp
+}
+
+// StatusCell is the Status cell of a console table for a resource a Box runs: its status, then a short form of
+// pogi's note when there is one ("available · no database: Docker isn't running", "failed · killed: out of memory…").
+// Every Box-based service's table uses it. A status that is still changing stays bare, so the table keeps refreshing.
+func StatusCell(status string, srv *Server) string {
+	if srv == nil || srv.Note == "" {
+		return status
+	}
+	switch strings.ToLower(status) { // the in-between statuses of feedback.js
+	case "creating", "modifying", "deleting", "backing-up", "provisioning", "pending_create", "updating":
+		return status
+	}
+	note := srv.Note
+	switch note {
+	case NoDocker:
+		note = "no database: Docker isn't running"
+	case Removed:
+		note = "recreated empty: its container was removed"
+	}
+	if r := []rune(note); len(r) > 70 {
+		note = string(r[:69]) + "…"
+	}
+	return status + " · " + note
+}

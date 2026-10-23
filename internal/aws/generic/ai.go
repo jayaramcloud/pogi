@@ -1,6 +1,7 @@
 package generic
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -19,9 +20,19 @@ import (
 // aiGateway is the local model aiGateway of the call's hub (pogi.yaml `ai:`).
 func aiGateway(c *Call) *aimodel.Gateway {
 	if h := c.Hub(); h != nil {
-		return aimodel.New(h.Cfg.AIEndpoint, h.Cfg.AIKey, h.Cfg.AIModels)
+		g := aimodel.New(h.Cfg.AIEndpoint, h.Cfg.AIKey, h.Cfg.AIModels)
+		g.Timeout = h.Cfg.AITimeout
+		return g
 	}
 	return aimodel.New("", "", nil)
+}
+
+// aiCtx is the context of the request, so a model call ends when the client leaves.
+func aiCtx(c *Call) context.Context {
+	if c.Core != nil {
+		return c.Core.Context()
+	}
+	return context.Background()
 }
 
 func aiAmap(v any) map[string]any {

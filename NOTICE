@@ -14,3 +14,31 @@ service's service-2.json and paginators-1.json from the pinned botocore wheel
 named in scripts/models.sh, with the documentation strings removed. The models in models/limits keep only the
 input members that carry limits. You may obtain a copy of the Apache License, Version 2.0 at
 http://www.apache.org/licenses/LICENSE-2.0
+
+This product embeds parts of the Google API discovery documents that ship in the
+google.golang.org/api module (Go client libraries for Google APIs).
+
+    google-api-go-client
+    Copyright 2011 Google LLC
+    Licensed under the Apache License, Version 2.0
+    https://github.com/googleapis/google-api-go-client
+
+The documents are in internal/gcp/generic/docs. They are gzipped copies of the discovery documents
+that apis.txt lists, from the module version go.mod pins, with the descriptions removed
+(internal/gcp/generic/gen.go). The module has no document for a few APIs. For those, internal/gcp/generic/extra
+holds the discovery document fetched from the API's own host (https://<api>.googleapis.com/$discovery/rest), one
+made by extra/proto2disco.go from the protobuf definitions of the cloud.google.com/go client,
+or one written by hand from that client's REST paths and messages. Those client libraries are Copyright Google
+LLC, Apache License, Version 2.0.
+
+This product also embeds data from the Azure REST API specifications.
+
+    azure-rest-api-specs
+    Copyright (c) Microsoft Corporation
+    Licensed under the MIT License
+    https://github.com/Azure/azure-rest-api-specs
+
+internal/azure/generic/specs.json.gz keeps, for the resource types listed in internal/azure/generic/services.txt,
+only what the Azure engine needs from the pinned commit named in scripts/azure-specs.sh: API versions, which
+operations are long-running, read-only and required property names, and name rules. No descriptions or
+schemas are copied.

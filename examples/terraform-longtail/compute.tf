@@ -132,7 +132,3 @@ resource "aws_appintegrations_event_integration" "cp" {
   event_filter { source = "aws.partner/examplepartner.com" }
   tags = { env = "dev" }
 }
-
-# CodeGuru Reviewer: an S3 repository association
-# aws_codegurureviewer_repository_association is left out: the provider sets s3_repository_details.code_artifacts
-# as a map where its schema wants a list. CodeGuru Reviewer is tested through the SDK instead.

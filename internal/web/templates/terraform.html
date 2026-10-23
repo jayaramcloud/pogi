@@ -1,0 +1,26 @@
+{{define "head"}}<div class="ph"><div><h1>Terraform</h1><p class="sub">Draw a Terraform folder or a plan: its resources, what uses what, and what a plan would change.</p></div></div>{{end}}
+
+{{define "content"}}{{with .Data}}
+<div id="tf" data-view="diagram" data-max-files="{{.MaxFiles}}" data-max-bytes="{{.MaxBytes}}">
+  <div id="tf-err" aria-live="assertive">{{with .Err}}<div class="flash" role="alert">{{.}}</div>{{end}}</div>
+  <div id="tf-empty" {{if .Loaded}}hidden{{end}}>
+    <div class="tfdrop" id="tf-drop" role="button" tabindex="0" aria-describedby="tf-drop-help">
+      <div class="ico">{{icon "upload"}}</div>
+      <h2>Drop a Terraform folder or a plan.json here</h2>
+      <p id="tf-drop-help">Press Enter to pick a folder, or use a button below.</p>
+      <div class="tfpick">
+        <button type="button" class="btn primary" data-tf="folder">{{icon "folder"}}Choose folder</button>
+        <button type="button" class="btn" data-tf="plan">{{icon "file"}}Choose plan.json</button>
+        <button type="button" class="btn" data-tf="sample">{{icon "play"}}Try a sample</button>
+      </div>
+    </div>
+    <div class="banner" style="margin-top:14px">{{icon "term"}}<span>To make a plan file, run <code id="tf-mkplan">terraform plan -out plan.out &amp;&amp; terraform show -json plan.out &gt; plan.json</code></span><span class="spacer"></span><button type="button" class="btn sm" data-copy="#tf-mkplan">{{icon "copy"}}Copy</button></div>
+    <p class="faint" style="margin:0">Your files stay on this machine. They go only to this pogi, which reads them in memory and keeps nothing on disk. You can also run <code>pogi tf diagram ./infra</code>.</p>
+  </div>
+  <input type="file" id="tf-folder" webkitdirectory multiple hidden aria-label="Choose a Terraform folder">
+  <input type="file" id="tf-planfile" accept=".json,application/json" hidden aria-label="Choose a plan.json file">
+  <div id="tf-load" class="banner" role="status" hidden>Reading and pricing the files…</div>
+  <p class="sr" id="tf-live" aria-live="polite"></p>
+  <div id="tf-result">{{.Loaded}}</div>
+</div>
+{{end}}{{end}}

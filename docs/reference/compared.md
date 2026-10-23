@@ -5,7 +5,7 @@ description: Features of pogi, LocalStack and floci side by side, with a source 
 
 # pogi compared
 
-LocalStack and floci are two other local AWS emulators. Each LocalStack and floci cell links to the page it comes from. A cell that says "Paid plan" names the tier. The table compares features only. It has no speed or size contests, because pogi has not measured other tools.
+LocalStack and floci are two other local AWS emulators. This table compares features only. Every LocalStack and floci cell links to its source, and "Paid plan" names the tier. It makes no speed or size claims, because pogi has not measured other tools.
 
 | | pogi | LocalStack | floci |
 |---|---|---|---|
@@ -22,8 +22,8 @@ LocalStack and floci are two other local AWS emulators. Each LocalStack and floc
 | **Terraform and CDK** | Terraform (AWS, Google, azurerm) and the CDK, with a generated provider block (`pogi tf`). | Directly, or through its CLI (`lstk`). `tflocal` and `cdklocal` are deprecated. ([source](https://docs.localstack.cloud/aws/integrations/infrastructure-as-code/terraform/), [2](https://docs.localstack.cloud/aws/integrations/aws-native-tools/aws-cdk/)) | Terraform directly. CDK covered by its tests. ([source](https://floci.io/floci/getting-started/terraform/)) |
 | **MCP server** | Built in (`pogi mcp`). | In preview, needs an auth token. ([source](https://github.com/localstack/localstack-mcp-server)) | Not offered. ([source](https://github.com/floci-io/floci)) |
 | **Price** | Free. | Free for non-commercial use (Hobby). Base costs $39 per license a month billed yearly, or $45 billed monthly. ([source](https://docs.localstack.cloud/aws/licensing/), [2](https://www.localstack.cloud/pricing)) | Free. ([source](https://floci.io)) |
-| **AWS services** | 131 (181 with Google Cloud and Azure). | 30+ on the free Hobby plan, 110+ on Ultimate. ([source](https://www.localstack.cloud/pricing)) | 125. ([source](https://floci.io)) |
-| **Maturity** | New: version 0.1.0, 2026. | Since 2016. ([source](https://github.com/localstack/localstack)) | New: since 2026. ([source](https://github.com/floci-io/floci)) |
+| **AWS services** | <!-- count:aws -->144 (88 with real behavior, 56 Thin)<!-- /count -->. Across the three clouds, <!-- count:total -->355 services: 144 AWS (88 with real behavior, 56 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (29 with real behavior, 74 Thin)<!-- /count -->. | 30+ on the free Hobby plan, 110+ on Ultimate. ([source](https://www.localstack.cloud/pricing)) | 125. ([source](https://floci.io)) |
+| **Maturity** | New: version 0.2.0, 2026. | Since 2016. ([source](https://github.com/localstack/localstack)) | New: since 2026. ([source](https://github.com/floci-io/floci)) |
 
 As of October 2026, from each project's own website, docs and pricing. Names belong to their owners.
 

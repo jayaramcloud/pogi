@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/_pogi/static/pogi.css">
 <script src="/_pogi/static/htmx.min.js"></script>
 <script src="/_pogi/static/pogi.js" defer></script>
+<script src="/_pogi/static/feedback.js" defer></script>
 </head>
 <body hx-boost="true">
 <a class="skip" href="#main">Skip to content</a>
@@ -26,6 +27,7 @@
       {{if eq .Cloud "azure"}}<span class="dot azure"></span>Azure · {{printf "%.8s" .Scope.Subscription}}…{{end}}{{icon "chev"}}
     </button>
     <button class="pill" id="endpointPill" data-copy="{{.Endpoint}}" title="Copy endpoint" aria-label="Copy endpoint {{.Endpoint}}"><span class="dot live"></span><span class="mono">{{trimScheme .Endpoint}}</span>{{icon "copy"}}</button>
+    <button class="btn ghost" id="taskBtn" hidden aria-label="Background tasks" title="Background tasks" aria-haspopup="dialog" aria-expanded="false" aria-controls="taskpop"><span class="tdot" aria-hidden="true"></span><span class="tn"></span></button>
     <button class="btn icon ghost" id="bellBtn" data-js="bell" title="Notifications (n)" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false" aria-controls="bell">{{icon "bell"}}<span class="badge-dot" id="bellN"></span></button>
     <button class="btn icon ghost" data-js="keys" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" aria-haspopup="dialog" aria-expanded="false" aria-controls="keys">{{icon "help"}}</button>
     <button class="btn icon ghost" id="themeBtn" data-js="theme" title="Switch theme" aria-label="Switch theme">{{icon "sun"}}</button>
@@ -34,28 +36,31 @@
     <nav class="nav">
       {{template "navlink" (navlink "/_pogi/" "home" "Home" "" .Active "overview" .Nav.Badges)}}
       {{template "navlink" (navlink "/_pogi/requests" "pulse" "Activity" "" .Active "requests" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/flows" "flow" "Flows" "" .Active "flows" .Nav.Badges)}}
       {{template "navlink" (navlink "/_pogi/services" "grid" "Services" "" .Active "services" .Nav.Badges)}}
       {{template "navlink" (navlink "/_pogi/map" "map" "Map" "" .Active "map" .Nav.Badges)}}
       <h6>In use <span>{{len .Nav.InUse}}</span></h6>
-      {{range .Nav.InUse}}<a href="/_pogi/resources/{{.Name}}" title="{{.Full}}" aria-label="{{.Full}}" class="{{if eq $.Active .Name}}on{{end}}"><span class="dot {{.Cloud}}"></span><b class="ab" style="--c:var(--{{.Cloud}})">{{.Abbr}}</b><span>{{.Title}}</span><em>{{.Resources}}</em></a>
+      {{range .Nav.InUse}}<a href="/_pogi/resources/{{.Name}}" title="{{.Full}}" aria-label="{{.Full}}" class="{{if eq $.Active .Name}}on{{end}}">{{svcIcon .Cloud .Name}}<span>{{.Title}}</span><em>{{.Resources}}</em></a>
       {{else}}<div class="hint">Services show up here once they hold resources.</div>{{end}}
-      {{with .Nav.Pinned}}<h6>Pinned</h6>{{range .}}<a href="/_pogi/resources/{{.Name}}" title="{{.Full}}" aria-label="{{.Full}}" class="{{if eq $.Active .Name}}on{{end}}"><span class="dot {{.Cloud}}"></span><b class="ab" style="--c:var(--{{.Cloud}})">{{.Abbr}}</b><span>{{.Title}}</span></a>{{end}}{{end}}
+      {{with .Nav.Pinned}}<h6>Pinned</h6>{{range .}}<a href="/_pogi/resources/{{.Name}}" title="{{.Full}}" aria-label="{{.Full}}" class="{{if eq $.Active .Name}}on{{end}}">{{svcIcon .Cloud .Name}}<span>{{.Title}}</span></a>{{end}}{{end}}
       <h6>Tools</h6>
       {{template "navlink" (navlink "/_pogi/sql" "db" "SQL editor" "" .Active "sql" .Nav.Badges)}}
       {{template "navlink" (navlink "/_pogi/logs" "logs" "Logs" "" .Active "logs" .Nav.Badges)}}
       {{template "navlink" (navlink "/_pogi/secrets" "key" "Secrets" "" .Active "secrets" .Nav.Badges)}}
       {{template "navlink" (navlink "/_pogi/iam" "lock" "IAM policy" "" .Active "iam" .Nav.Badges)}}
       {{template "navlink" (navlink "/_pogi/cost" "dollar" "Cost" "" .Active "cost" .Nav.Badges)}}
+      {{template "navlink" (navlink "/_pogi/terraform" "box" "Terraform" "" .Active "terraform" .Nav.Badges)}}
       {{template "navlink" (navlink "/_pogi/inbox" "mail" "Inbox" "" .Active "inbox" .Nav.Badges)}}
       {{template "navlink" (navlink "/_pogi/chaos" "bolt" "Chaos" "" .Active "chaos" .Nav.Badges)}}
       {{template "navlink" (navlink "/_pogi/snapshots" "camera" "Snapshots" "" .Active "snapshots" .Nav.Badges)}}
       {{template "navlink" (navlink "/_pogi/connect" "plug" "Connect" "" .Active "connect" .Nav.Badges)}}
     </nav>
-    <div class="foot"><span>{{.Foot}}</span><span>{{.Nav.Total}} services · <a class="mono" href="/_pogi/connect" style="color:var(--accent)">pogi env</a></span>
+    <div class="foot"><span>{{.Foot}}</span><span title="{{.Nav.TotalFull}}">{{.Nav.Total}} services · <a class="mono" href="/_pogi/connect" style="color:var(--accent)">pogi env</a></span>
       <button class="collapse" data-js="side" title="Collapse sidebar (⌘B)"><span class="lc">« Collapse <span class="kbd">⌘B</span></span><span class="le">»</span></button></div>
   </aside>
   <main id="main" tabindex="-1"><div class="page">
-    {{if .Error}}<div class="flash" role="alert">{{.Error}}</div>{{end}}
+    {{range .Problems}}<div class="banner warn" role="alert">{{icon "x"}}<span>{{.Text}}</span></div>{{end}}
+    {{if .Error}}<div class="flash" role="alert">{{.Error}}</div>{{else if .Flash}}<div class="flash ok" role="status">{{.Flash}}</div>{{end}}
     {{block "head" .}}<div class="ph"><div><h1>{{.Title}}</h1></div></div>{{end}}
     {{if .Note}}{{template "cloudnote" .}}{{end}}
     {{template "content" .}}
@@ -91,6 +96,11 @@
 </div>
 <div class="menu" id="menu" role="menu" aria-label="Actions"></div>
 <div class="pop bellpop" id="bell" role="dialog" aria-label="Notifications"></div>
+<div class="pop" id="taskpop" role="dialog" aria-labelledby="taskpop-title" hx-boost="false"><header id="taskpop-title">Running now</header><ul></ul></div>
+<dialog id="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-msg" hx-boost="false"><form method="dialog">
+  <h2 id="confirm-title">Are you sure?</h2><p id="confirm-msg"></p>
+  <div class="actions"><button class="btn" value="cancel" autofocus>Cancel</button><button class="btn danger solid" value="ok" id="confirm-ok">Delete</button></div>
+</form></dialog>
 <div class="keys" id="keys" role="dialog" aria-modal="true" aria-labelledby="keys-title" tabindex="-1"><header><h2 id="keys-title" style="margin:0;font-size:inherit">Keyboard shortcuts</h2><button class="btn icon ghost" data-close aria-label="Close" title="Close (esc)">{{icon "x"}}</button></header><div class="grid">
   <h3>Navigate</h3>
   <div class="k"><span>Home</span><span><span class="kbd">g</span><span class="kbd">h</span></span></div><div class="k"><span>Activity</span><span><span class="kbd">g</span><span class="kbd">a</span></span></div>

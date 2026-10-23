@@ -23,6 +23,9 @@ type Redpanda struct {
 	Port     int    // host port of a fresh container, kept when free; 0: any
 }
 
+// RedpandaImage runs every MSK cluster.
+const RedpandaImage = "redpandadata/redpanda"
+
 // Run starts the broker, the container of that name when there is one, else
 // a fresh one, and waits until it answers a metadata request. It returns the
 // bootstrap address of host clients, 127.0.0.1:<port>.
@@ -30,7 +33,7 @@ func (r *Redpanda) Run(ctx context.Context, d *docker.Client) (string, error) {
 	if d.Start(ctx, r.Name) != nil { // none yet, or it cannot start again (its port is taken)
 		port := freePort(r.Port) // advertised, so picked before the container starts
 		d.Remove(ctx, r.Name)
-		ct := &docker.Container{Name: r.Name, Image: "redpandadata/redpanda", Service: r.Service, Resource: r.Resource,
+		ct := &docker.Container{Name: r.Name, Image: RedpandaImage, Service: r.Service, Resource: r.Resource,
 			Ports: map[int]int{19092: port},
 			Cmd: []string{"redpanda", "start", "--mode", "dev-container", "--smp", "1", "--memory", "1G",
 				"--kafka-addr", "internal://0.0.0.0:9092,external://0.0.0.0:19092",

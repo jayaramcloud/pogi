@@ -16,6 +16,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -75,8 +76,10 @@ type Blob struct {
 	Appends     int               `json:"appends,omitempty"`
 	Lease       Lease             `json:"lease"`
 	Snapshots   map[string][]byte `json:"snapshots,omitempty"`
-	Copy        map[string]string `json:"copy,omitempty"`   // x-ms-copy-* headers
-	Staged      bool              `json:"staged,omitempty"` // only uncommitted blocks so far
+	Copy        map[string]string `json:"copy,omitempty"`    // x-ms-copy-* headers
+	Staged      bool              `json:"staged,omitempty"`  // only uncommitted blocks so far
+	Pending     map[int64][]byte  `json:"pending,omitempty"` // Data Lake: appended chunks by position, until a flush commits them
+	POSIX       map[string]string `json:"posix,omitempty"`   // Data Lake: owner, group, permissions and acl
 }
 
 // Block is a committed block.
@@ -242,7 +245,7 @@ func (s *Service) route(w http.ResponseWriter, r *http.Request, c *core.Ctx, acc
 			return "GetAccountInfo", func() error {
 				w.Header().Set("x-ms-sku-name", "Standard_RAGRS")
 				w.Header().Set("x-ms-account-kind", "StorageV2")
-				w.Header().Set("x-ms-is-hns-enabled", "false")
+				w.Header().Set("x-ms-is-hns-enabled", strconv.FormatBool(s.hns(account)))
 				w.WriteHeader(http.StatusOK)
 				return nil
 			}
@@ -417,9 +420,23 @@ func containerHeaders(w http.ResponseWriter, ct *Container, status int) error {
 	return nil
 }
 
+// containerName is Azure's rule: 3 to 63 lowercase letters, digits and single hyphens, starting and ending
+// with a letter or digit. Azure's own $root, $web and $logs are allowed too.
+var containerName = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+
+func checkContainerName(name string) error {
+	if name == "$root" || name == "$web" || name == "$logs" {
+		return nil
+	}
+	if len(name) < 3 || len(name) > 63 || !containerName.MatchString(name) {
+		return core.Errorf(400, "InvalidResourceName", "The specified resource name contains invalid characters or is the wrong length: use 3 to 63 lowercase letters, digits and single hyphens.")
+	}
+	return nil
+}
+
 func (s *Service) createContainer(w http.ResponseWriter, r *http.Request, account, name string) error {
-	if len(name) < 3 || len(name) > 63 || strings.ToLower(name) != name {
-		return core.Errorf(400, "InvalidResourceName", "The specified resource name contains invalid characters.")
+	if err := checkContainerName(name); err != nil {
+		return err
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1161,11 +1178,15 @@ func (s *Service) copyBlob(w http.ResponseWriter, r *http.Request, c *core.Ctx, 
 	}
 	s.mu.Unlock()
 	if data == nil {
-		res, err := http.Get(src)
+		res, err := (&http.Client{Timeout: time.Minute}).Get(src) // a source URL that never answers must not hold the copy forever
 		if err != nil || res.StatusCode >= 300 {
+			if err == nil {
+				res.Body.Close()
+			}
 			return core.Errorf(404, "CannotVerifyCopySource", "The specified copy source could not be read.")
 		}
 		data, _ = io.ReadAll(res.Body)
+		res.Body.Close()
 		res.Body.Close()
 		props = map[string]string{"Content-Type": res.Header.Get("Content-Type")}
 	}

@@ -7,7 +7,7 @@ description: Why pogi records what your code calls before it enforces anything, 
 
 ## What is the problem?
 
-IAM (identity and access management) decides who may call what in a cloud. Least privilege means code gets the permissions it needs and no more. It is easy to say and hard to do. A tight policy needs every action your code calls and every resource it touches. Most teams do not know that list. So they start with a wide policy such as `AdministratorAccess` and mean to narrow it later. Or they write a narrow one, deploy, and find the missing permission when production fails.
+IAM (the rules for who may call what) controls access in a cloud. Least privilege means code gets the permissions it needs and no more. It is easy to say and hard to do. A tight policy needs every action your code calls and every resource it touches. Most teams do not know that list. So they start with a wide policy such as `AdministratorAccess` and mean to narrow it later. Or they write a narrow one, deploy, and find the missing permission when production fails.
 
 Both are slow and risky, because the feedback comes late, from the real cloud.
 
@@ -45,9 +45,9 @@ pogi checks callers that have an identity worth checking.
 
 ## What does pogi not check?
 
-IAM in pogi is not a full copy of IAM in the cloud. pogi enforces identity policies, permissions boundaries, S3 bucket policies and API Gateway resource policies. It does not yet evaluate other resource-based policies (SQS, SNS, KMS key policies and the like). A policy that allows a call only under a condition can read as "would deny" after an attach, because the check has no condition keys.
+IAM in pogi is not a full copy of IAM in the cloud. pogi enforces identity policies, permissions boundaries, service control policies (in an organization), S3 bucket policies and the `Deny` statements of API Gateway resource policies. It does not yet check other resource-based policies, such as SQS, SNS and KMS key policies. A policy that allows a call only under a condition can read as "would deny" after an attach, because the check has no condition keys.
 
-Treat a pass in pogi as strong evidence, not proof, because the real cloud can still deny a call.
+A pass in pogi is strong evidence, not proof. The real cloud can still deny a call.
 
 ## See also
 

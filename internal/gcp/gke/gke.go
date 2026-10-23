@@ -315,6 +315,14 @@ func (s *Service) boot(key string, cl *cluster, restart bool, opKey string) {
 	// then gets Unauthorized until pogi listens where the container can reach it.
 	k := &eks.K3s{Name: cl.container, Image: eks.DefaultImage(), Service: "container", Resource: cl.p.Name, Token: cl.token,
 		Webhook: "http://" + d.HostAddr() + ":" + port + "/_gcp/gke/authn/" + key}
+	k.Watch, k.OnExit = s.ctx, func(note string) {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if s.st.clusters[key] == cl && cl.p.Status == containerpb.Cluster_RUNNING {
+			cl.p.Status, cl.p.StatusMessage = containerpb.Cluster_ERROR, note
+			s.hub.Log.Warn("gke cluster stopped", "cluster", key, "note", note)
+		}
+	}
 	core.Go("gke.boot", func() {
 		defer cancel()
 		endpoint, ca, err := k.Run(ctx, d, restart)
@@ -324,7 +332,7 @@ func (s *Service) boot(key string, cl *cluster, restart bool, opKey string) {
 		case s.st.clusters[key] != cl: // deleted meanwhile
 			s.drop(cl)
 		case err != nil:
-			cl.p.Status, cl.p.StatusMessage = containerpb.Cluster_ERROR, err.Error()
+			cl.p.Status, cl.p.StatusMessage = containerpb.Cluster_ERROR, docker.Plain(err)
 			s.finish(opKey, err)
 			s.hub.Log.Warn("gke cluster failed", "cluster", key, "err", err)
 		default:

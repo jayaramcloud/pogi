@@ -461,7 +461,11 @@ func (t *Task) container(name string) *Container {
 	return nil
 }
 
-// stopTask asks t to stop for a reason; its runner does the rest. Lock held.
+// stopTask asks t to stop for a reason; its runner does the rest. A task that failed counts
+// against its deployment here, in the same locked step that takes it out of the running set: if
+// the count waited for its containers to be removed (slow under load), a reconcile in between
+// would see the task gone but the failure uncounted, start another one, and the circuit breaker
+// would trip a task late. Lock held.
 func (s *Service) stopTask(t *Task, code, reason string) {
 	if t.DesiredStatus == "STOPPED" {
 		return
@@ -469,6 +473,14 @@ func (s *Service) stopTask(t *Task, code, reason string) {
 	now := core.Time(time.Now())
 	t.DesiredStatus, t.StopCode, t.StoppedReason, t.StoppingAt = "STOPPED", code, reason, &now
 	t.Version++
+	if code == "TaskFailedToStart" || code == "EssentialContainerExited" {
+		if sv := s.serviceOf(t); sv != nil {
+			if dep := sv.deployment(t.StartedBy); dep != nil {
+				dep.FailedTasks++
+				dep.failedAt = time.Now()
+			}
+		}
+	}
 	if t.run != nil {
 		t.run.halt()
 	} else {
@@ -513,8 +525,8 @@ func (s *Service) run(t *Task) {
 	s.finish(t)
 }
 
-// finish marks t STOPPED once its containers are gone, counts a failed task
-// against its deployment and lets its service replace it; lock taken.
+// finish marks t STOPPED once its containers are gone and lets its service replace it (stopTask
+// already counted a failure); lock taken.
 func (s *Service) finish(t *Task) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -523,10 +535,6 @@ func (s *Service) finish(t *Task) {
 	}
 	t.halt()
 	if sv := s.serviceOf(t); sv != nil {
-		if dep := sv.deployment(t.StartedBy); dep != nil && (t.StopCode == "TaskFailedToStart" || t.StopCode == "EssentialContainerExited") {
-			dep.FailedTasks++
-			dep.failedAt = time.Now()
-		}
 		s.reconcile(sv, time.Now())
 	}
 }

@@ -22,6 +22,7 @@ type kind struct {
 	// del deletes the resource itself, without the lock; nil: delete it unless something refers to it.
 	del    func(q *req, path string, doc map[string]any) error
 	update bool                                              // PATCH and PUT
+	refill bool                                              // fill runs again on the updated resource (it must be safe to repeat)
 	acts   map[string]func(q *req, path string) error        // POST .../<name>/<action>
 	reads  map[string]func(q *req, path string) (any, error) // GET .../<name>/<action>
 }
@@ -68,7 +69,7 @@ func (s *Service) collection(q *req, scope, sn string, rest []string) (any, erro
 	case len(rest) == 2 && m == http.MethodDelete:
 		return s.remove(q, k, scope, sn, coll+"/"+rest[1])
 	case len(rest) == 2 && k.update && (m == http.MethodPatch || m == http.MethodPut):
-		return s.update(q, scope, sn, coll+"/"+rest[1], m == http.MethodPatch)
+		return s.update(q, k, scope, sn, coll+"/"+rest[1], m == http.MethodPatch)
 	case len(rest) == 3 && m == http.MethodPost && k.acts[rest[2]] != nil:
 		path := coll + "/" + rest[1]
 		doc, err := s.get(path)
@@ -178,7 +179,7 @@ func (s *Service) inUse(path string, doc map[string]any) error {
 }
 
 // update is PATCH (a merge) or PUT (a replacement) of a network, subnetwork or firewall.
-func (s *Service) update(q *req, scope, sn, path string, patch bool) (any, error) {
+func (s *Service) update(q *req, k *kind, scope, sn, path string, patch bool) (any, error) {
 	s.mu.Lock()
 	cur := s.st.Res[path]
 	if cur == nil {
@@ -191,6 +192,12 @@ func (s *Service) update(q *req, scope, sn, path string, patch bool) (any, error
 	}
 	for _, f := range []string{"kind", "id", "creationTimestamp", "name", "selfLink", "zone", "region"} {
 		doc[f] = cur[f]
+	}
+	if k.refill {
+		if err := k.fill(q, path, doc); err != nil {
+			s.mu.Unlock()
+			return nil, err
+		}
 	}
 	s.st.Res[path] = doc
 	s.mu.Unlock()
@@ -290,6 +297,8 @@ func (s *Service) static(q *req, zone string, rest []string) (any, error) {
 
 func sizeOf(v any) int {
 	switch x := v.(type) {
+	case int:
+		return x
 	case float64:
 		return int(x)
 	case string:

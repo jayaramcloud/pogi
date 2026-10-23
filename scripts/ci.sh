@@ -54,7 +54,7 @@ group_pattern() {
     azure-a-b) echo 'internal/azure/[a-b]' ;;
     azure-c-e) echo 'internal/azure/[c-e]' ;;
     azure-f-z) echo 'internal/azure/[f-z]' ;;
-    core)      echo '(\.|cmd|test|internal/(aimodel|amqp|awstest|config|core|docker|duckdb|mcp|seed|tui|web))(/|$)' ;;
+    core)      echo '(\.|cmd|scripts|test|internal/(aimodel|amqp|awstest|config|core|cost|docker|duckdb|mcp|seed|terraform|tui|web))(/|$)' ;;
     *)         return 1 ;;
   esac
 }

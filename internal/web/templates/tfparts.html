@@ -1,0 +1,109 @@
+{{define "error"}}<div class="flash" role="alert">{{.}}</div>{{end}}
+
+{{define "tfchip"}}{{if eq . "assumed"}}<span class="st warn">assumed</span>{{else if eq . "usage"}}<span class="st mute">usage</span>{{else if eq . "needs"}}<span class="st bad">needs a value</span>{{else if eq . "free"}}<span class="st ok">free</span>{{else if eq . "unpriced"}}<span class="st mute">not priced</span>{{end}}{{end}}
+{{define "tfact"}}{{if eq . "create"}}<span class="st ok">create</span>{{else if eq . "update"}}<span class="st warn">update</span>{{else if eq . "replace"}}<span class="st bad">replace</span>{{else if eq . "delete"}}<span class="st bad">delete</span>{{end}}{{end}}
+
+{{define "result"}}
+<section class="tfres" data-state="{{.State}}">
+<div class="metrics tfmetrics">
+  <div class="metric"><span class="k">{{if .Plan}}Monthly cost after the plan{{else}}Estimated monthly cost{{end}}</span><span class="v bigcost">{{usd .Total}}</span></div>
+  {{if .Plan}}<div class="metric"><span class="k">Before the plan</span><span class="v">{{usd .Before}}</span></div>
+  <div class="metric"><span class="k">Change</span><span class="v {{if gt .Delta 0.005}}tfup{{else if lt .Delta -0.005}}tfdown{{end}}">{{sgn .Delta}}</span><span class="d">{{usd .Before}} → {{usd .Total}}</span></div>{{end}}
+  {{range .Clouds}}<div class="metric"><span class="k"><span class="dot {{.ID}}"></span>{{.Name}}</span><span class="v">{{usd .Monthly}}</span></div>{{end}}
+</div>
+{{with .Unsure}}<div class="banner warn">{{icon "help"}}<span>The change above is not counting {{plural (len .) "changed resource"}} pogi can't price: {{range $i, $a := .}}{{if $i}}, {{end}}<code>{{$a}}</code>{{end}}.</span></div>{{end}}
+<p class="faint tfnote">On-demand list prices, 730 h/month, USD; no free tier, discounts or tax. {{range .Prices}}{{.}}. {{end}}</p>
+{{with .Warnings}}<details class="banner warn tfwarn" {{if le (len .) 3}}open{{end}}><summary>{{plural (len .) "warning"}}: some values could not be worked out</summary><ul>{{range .}}<li>{{.}}</li>{{end}}</ul></details>{{end}}
+
+<div class="toolbar tfbar">
+  <label class="dim tfgroup">Group by <select class="input" style="width:120px" data-tf="group"><option value="module" {{if eq .Group "module"}}selected{{end}}>Module</option><option value="service" {{if eq .Group "service"}}selected{{end}}>Service</option><option value="cloud" {{if eq .Group "cloud"}}selected{{end}}>Cloud</option></select></label>
+  {{template "tfvars" .}}
+  <span class="spacer"></span>
+  <button type="button" class="btn sm" data-tf-export="json">{{icon "download"}}JSON</button><button type="button" class="btn sm" data-tf-export="markdown">{{icon "download"}}Markdown</button>
+  <a class="btn sm" href="/_pogi/terraform">{{icon "map"}}Open diagram</a>
+</div>
+
+{{if .Empty}}<div class="tablecard"><div class="empty"><div class="ico">{{icon "box"}}</div><h2>No resources found</h2><p>The files have no resources, or only data sources and variables. Pick the folder that holds the resources, or a plan.json.</p></div></div>{{else}}
+<div>
+{{$plan := .Plan}}{{range .Groups}}
+<section class="card tfcard"><header>{{.Name}}<span class="dim">{{plural (len .Rows) "resource"}}</span><span class="spacer"></span>{{if $plan}}<span class="dim">{{usd .Before}} →</span> {{end}}<span class="tfsub">{{usd .Monthly}}</span></header>
+<table class="dt tft{{if $plan}} plan{{end}}"><thead><tr><th class="c-res">Resource</th>{{if $plan}}<th class="c-chg">Change</th>{{end}}<th class="c-svc">Service</th><th class="c-reg">Region</th><th class="num c-mo">Per month</th><th class="c-drv">What drives it</th><th class="c-st">Status</th></tr></thead><tbody>
+{{range .Rows}}<tr data-tfrows="{{.N}}" {{if .File}}title="{{.File}}:{{.Line}}"{{end}}>
+  <td><span class="dot {{.Cloud}}"></span> <a class="name mono" href="#" data-tfrows="{{.N}}">{{.Address}}</a>{{if .WhatIf}} <span class="st warn" title="Priced as {{.Sizes.Current}}; the files say {{.Sizes.File}}">what-if: {{.Sizes.Current}}</span>{{end}}</td>
+  {{if $plan}}<td>{{template "tfact" .Action}}</td>{{end}}
+  <td class="dim">{{.Service}}</td><td class="dim c-reg">{{.Region}}</td>
+  <td class="num">{{if and $plan (ne .Action "create")}}<span class="faint">{{usd .Before}} →</span> {{end}}{{usd .Monthly}}</td>
+  <td class="dim tfdrv c-drv" title="{{.Drives}}">{{.Drives}}</td>
+  <td>{{template "tfchip" .Status}}</td></tr>{{end}}
+</tbody></table></section>
+{{end}}
+{{if .Free}}<details class="card tfcard tfmore"><summary>{{plural (len .Free) "free resource"}}<span class="dim"> · these cost nothing on their own</span></summary><ul>{{range .Free}}<li><a class="mono" href="#" data-tfrows="{{.N}}">{{.Address}}</a></li>{{end}}</ul></details>{{end}}
+{{if .Unpriced}}<details class="card tfcard tfmore"><summary>{{plural (len .Unpriced) "resource"}} pogi has no price for<span class="dim"> · the real bill could be higher</span></summary><ul>{{range .Unpriced}}<li><a class="mono" href="#" data-tfrows="{{.N}}">{{.Address}}</a> <span class="faint">{{.Type}}</span></li>{{end}}</ul></details>{{end}}
+</div>
+{{end}}
+
+<template id="tfr-head"><header><div class="eyebrow"></div><div class="title"><h2 id="dtitle"></h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header><div class="dbody"></div></template>
+{{range .Rows}}<template id="tfr-{{.N}}">{{template "tfrow" .}}</template>{{end}}
+</section>
+{{end}}
+
+{{define "tfrow"}}<section class="tfd">
+<h4 class="mono tfaddr">{{.Address}}</h4>
+<div class="kvs">
+<div>Type</div><div class="mono">{{.Type}}</div>
+<div>Service</div><div>{{.Service}}</div>
+{{if .Region}}<div>Region</div><div>{{.Region}}</div>{{end}}
+{{if .File}}<div>File</div><div class="mono">{{.File}}:{{.Line}}</div>{{end}}
+{{if .Action}}<div>Plan action</div><div>{{template "tfact" .Action}}{{if eq .Action "no-op"}}no change{{end}}</div>{{end}}
+<div>Status</div><div>{{template "tfchip" .Status}}{{if eq .Status "known"}}every value came from the files{{end}}</div>
+<div>Per month</div><div><b>{{usd .Monthly}}</b>{{if .Action}}{{if ne .Action "create"}} <span class="faint">(before: {{usd .Before}})</span>{{end}}{{end}}</div>
+</div>
+{{if .Lines}}<h4>What it costs</h4>
+<table class="dt tfdl"><thead><tr><th>Charge</th><th class="num">Quantity × price</th><th class="num">Per month</th></tr></thead><tbody>
+{{range .Lines}}<tr><td>{{.What}}</td><td class="num dim">{{if and .Usage (eq .Qty 0.0)}}usage not known{{else}}{{fmtn .Qty}} {{.Unit}} × ${{fmtn .UnitPrice}}{{end}}</td><td class="num">{{usd .Monthly}}</td></tr>{{end}}
+</tbody></table>{{end}}
+{{if .Notes}}<h4>Notes</h4><ul class="tfnotes">{{range .Notes}}<li>{{.}}</li>{{end}}</ul>{{end}}
+{{if .UsageKeys}}<h4>Settings a usage file can change</h4><p class="dim">{{range $i, $k := .UsageKeys}}{{if $i}}, {{end}}<code>{{$k}}</code>{{end}}. When they are not set, pogi uses the defaults in the notes above{{if eq .Status "usage"}}; the usage part counts as $0, so the real bill could be higher{{end}}.</p>{{end}}
+{{if .Sizes}}<h4>Size</h4><p class="dim">Priced as <code>{{.Sizes.Current}}</code>{{if ne .Sizes.Current .Sizes.File}} (what-if; the files say <code>{{.Sizes.File}}</code>){{end}}.</p>
+<a class="btn" href="{{.SizesURL}}" data-drawer>Try another size</a>{{end}}
+</section>{{end}}
+
+
+{{define "tfvars"}}{{if .Vars}}<span class="dim">Variable files</span>{{range .Vars}}<button type="button" class="chip {{if .On}}on{{end}}" aria-pressed="{{.On}}" data-tf-var="{{.Path}}">{{.Path}}</button>{{end}}{{end}}
+{{if .WhatIfs}}<span class="st warn">what-if: {{plural .WhatIfs "size"}} changed</span><button type="button" class="btn sm" data-tf="reset-sizes">{{icon "reset"}}Reset</button>{{end}}{{end}}
+
+{{define "tfdiagram"}}
+<section class="tfres" data-state="{{.State}}">
+<p class="tftotal"><strong>{{if .Plan}}{{usd .Total}} a month after the plan{{else}}{{usd .Total}} a month{{end}}</strong>{{if .Plan}} <span class="dim">({{usd .Before}} before, {{sgn .Delta}})</span>{{end}}{{with .Warnings}} <span class="st warn">{{plural (len .) "warning"}}</span>{{end}}{{with .Unsure}} <span class="st warn" title="pogi can't price {{plural (len .) "changed resource"}}">not counting {{plural (len .) "changed resource"}}</span>{{end}}</p>
+<div class="toolbar tfbar">
+  <button type="button" class="btn sm" data-tf="folder">{{icon "folder"}}Choose folder</button><button type="button" class="btn sm" data-tf="plan">{{icon "file"}}Choose plan.json</button><button type="button" class="btn sm" data-tf="sample">{{icon "play"}}Try a sample</button>
+  <label class="dim tfgroup">Group by <select class="input" style="width:110px" data-tf="layout"><option value="module" {{if eq .Layout "module"}}selected{{end}}>Module</option><option value="network" {{if eq .Layout "network"}}selected{{end}}>Network</option></select></label>
+  {{template "tfvars" .}}
+  <span class="spacer"></span>
+  <button type="button" class="btn sm" data-tf-export="svg">{{icon "download"}}SVG</button><button type="button" class="btn sm" data-tf-export="png">{{icon "download"}}PNG</button><button type="button" class="btn sm" data-tf-export="json">{{icon "download"}}JSON</button><button type="button" class="btn sm" data-tf-export="markdown">{{icon "download"}}Markdown</button>
+</div>
+{{if .Empty}}<div class="tablecard"><div class="empty"><div class="ico">{{icon "box"}}</div><h2>No resources found</h2><p>The files have no resources, or only data sources and variables. Pick the folder that holds the resources, or a plan.json.</p></div></div>{{else}}
+<div class="toolbar tfdbar">
+  <strong>{{if .Plan}}{{.Summary}}{{else}}{{plural .Nodes "box"}}{{end}}</strong>
+  {{if .Plan}}<div class="legend"><span><i class="lg create"></i>create</span><span><i class="lg update"></i>update</span><span><i class="lg replace"></i>replace</span><span><i class="lg delete"></i>delete</span><span><i class="lg affected"></i>affected</span><span><i class="lg none"></i>unchanged</span></div>
+  {{else}}<span class="faint">Arrows run from a resource to the ones that use it. Click a box to see what depends on it.</span>{{end}}
+  <span class="spacer"></span>
+  <button type="button" class="btn sm" data-tf="zoom-out" aria-label="Zoom out">−</button><button type="button" class="btn sm" data-tf="zoom-in" aria-label="Zoom in">+</button><button type="button" class="btn sm" data-tf="fit">Fit</button>
+</div>
+<p class="tflegend">
+  <span><svg width="34" height="10" viewBox="0 0 34 10" aria-hidden="true"><path class="lgs" d="M0,5 H28"/><path d="M28,1 L34,5 L28,9z" fill="var(--faint)"/></svg>solid arrow: depends on</span>
+  {{if .Flows}}<span><svg width="34" height="10" viewBox="0 0 34 10" aria-hidden="true"><path class="lgf" d="M1,5 H28"/><path d="M28,1 L34,5 L28,9z" fill="var(--accent)"/></svg>dotted line: data flows (the dashes move the way it flows)</span>
+  <span><svg width="14" height="10" viewBox="0 0 14 10" aria-hidden="true"><circle class="lgp" cx="7" cy="5" r="3.5"/></svg>dots: live traffic pogi saw in the last 10 seconds</span>{{end}}
+</p>
+<div class="tfstage">
+  <div class="tfview" id="tfview" tabindex="0" role="application" aria-label="Resource diagram. Arrow keys move it, plus and minus zoom, 0 fits it. Tab goes to the boxes; Enter selects one.">
+    <div class="tfpan" id="tfpan">{{.SVG}}</div>
+  </div>
+  <aside class="tfside" id="tfside" aria-label="Selected resource" hidden></aside>
+</div>
+<div class="tfselbar" id="tfsel" role="status" aria-live="polite"></div>
+{{end}}
+<template id="tfr-head"><header><div class="eyebrow"></div><div class="title"><h2 id="dtitle"></h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header><div class="dbody"></div></template>
+{{range .Rows}}<template id="tfr-{{.N}}">{{template "tfrow" .}}</template>{{end}}
+</section>
+{{end}}

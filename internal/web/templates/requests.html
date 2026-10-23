@@ -16,7 +16,7 @@
 </tbody></table></div>
 {{end}}{{end}}
 {{define "rows"}}{{range .Entries}}
-<tr data-drawer="/_pogi/requests/{{.ID}}"><td class="mono faint">{{time .Time}}</td><td><span class="dot {{.Cloud}}"></span> {{title .Service}}</td><td class="name"><a href="/_pogi/requests/{{.ID}}" data-drawer>{{.Op}}</a></td>
+<tr data-drawer="/_pogi/requests/{{.ID}}"><td class="mono faint">{{time .Time}}</td><td><span class="dot {{.Cloud}}"></span> {{title .Service}}</td><td class="name"><a href="/_pogi/requests/{{.ID}}" data-drawer>{{.Op}}</a>{{if .Console}} <span class="tag" title="Made from the console, not by an SDK or CLI">console</span>{{end}}</td>
 <td class="mono dim trunc col-path" title="{{.Path}}">{{.Method}} {{.Path}}</td>
 <td><span class="st {{stc .Status}}">{{.Status}}{{if .Error}} {{.Error}}{{end}}</span>{{if .Chaos}} <span class="st warn">chaos</span>{{end}}{{with .IAM}}{{if hasPrefix . "deny"}} <span class="st bad" title="{{.}}">iam deny</span>{{end}}{{end}}</td>
 <td class="num mono dim"><span class="lat" style="width:{{lat .Ms}}px"></span>{{ms .Ms}}</td></tr>

@@ -6,7 +6,7 @@
 #   make generate        rewrite docs/reference/coverage.md and the README's Services table
 #   make release         archives and checksums.txt for 6 platforms in $(DIST)
 #   make docker-release  the release image from the linux binary of this machine's architecture
-VERSION ?= 0.1.0
+VERSION ?= 0.2.0
 DIST    ?= dist
 PLATFORMS ?= linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64
 LDFLAGS := -s -w -X github.com/nrndev/pogi.Version=$(VERSION)

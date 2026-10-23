@@ -15,7 +15,7 @@ import (
 )
 
 // noteKinds are the bell's categories, in the order of its footer chips.
-var noteKinds = [][2]string{{"sdk", "SDK errors"}, {"flows", "Failed flows"}, {"iam", "IAM denials"}, {"chaos", "Chaos faults"}}
+var noteKinds = [][2]string{{"sdk", "SDK errors"}, {"flows", "Failed flows"}, {"iam", "IAM denials"}, {"chaos", "Chaos faults"}, {"mine", "Your resources"}}
 
 func (ui *UI) noteRoutes(m *http.ServeMux) {
 	m.HandleFunc("GET /_pogi/notes", ui.notes)
@@ -71,6 +71,8 @@ func noteGroup(n note) string {
 		return "flows"
 	case "bolt":
 		return "chaos"
+	case "box":
+		return "mine"
 	}
 	return "sdk"
 }
@@ -89,7 +91,7 @@ func (ui *UI) noteRows(off []string, seen int64) []noteRow {
 		case strings.HasPrefix(e.IAM, "deny"):
 			n.Kind, n.Icon, n.Title, n.Text = "warn", "lock", "IAM would deny "+e.Service+" "+e.Op, strings.TrimPrefix(strings.TrimPrefix(e.IAM, "deny"), ": ")
 		case e.Status >= 400:
-			n.Kind, n.Icon, n.Title, n.Text = "bad", "x", e.Service+" "+e.Op+" failed", strings.TrimSpace(strconv.Itoa(e.Status)+" "+e.Error)
+			n.Kind, n.Icon, n.Title, n.Text, n.Quiet = "bad", "x", e.Service+" "+e.Op+" failed", strings.TrimSpace(strconv.Itoa(e.Status)+" "+e.Error), e.Console
 		default:
 			continue
 		}
@@ -110,7 +112,7 @@ func (ui *UI) noteRows(off []string, seen int64) []noteRow {
 
 var bellTmpl = template.Must(template.New("bell").Funcs(funcs).Parse(`<header>Notifications<a hx-post="/_pogi/notes" hx-vals='{"read":"1"}' hx-target="#bell" hx-swap="innerHTML">Mark all read</a></header>
 <div style="max-height:360px;overflow-y:auto">{{range .Items}}<a class="note-it {{if .Unread}}unread{{end}}" href="{{.Href}}" {{if .Drawer}}data-drawer{{end}}><span class="ico {{.Kind}}">{{icon .Icon}}</span><span><b>{{.Title}}</b><small>{{.Text}}</small></span><span class="ago">{{.Ago}}</span></a>
-{{else}}<div class="empty" style="padding:30px">Failed calls, failed flows, IAM denials and chaos faults show up here.</div>{{end}}</div>
+{{else}}<div class="empty" style="padding:30px">Failed calls, failed flows, IAM denials, chaos faults and your resources being ready or failing show up here.</div>{{end}}</div>
 <footer>Notify me about{{range .Kinds}}<span class="chip {{if .On}}on{{end}}" hx-post="/_pogi/notes" hx-vals='{"toggle":"{{.Key}}"}' hx-target="#bell" hx-swap="innerHTML">{{.Label}}</span>{{end}}</footer>
 {{if .OOB}}<span class="badge-dot" id="bellN" hx-swap-oob="true">{{if .Unread}}{{.Unread}}{{end}}</span>{{end}}`))
 
@@ -170,7 +172,7 @@ func (ui *UI) notesPoll(w http.ResponseWriter, r *http.Request) {
 		if n.Unread {
 			out.Unread++
 		}
-		if n.Time.UnixMilli() > since {
+		if n.Time.UnixMilli() > since && !n.Quiet {
 			out.New = append(out.New, map[string]string{"msg": n.Title + " · " + n.Text, "kind": n.Kind, "href": n.Href})
 		}
 	}

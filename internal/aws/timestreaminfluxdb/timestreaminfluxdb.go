@@ -128,7 +128,7 @@ var (
 func newID() string { return core.RandString(10, "abcdefghijklmnopqrstuvwxyz0123456789") }
 
 func (i *instance) spec() rds.Spec {
-	return rds.Spec{Image: "influxdb:2", Port: 8086, Host: i.Pogi.HostPort, Hello: "GET /health HTTP/1.0\r\n\r\n",
+	return rds.Spec{Image: "influxdb:2", Port: 8086, Host: i.Pogi.HostPort, Data: "/var/lib/influxdb2", Hello: "GET /health HTTP/1.0\r\n\r\n",
 		Env: []string{"DOCKER_INFLUXDB_INIT_MODE=setup", "DOCKER_INFLUXDB_INIT_USERNAME=" + i.Username, "DOCKER_INFLUXDB_INIT_PASSWORD=" + i.Pogi.Password,
 			"DOCKER_INFLUXDB_INIT_ORG=" + i.Organization, "DOCKER_INFLUXDB_INIT_BUCKET=" + i.Bucket, "DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=" + i.Token}}
 }
@@ -507,7 +507,7 @@ func (s *Service) Resources() []core.Table {
 		if v.Endpoint != "" {
 			ep = v.Endpoint + ":" + strconv.Itoa(v.Port)
 		}
-		t.Rows = append(t.Rows, []string{i.Name, i.Id, v.Status, ep, i.Organization, i.Bucket, p[1], p[0]})
+		t.Rows = append(t.Rows, []string{i.Name, i.Id, rds.StatusCell(v.Status, &i.Pogi), ep, i.Organization, i.Bucket, p[1], p[0]})
 	}
 	return []core.Table{t}
 }

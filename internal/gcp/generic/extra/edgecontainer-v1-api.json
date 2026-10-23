@@ -1,0 +1,1617 @@
+{
+ "name": "edgecontainer",
+ "resources": {
+  "all": {
+   "methods": {
+    "edgecontainer.projects.locations.clusters.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters",
+     "httpMethod": "POST",
+     "id": "edgecontainer.projects.locations.clusters.create",
+     "parameters": {
+      "clusterId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "requestId": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/clusters",
+     "request": {
+      "$ref": "Cluster"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}",
+     "httpMethod": "DELETE",
+     "id": "edgecontainer.projects.locations.clusters.delete",
+     "parameters": {
+      "name": {
+       "location": "path"
+      },
+      "requestId": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.generateAccessToken": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}:generateAccessToken",
+     "httpMethod": "GET",
+     "id": "edgecontainer.projects.locations.clusters.generateAccessToken",
+     "parameters": {
+      "cluster": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+cluster}:generateAccessToken",
+     "response": {
+      "$ref": "GenerateAccessTokenResponse"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.generateOfflineCredential": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}:generateOfflineCredential",
+     "httpMethod": "GET",
+     "id": "edgecontainer.projects.locations.clusters.generateOfflineCredential",
+     "parameters": {
+      "cluster": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+cluster}:generateOfflineCredential",
+     "response": {
+      "$ref": "GenerateOfflineCredentialResponse"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}",
+     "httpMethod": "GET",
+     "id": "edgecontainer.projects.locations.clusters.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Cluster"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters",
+     "httpMethod": "GET",
+     "id": "edgecontainer.projects.locations.clusters.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "orderBy": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/clusters",
+     "response": {
+      "$ref": "ListClustersResponse"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.nodePools.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}/nodePools",
+     "httpMethod": "POST",
+     "id": "edgecontainer.projects.locations.clusters.nodePools.create",
+     "parameters": {
+      "nodePoolId": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      },
+      "requestId": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/nodePools",
+     "request": {
+      "$ref": "NodePool"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.nodePools.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}/nodePools/{nodePoolsId}",
+     "httpMethod": "DELETE",
+     "id": "edgecontainer.projects.locations.clusters.nodePools.delete",
+     "parameters": {
+      "name": {
+       "location": "path"
+      },
+      "requestId": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.nodePools.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}/nodePools/{nodePoolsId}",
+     "httpMethod": "GET",
+     "id": "edgecontainer.projects.locations.clusters.nodePools.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "NodePool"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.nodePools.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}/nodePools",
+     "httpMethod": "GET",
+     "id": "edgecontainer.projects.locations.clusters.nodePools.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "orderBy": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/nodePools",
+     "response": {
+      "$ref": "ListNodePoolsResponse"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.nodePools.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}/nodePools/{nodePoolsId}",
+     "httpMethod": "PATCH",
+     "id": "edgecontainer.projects.locations.clusters.nodePools.patch",
+     "parameters": {
+      "nodePool": {
+       "location": "path"
+      },
+      "requestId": {
+       "location": "query"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+node_pool.name}",
+     "request": {
+      "$ref": "NodePool"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.patch": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}",
+     "httpMethod": "PATCH",
+     "id": "edgecontainer.projects.locations.clusters.patch",
+     "parameters": {
+      "cluster": {
+       "location": "path"
+      },
+      "requestId": {
+       "location": "query"
+      },
+      "updateMask": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+cluster.name}",
+     "request": {
+      "$ref": "Cluster"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "edgecontainer.projects.locations.clusters.upgradeCluster": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}:upgrade",
+     "httpMethod": "POST",
+     "id": "edgecontainer.projects.locations.clusters.upgradeCluster",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}:upgrade",
+     "request": {
+      "$ref": "UpgradeClusterRequest"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "edgecontainer.projects.locations.machines.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/machines/{machinesId}",
+     "httpMethod": "GET",
+     "id": "edgecontainer.projects.locations.machines.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Machine"
+     }
+    },
+    "edgecontainer.projects.locations.machines.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/machines",
+     "httpMethod": "GET",
+     "id": "edgecontainer.projects.locations.machines.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "orderBy": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/machines",
+     "response": {
+      "$ref": "ListMachinesResponse"
+     }
+    },
+    "edgecontainer.projects.locations.serverConfig.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/serverConfig",
+     "httpMethod": "GET",
+     "id": "edgecontainer.projects.locations.serverConfig.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}/serverConfig",
+     "response": {
+      "$ref": "ServerConfig"
+     }
+    },
+    "edgecontainer.projects.locations.vpnConnections.create": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/vpnConnections",
+     "httpMethod": "POST",
+     "id": "edgecontainer.projects.locations.vpnConnections.create",
+     "parameters": {
+      "parent": {
+       "location": "path"
+      },
+      "requestId": {
+       "location": "query"
+      },
+      "vpnConnectionId": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+parent}/vpnConnections",
+     "request": {
+      "$ref": "VpnConnection"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "edgecontainer.projects.locations.vpnConnections.delete": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/vpnConnections/{vpnConnectionsId}",
+     "httpMethod": "DELETE",
+     "id": "edgecontainer.projects.locations.vpnConnections.delete",
+     "parameters": {
+      "name": {
+       "location": "path"
+      },
+      "requestId": {
+       "location": "query"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "Operation"
+     }
+    },
+    "edgecontainer.projects.locations.vpnConnections.get": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/vpnConnections/{vpnConnectionsId}",
+     "httpMethod": "GET",
+     "id": "edgecontainer.projects.locations.vpnConnections.get",
+     "parameters": {
+      "name": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+name}",
+     "response": {
+      "$ref": "VpnConnection"
+     }
+    },
+    "edgecontainer.projects.locations.vpnConnections.list": {
+     "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/vpnConnections",
+     "httpMethod": "GET",
+     "id": "edgecontainer.projects.locations.vpnConnections.list",
+     "parameters": {
+      "filter": {
+       "location": "query"
+      },
+      "orderBy": {
+       "location": "query"
+      },
+      "pageSize": {
+       "location": "query"
+      },
+      "pageToken": {
+       "location": "query"
+      },
+      "parent": {
+       "location": "path"
+      }
+     },
+     "path": "v1/{+parent}/vpnConnections",
+     "response": {
+      "$ref": "ListVpnConnectionsResponse"
+     }
+    }
+   }
+  }
+ },
+ "rootUrl": "https://edgecontainer.googleapis.com/",
+ "schemas": {
+  "Authorization": {
+   "properties": {
+    "adminUsers": {
+     "$ref": "ClusterUser"
+    }
+   },
+   "type": "object"
+  },
+  "ChannelConfig": {
+   "properties": {
+    "defaultVersion": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Cluster": {
+   "properties": {
+    "authorization": {
+     "$ref": "Authorization"
+    },
+    "clusterCaCertificate": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "connectionState": {
+     "$ref": "ClusterConnectionState",
+     "readOnly": true
+    },
+    "controlPlane": {
+     "$ref": "ClusterControlPlane"
+    },
+    "controlPlaneEncryption": {
+     "$ref": "ClusterControlPlaneEncryption"
+    },
+    "controlPlaneVersion": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "defaultMaxPodsPerNode": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "endpoint": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "externalLoadBalancerIpv4AddressPools": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "externalLoadBalancerIpv6AddressPools": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "fleet": {
+     "$ref": "Fleet"
+    },
+    "labels": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "maintenanceEvents": {
+     "items": {
+      "$ref": "ClusterMaintenanceEvent"
+     },
+     "readOnly": true,
+     "type": "array"
+    },
+    "maintenancePolicy": {
+     "$ref": "MaintenancePolicy"
+    },
+    "name": {
+     "type": "string"
+    },
+    "networking": {
+     "$ref": "ClusterNetworking"
+    },
+    "nodeVersion": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "port": {
+     "format": "int32",
+     "readOnly": true,
+     "type": "integer"
+    },
+    "releaseChannel": {
+     "enum": [
+      "RELEASE_CHANNEL_UNSPECIFIED",
+      "NONE",
+      "REGULAR"
+     ],
+     "type": "string"
+    },
+    "status": {
+     "enum": [
+      "STATUS_UNSPECIFIED",
+      "PROVISIONING",
+      "RUNNING",
+      "DELETING",
+      "ERROR",
+      "RECONCILING"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "survivabilityConfig": {
+     "$ref": "ClusterSurvivabilityConfig"
+    },
+    "systemAddonsConfig": {
+     "$ref": "ClusterSystemAddonsConfig"
+    },
+    "targetVersion": {
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ClusterConnectionState": {
+   "properties": {
+    "state": {
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "DISCONNECTED",
+      "CONNECTED",
+      "CONNECTED_AND_SYNCING"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ClusterControlPlane": {
+   "properties": {
+    "local": {
+     "$ref": "ClusterControlPlaneLocal"
+    },
+    "remote": {
+     "$ref": "ClusterControlPlaneRemote"
+    }
+   },
+   "type": "object"
+  },
+  "ClusterControlPlaneEncryption": {
+   "properties": {
+    "kmsKey": {
+     "type": "string"
+    },
+    "kmsKeyActiveVersion": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "kmsKeyState": {
+     "enum": [
+      "KMS_KEY_STATE_UNSPECIFIED",
+      "KMS_KEY_STATE_KEY_AVAILABLE",
+      "KMS_KEY_STATE_KEY_UNAVAILABLE"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "kmsStatus": {
+     "readOnly": true,
+     "type": "object"
+    },
+    "resourceState": {
+     "enum": [
+      "RESOURCE_STATE_UNSPECIFIED",
+      "RESOURCE_STATE_LOCK_DOWN",
+      "RESOURCE_STATE_LOCK_DOWN_PENDING"
+     ],
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ClusterControlPlaneLocal": {
+   "properties": {
+    "controlPlaneNodeStorageSchema": {
+     "type": "string"
+    },
+    "machineFilter": {
+     "type": "string"
+    },
+    "nodeCount": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "nodeLocation": {
+     "type": "string"
+    },
+    "sharedDeploymentPolicy": {
+     "enum": [
+      "SHARED_DEPLOYMENT_POLICY_UNSPECIFIED",
+      "ALLOWED",
+      "DISALLOWED"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ClusterControlPlaneRemote": {
+   "properties": {},
+   "type": "object"
+  },
+  "ClusterMaintenanceEvent": {
+   "properties": {
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "endTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "operation": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "schedule": {
+     "enum": [
+      "SCHEDULE_UNSPECIFIED",
+      "IMMEDIATELY"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "startTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "state": {
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "RECONCILING",
+      "SUCCEEDED",
+      "FAILED"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "targetVersion": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "type": {
+     "enum": [
+      "TYPE_UNSPECIFIED",
+      "USER_INITIATED_UPGRADE",
+      "GOOGLE_DRIVEN_UPGRADE"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "uuid": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ClusterNetworking": {
+   "properties": {
+    "clusterIpv4CidrBlocks": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "servicesIpv4CidrBlocks": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ClusterSurvivabilityConfig": {
+   "properties": {
+    "offlineRebootTtl": {
+     "format": "google-duration",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ClusterSystemAddonsConfig": {
+   "properties": {
+    "ingress": {
+     "$ref": "ClusterSystemAddonsConfigIngress"
+    },
+    "vmServiceConfig": {
+     "$ref": "ClusterSystemAddonsConfigVMServiceConfig"
+    }
+   },
+   "type": "object"
+  },
+  "ClusterSystemAddonsConfigIngress": {
+   "properties": {
+    "disabled": {
+     "type": "boolean"
+    },
+    "ipv4Vip": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ClusterSystemAddonsConfigVMServiceConfig": {
+   "properties": {
+    "vmmEnabled": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "ClusterUser": {
+   "properties": {
+    "username": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ConfigData": {
+   "properties": {
+    "availableExternalLbPoolsIpv4": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "availableExternalLbPoolsIpv6": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "CreateClusterRequest": {
+   "properties": {
+    "cluster": {
+     "$ref": "Cluster"
+    },
+    "clusterId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "requestId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateNodePoolRequest": {
+   "properties": {
+    "nodePool": {
+     "$ref": "NodePool"
+    },
+    "nodePoolId": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    },
+    "requestId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "CreateVpnConnectionRequest": {
+   "properties": {
+    "parent": {
+     "type": "string"
+    },
+    "requestId": {
+     "type": "string"
+    },
+    "vpnConnection": {
+     "$ref": "VpnConnection"
+    },
+    "vpnConnectionId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteClusterRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "requestId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteNodePoolRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "requestId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "DeleteVpnConnectionRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "requestId": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Empty": {
+   "type": "object"
+  },
+  "Fleet": {
+   "properties": {
+    "membership": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "project": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAccessTokenRequest": {
+   "properties": {
+    "cluster": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateAccessTokenResponse": {
+   "properties": {
+    "accessToken": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "expireTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateOfflineCredentialRequest": {
+   "properties": {
+    "cluster": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GenerateOfflineCredentialResponse": {
+   "properties": {
+    "clientCertificate": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "clientKey": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "expireTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "userId": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetClusterRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetMachineRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetNodePoolRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetServerConfigRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "GetVpnConnectionRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListClustersRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "orderBy": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListClustersResponse": {
+   "properties": {
+    "clusters": {
+     "items": {
+      "$ref": "Cluster"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    },
+    "unreachable": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ListMachinesRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "orderBy": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListMachinesResponse": {
+   "properties": {
+    "machines": {
+     "items": {
+      "$ref": "Machine"
+     },
+     "type": "array"
+    },
+    "nextPageToken": {
+     "type": "string"
+    },
+    "unreachable": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ListNodePoolsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "orderBy": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListNodePoolsResponse": {
+   "properties": {
+    "nextPageToken": {
+     "type": "string"
+    },
+    "nodePools": {
+     "items": {
+      "$ref": "NodePool"
+     },
+     "type": "array"
+    },
+    "unreachable": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "ListVpnConnectionsRequest": {
+   "properties": {
+    "filter": {
+     "type": "string"
+    },
+    "orderBy": {
+     "type": "string"
+    },
+    "pageSize": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "pageToken": {
+     "type": "string"
+    },
+    "parent": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ListVpnConnectionsResponse": {
+   "properties": {
+    "nextPageToken": {
+     "type": "string"
+    },
+    "unreachable": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    },
+    "vpnConnections": {
+     "items": {
+      "$ref": "VpnConnection"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "LocationMetadata": {
+   "properties": {
+    "availableZones": {
+     "additionalProperties": {
+      "$ref": "ZoneMetadata"
+     },
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "Machine": {
+   "properties": {
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "disabled": {
+     "readOnly": true,
+     "type": "boolean"
+    },
+    "hostedNode": {
+     "type": "string"
+    },
+    "labels": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "name": {
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "version": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "zone": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "MaintenanceExclusionWindow": {
+   "properties": {
+    "id": {
+     "type": "string"
+    },
+    "window": {
+     "$ref": "TimeWindow"
+    }
+   },
+   "type": "object"
+  },
+  "MaintenancePolicy": {
+   "properties": {
+    "maintenanceExclusions": {
+     "items": {
+      "$ref": "MaintenanceExclusionWindow"
+     },
+     "type": "array"
+    },
+    "window": {
+     "$ref": "MaintenanceWindow"
+    }
+   },
+   "type": "object"
+  },
+  "MaintenanceWindow": {
+   "properties": {
+    "recurringWindow": {
+     "$ref": "RecurringTimeWindow"
+    }
+   },
+   "type": "object"
+  },
+  "NodePool": {
+   "properties": {
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "labels": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "localDiskEncryption": {
+     "$ref": "NodePoolLocalDiskEncryption"
+    },
+    "machineFilter": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "nodeConfig": {
+     "$ref": "NodePoolNodeConfig"
+    },
+    "nodeCount": {
+     "format": "int32",
+     "type": "integer"
+    },
+    "nodeLocation": {
+     "type": "string"
+    },
+    "nodeVersion": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "NodePoolLocalDiskEncryption": {
+   "properties": {
+    "kmsKey": {
+     "type": "string"
+    },
+    "kmsKeyActiveVersion": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "kmsKeyState": {
+     "enum": [
+      "KMS_KEY_STATE_UNSPECIFIED",
+      "KMS_KEY_STATE_KEY_AVAILABLE",
+      "KMS_KEY_STATE_KEY_UNAVAILABLE"
+     ],
+     "readOnly": true,
+     "type": "string"
+    },
+    "kmsStatus": {
+     "readOnly": true,
+     "type": "object"
+    },
+    "resourceState": {
+     "enum": [
+      "RESOURCE_STATE_UNSPECIFIED",
+      "RESOURCE_STATE_LOCK_DOWN",
+      "RESOURCE_STATE_LOCK_DOWN_PENDING"
+     ],
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "NodePoolNodeConfig": {
+   "properties": {
+    "labels": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "nodeStorageSchema": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Operation": {
+   "properties": {
+    "done": {
+     "type": "boolean"
+    },
+    "error": {
+     "type": "object"
+    },
+    "metadata": {
+     "type": "object"
+    },
+    "name": {
+     "type": "string"
+    },
+    "response": {
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "OperationMetadata": {
+   "properties": {
+    "apiVersion": {
+     "type": "string"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "type": "string"
+    },
+    "endTime": {
+     "format": "google-datetime",
+     "type": "string"
+    },
+    "requestedCancellation": {
+     "type": "boolean"
+    },
+    "statusMessage": {
+     "type": "string"
+    },
+    "statusReason": {
+     "enum": [
+      "STATUS_REASON_UNSPECIFIED",
+      "UPGRADE_PAUSED"
+     ],
+     "type": "string"
+    },
+    "target": {
+     "type": "string"
+    },
+    "verb": {
+     "type": "string"
+    },
+    "warnings": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "Quota": {
+   "properties": {
+    "limit": {
+     "type": "number"
+    },
+    "metric": {
+     "type": "string"
+    },
+    "usage": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "RecurringTimeWindow": {
+   "properties": {
+    "recurrence": {
+     "type": "string"
+    },
+    "window": {
+     "$ref": "TimeWindow"
+    }
+   },
+   "type": "object"
+  },
+  "ServerConfig": {
+   "properties": {
+    "channels": {
+     "additionalProperties": {
+      "$ref": "ChannelConfig"
+     },
+     "readOnly": true,
+     "type": "object"
+    },
+    "defaultVersion": {
+     "readOnly": true,
+     "type": "string"
+    },
+    "versions": {
+     "items": {
+      "$ref": "Version"
+     },
+     "readOnly": true,
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "TimeWindow": {
+   "properties": {
+    "endTime": {
+     "format": "google-datetime",
+     "type": "string"
+    },
+    "startTime": {
+     "format": "google-datetime",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateClusterRequest": {
+   "properties": {
+    "cluster": {
+     "$ref": "Cluster"
+    },
+    "requestId": {
+     "type": "string"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpdateNodePoolRequest": {
+   "properties": {
+    "nodePool": {
+     "$ref": "NodePool"
+    },
+    "requestId": {
+     "type": "string"
+    },
+    "updateMask": {
+     "format": "google-fieldmask",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "UpgradeClusterRequest": {
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "requestId": {
+     "type": "string"
+    },
+    "schedule": {
+     "enum": [
+      "SCHEDULE_UNSPECIFIED",
+      "IMMEDIATELY"
+     ],
+     "type": "string"
+    },
+    "targetVersion": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "Version": {
+   "properties": {
+    "name": {
+     "readOnly": true,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "VpnConnection": {
+   "properties": {
+    "bgpRoutingMode": {
+     "enum": [
+      "BGP_ROUTING_MODE_UNSPECIFIED",
+      "REGIONAL",
+      "GLOBAL"
+     ],
+     "type": "string"
+    },
+    "cluster": {
+     "type": "string"
+    },
+    "createTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "details": {
+     "$ref": "VpnConnectionDetails",
+     "readOnly": true
+    },
+    "enableHighAvailability": {
+     "type": "boolean"
+    },
+    "labels": {
+     "additionalProperties": {
+      "type": "string"
+     },
+     "type": "object"
+    },
+    "name": {
+     "type": "string"
+    },
+    "natGatewayIp": {
+     "type": "string"
+    },
+    "router": {
+     "type": "string"
+    },
+    "updateTime": {
+     "format": "google-datetime",
+     "readOnly": true,
+     "type": "string"
+    },
+    "vpc": {
+     "type": "string"
+    },
+    "vpcProject": {
+     "$ref": "VpnConnectionVpcProject"
+    }
+   },
+   "type": "object"
+  },
+  "VpnConnectionDetails": {
+   "properties": {
+    "cloudRouter": {
+     "$ref": "VpnConnectionDetailsCloudRouter"
+    },
+    "cloudVpns": {
+     "items": {
+      "$ref": "VpnConnectionDetailsCloudVpn"
+     },
+     "type": "array"
+    },
+    "error": {
+     "type": "string"
+    },
+    "state": {
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "STATE_CONNECTED",
+      "STATE_CONNECTING",
+      "STATE_ERROR"
+     ],
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "VpnConnectionDetailsCloudRouter": {
+   "properties": {
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "VpnConnectionDetailsCloudVpn": {
+   "properties": {
+    "gateway": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "VpnConnectionVpcProject": {
+   "properties": {
+    "projectId": {
+     "type": "string"
+    },
+    "serviceAccount": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ZoneMetadata": {
+   "properties": {
+    "configData": {
+     "$ref": "ConfigData"
+    },
+    "quota": {
+     "items": {
+      "$ref": "Quota"
+     },
+     "type": "array"
+    },
+    "rackTypes": {
+     "additionalProperties": {
+      "enum": [
+       "RACK_TYPE_UNSPECIFIED",
+       "BASE",
+       "EXPANSION"
+      ],
+      "type": "string"
+     },
+     "type": "object"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "version": "v1"
+}

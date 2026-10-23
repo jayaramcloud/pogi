@@ -1,0 +1,14 @@
+{{define "head"}}<div class="ph"><div><h1>Cost estimate</h1><p class="sub">What a Terraform folder or a plan would cost on the real cloud.</p></div></div>{{end}}
+
+{{define "content"}}{{with .Data}}
+<div class="tabs"><a href="/_pogi/cost">Running in pogi</a><a href="/_pogi/cost/terraform" class="on" aria-current="page">Terraform</a></div>
+<div id="tf" data-view="table">
+  <div id="tf-err" aria-live="assertive">{{with .Err}}<div class="flash" role="alert">{{.}}</div>{{end}}</div>
+  <div id="tf-empty" {{if .Loaded}}hidden{{end}}>
+    <div class="empty"><div class="ico">{{icon "box"}}</div><h2>No Terraform loaded yet</h2><p>Load a folder or a plan.json on the Terraform page, and its cost shows here.</p><a class="btn primary" href="/_pogi/terraform">Open the Terraform page</a></div>
+  </div>
+  <div id="tf-load" class="banner" role="status" hidden>Reading and pricing the files…</div>
+  <p class="sr" id="tf-live" aria-live="polite"></p>
+  <div id="tf-result">{{.Loaded}}</div>
+</div>
+{{end}}{{end}}

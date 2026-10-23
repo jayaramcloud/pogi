@@ -233,14 +233,14 @@ func (ui *UI) flows(w http.ResponseWriter, r *http.Request) {
 		ui.fragment(w, "flows", "rows", pg)
 		return
 	}
-	ui.render(w, r, "flows", "Activity", "requests", pg)
+	ui.render(w, r, "flows", "Flows", "flows", pg)
 }
 
 func (ui *UI) flow(w http.ResponseWriter, r *http.Request) {
 	trace := r.PathValue("trace")
 	for _, f := range ui.buildFlows() {
 		if f.Trace == trace {
-			ui.renderX(w, r, "flows", f.Trigger, "requests", "Flow · trace "+f.Trace+" · "+f.Start.Local().Format("15:04:05"), flowsPage{One: f})
+			ui.renderX(w, r, "flows", f.Trigger, "flows", "Flow · trace "+f.Trace+" · "+f.Start.Local().Format("15:04:05"), flowsPage{One: f})
 			return
 		}
 	}

@@ -177,7 +177,8 @@ func TestFunctionApps(t *testing.T) {
 	}
 	r.put("Microsoft.Web/sites/pogifn", map[string]any{"location": "eastus", "kind": "functionapp,linux", "properties": map[string]any{ // update
 		"siteConfig": map[string]any{"appSettings": []any{map[string]any{"name": "FUNCTIONS_WORKER_RUNTIME", "value": "node"}}}}})
-	r.put("Microsoft.Web/sites/webapp", map[string]any{"location": "eastus", "kind": "app,linux"})
+	r.put("Microsoft.Web/sites/webapp", map[string]any{"location": "eastus", "kind": "app,linux", // App Service needs its plan
+		"properties": map[string]any{"serverFarmId": rg + "Microsoft.Web/serverfarms/plan1"}})
 	if found("webapp") {
 		t.Fatal("a plain web app became a function app")
 	}

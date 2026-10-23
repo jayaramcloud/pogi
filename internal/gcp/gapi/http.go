@@ -251,7 +251,7 @@ func ParseBody(b []byte, field string) (map[string]any, error) {
 	d := json.NewDecoder(bytes.NewReader(b))
 	d.UseNumber()
 	if err := d.Decode(&v); err != nil {
-		return nil, Invalid("Invalid JSON payload received. %v", err)
+		return nil, Invalid("Invalid JSON payload received. %s", core.PlainJSON(err))
 	}
 	obj, isObj := v.(map[string]any)
 	switch {
@@ -280,7 +280,7 @@ func Decode(msg proto.Message, in map[string]any) error {
 	}
 	raw, _ := json.Marshal(in)
 	if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(raw, msg); err != nil {
-		return Invalid("Invalid JSON payload received. %v", err)
+		return Invalid("Invalid JSON payload received. %s", PlainProto(raw, err))
 	}
 	if fd := md.Fields().ByName("page_size"); fd != nil && fd.Kind() == protoreflect.Int32Kind {
 		if n := msg.ProtoReflect().Get(fd).Int(); n < 0 { // Page cannot refuse: it has no error to return
@@ -369,4 +369,16 @@ func coerce(md protoreflect.MessageDescriptor, in map[string]any) {
 			}
 		}
 	}
+}
+
+// PlainProto says in plain words why a protojson body was refused. protojson reports "syntax error" even for
+// a field of the wrong type, so a body that is valid JSON gets the wrong-type sentence. Go's text follows.
+func PlainProto(body []byte, err error) string {
+	if !json.Valid(body) {
+		var v any
+		if e := json.Unmarshal(body, &v); e != nil {
+			return core.PlainJSON(e)
+		}
+	}
+	return "a field has the wrong type or an invalid value — " + err.Error()
 }

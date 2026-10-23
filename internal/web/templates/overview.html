@@ -1,5 +1,5 @@
-{{define "head"}}{{with .Data}}{{if .FirstRun}}<div class="ph"><div><h1>Welcome to pogi</h1><p class="sub">{{.Services}} AWS, Google Cloud and Azure services are running on <code>{{.Endpoint}}</code>. Point a tool at it and its calls show up here live.</p></div></div>
-{{else}}<div class="ph"><div><h1>Home</h1><p class="sub">{{.InUse}} of {{.Services}} services in use · {{.Resources}} resources · scope <span class="mono">{{if eq .Cloud "gcp"}}{{.Scope.Project}}{{else if eq .Cloud "azure"}}{{.Scope.Subscription}}{{else}}{{.Scope.Account}} / {{.Scope.Region}}{{end}}</span></p></div>
+{{define "head"}}{{with .Data}}{{if .FirstRun}}<div class="ph"><div><h1>Welcome to pogi</h1><p class="sub"><span title="{{.CountFull}}">{{.Count}} AWS, Google Cloud and Azure services</span> are running on <code>{{.Endpoint}}</code>. Point a tool at it and its calls show up here live.</p></div></div>
+{{else}}<div class="ph"><div><h1>Home</h1><p class="sub">{{.InUse}} of <span title="{{.CountFull}}">{{.Count}} services</span> in use · {{.Resources}} resources · scope <span class="mono">{{if eq .Cloud "gcp"}}{{.Scope.Project}}{{else if eq .Cloud "azure"}}{{.Scope.Subscription}}{{else}}{{.Scope.Account}} / {{.Scope.Region}}{{end}}</span></p></div>
   <div class="actions"><button class="btn" hx-post="/_pogi/snapshots" hx-swap="none">{{icon "camera"}}Save snapshot</button>
     <button class="btn" data-menu="home-more" title="More" aria-label="More" aria-haspopup="menu" aria-expanded="false">{{icon "more"}}</button>
     <div hidden><a href="/_pogi/snapshots">{{icon "camera"}}Snapshots…</a><hr>
@@ -9,7 +9,7 @@
 {{define "quick"}}{{range .}}<a {{if .Href}}href="{{.Href}}" data-drawer{{else}}href="/_pogi/snapshots"{{end}}><span class="ico">{{icon .Icon}}</span><span>{{.Title}}<small>{{.Sub}}</small></span><span class="go">{{icon "right"}}</span></a>{{end}}{{end}}
 
 {{define "feed"}}<tbody id="feed" hx-get="/_pogi/" data-poll="2000" data-poll-live hx-trigger="pogi-poll" hx-select="#feed" hx-target="#feed" hx-swap="outerHTML">
-{{range .Feed}}<tr data-drawer="/_pogi/requests/{{.ID}}"><td class="mono faint">{{time .Time}}</td><td><span class="dot {{.Cloud}}"></span> {{title .Service}}</td><td class="name"><a href="/_pogi/requests/{{.ID}}" data-drawer>{{.Op}}</a></td>
+{{range .Feed}}<tr data-drawer="/_pogi/requests/{{.ID}}"><td class="mono faint">{{time .Time}}</td><td><span class="dot {{.Cloud}}"></span> {{title .Service}}</td><td class="name"><a href="/_pogi/requests/{{.ID}}" data-drawer>{{.Op}}</a>{{if .Console}} <span class="tag" title="Made from the console, not by an SDK or CLI">console</span>{{end}}</td>
 <td><span class="st {{stc .Status}}">{{.Status}}{{if .Error}} {{.Error}}{{end}}</span>{{if .Chaos}} <span class="st warn">chaos</span>{{end}}</td>
 <td class="num mono dim"><span class="lat" style="width:{{lat .Ms}}px"></span>{{ms .Ms}}</td></tr>
 {{end}}</tbody>{{end}}
@@ -52,8 +52,8 @@ pogi cert</pre><button class="btn sm copy" data-copy="#snip-azure">{{icon "copy"
     </div></section>
   <section class="card"><header>Or create something here</header><div class="qa">{{template "quick" .Quick}}</div></section>
 </div>
-<section class="card"><header>Popular services <a class="more" href="/_pogi/services">All {{.Services}} →</a></header><div class="body"><div class="tiles">
-  {{range .Tiles}}<a class="tile" href="/_pogi/resources/{{.Name}}"><span class="dot {{.Cloud}}"></span><span class="nm">{{.Title}}</span><span class="tag {{.Depth}}">{{.Depth}}</span><span class="cnt"></span>
+<section class="card"><header>Popular services <a class="more" href="/_pogi/services">All {{.Count}} →</a></header><div class="body"><div class="tiles">
+  {{range .Tiles}}<a class="tile" href="/_pogi/resources/{{.Name}}"><span class="dot {{.Cloud}}"></span><span class="nm">{{.Title}}</span>{{depthTag .Depth false}}<span class="cnt"></span>
     <span class="pin {{if .Pinned}}on{{end}}" role="button" tabindex="0" aria-pressed="{{if .Pinned}}true{{else}}false{{end}}" aria-label="{{if .Pinned}}Unpin {{.Title}}{{else}}Pin {{.Title}} to sidebar{{end}}" data-pin="{{.Name}}" title="{{if .Pinned}}Unpin{{else}}Pin to sidebar{{end}}">{{icon "star"}}</span></a>{{end}}
 </div></div></section>
 {{else}}
@@ -78,7 +78,7 @@ pogi cert</pre><button class="btn sm copy" data-copy="#snip-azure">{{icon "copy"
     <table class="dt">{{template "feed" .}}</table></section>
   <section class="card"><header>Recent errors <a class="more" href="/_pogi/requests?errors=1">All →</a></header>
     <table class="dt"><tbody>
-    {{range .Recent}}<tr data-drawer="/_pogi/requests/{{.ID}}"><td><span class="dot {{.Cloud}}"></span> <a href="/_pogi/requests/{{.ID}}" data-drawer>{{.Op}}</a><div class="faint" style="font-size:11.5px;line-height:1">{{time .Time}}</div></td>
+    {{range .Recent}}<tr data-drawer="/_pogi/requests/{{.ID}}"><td><span class="dot {{.Cloud}}"></span> <a href="/_pogi/requests/{{.ID}}" data-drawer>{{.Op}}</a>{{if .Console}} <span class="tag" title="Made from the console, not by an SDK or CLI">console</span>{{end}}<div class="faint" style="font-size:11.5px;line-height:1">{{time .Time}}</div></td>
       <td style="text-align:right"><span class="st {{stc .Status}}">{{.Status}}{{if .Error}} {{.Error}}{{end}}</span>{{if .Chaos}} <span class="st warn">chaos</span>{{end}}</td></tr>
     {{else}}<tr><td class="empty">{{if .OtherErrors}}No errors in {{cloudName .Cloud}} · <span class="cloudnote"><form method="post" action="/_pogi/cloud" hx-boost="false"><input type="hidden" name="back" value="/_pogi/"><button name="cloud" value="">{{.OtherErrors}} in other clouds</button></form></span>{{else}}No errors. Nice.{{end}}</td></tr>{{end}}
     </tbody></table></section>

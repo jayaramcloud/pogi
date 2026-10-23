@@ -618,7 +618,7 @@ func (m *model) parse(r *http.Request, body []byte) (*operation, map[string]any,
 		if len(bytes.TrimSpace(body)) > 0 && op.in != nil {
 			var raw any
 			if err := json.Unmarshal(body, &raw); err != nil {
-				return op, nil, w, badRequest("SerializationException", "invalid JSON: %v", err)
+				return op, nil, w, badRequest("SerializationException", "%s", core.PlainJSON(err))
 			}
 			if v, ok := fromJSON(op.in, raw).(map[string]any); ok {
 				in = v
@@ -769,7 +769,7 @@ func (m *model) restInput(op *operation, labels map[string]string, r *http.Reque
 			} else {
 				var raw any
 				if err := json.Unmarshal(body, &raw); err != nil {
-					return nil, badRequest("SerializationException", "invalid JSON: %v", err)
+					return nil, badRequest("SerializationException", "%s", core.PlainJSON(err))
 				}
 				if v := fromJSON(pm.sh, raw); v != nil {
 					in[sh.Payload] = v
@@ -792,7 +792,7 @@ func (m *model) restInput(op *operation, labels map[string]string, r *http.Reque
 	}
 	var raw map[string]any
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return nil, badRequest("SerializationException", "invalid JSON: %v", err)
+		return nil, badRequest("SerializationException", "%s", core.PlainJSON(err))
 	}
 	for _, n := range sh.names {
 		mr := sh.Members[n]

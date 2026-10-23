@@ -325,6 +325,20 @@ func indexOf(seg []string, s string) int {
 
 var bucketName = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$`)
 
+// validBucket applies GCS's length rule: 3 to 63 characters, or up to 222 when dots split the name into parts
+// of at most 63 each.
+func validBucket(name string) bool {
+	if !bucketName.MatchString(name) {
+		return false
+	}
+	for _, part := range strings.Split(name, ".") {
+		if len(part) > 63 {
+			return false
+		}
+	}
+	return len(name) <= 63 || strings.Contains(name, ".")
+}
+
 func (b *Bucket) resource(host string) map[string]any {
 	out := map[string]any{"kind": "storage#bucket", "id": b.Name, "name": b.Name, "selfLink": "http://" + host + "/storage/v1/b/" + b.Name,
 		"projectNumber": "0", "timeCreated": b.Created.Format(time.RFC3339Nano), "updated": b.Updated.Format(time.RFC3339Nano),
@@ -352,7 +366,7 @@ func applyBucket(b *Bucket, body []byte) error {
 	var m bucketMeta
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(body, &m); err != nil {
-		return badRequest("Invalid JSON payload: %v", err)
+		return badRequest("Invalid JSON payload: %s", core.PlainJSON(err))
 	}
 	json.Unmarshal(body, &raw)
 	if m.Location != "" {
@@ -384,7 +398,7 @@ func (s *Service) insertBucket(w http.ResponseWriter, r *http.Request) error {
 	body := core.Body(r)
 	var m bucketMeta
 	json.Unmarshal(body, &m)
-	if !bucketName.MatchString(m.Name) {
+	if !validBucket(m.Name) {
 		return badRequest("Invalid bucket name: '%s'", m.Name)
 	}
 	now := time.Now().UTC()
@@ -1434,7 +1448,7 @@ func (s *Service) Remove(bucket, name string) error {
 
 // MakeBucket creates a bucket in the console's default project.
 func (s *Service) MakeBucket(name string) error {
-	if !bucketName.MatchString(name) {
+	if !validBucket(name) {
 		return badRequest("Invalid bucket name: '%s'", name)
 	}
 	s.mu.Lock()

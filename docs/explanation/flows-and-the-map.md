@@ -7,7 +7,7 @@ description: How pogi links calls into flows, and what the Map draws.
 
 One call often sets off many more. You put a file in S3, S3 tells a queue, a function reads the queue and writes to a database. pogi follows these steps for you and shows them in two places:
 
-- **Flows** (under Activity) list each chain of steps as one row.
+- **Flows** (the Flows view on the Activity page) list each chain of steps as one row. A flow is one chain of calls and deliveries that share a trace ID.
 - **The Map** draws how your resources are wired.
 
 ## How are steps linked?

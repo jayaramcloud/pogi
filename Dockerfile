@@ -6,7 +6,9 @@
 # expect with `pogi lambda-sdks` (docker exec). Mounting /var/run/docker.sock is optional: then
 # provided.* runtimes and container-backed services (RDS, ECS, EKS…) work too, but that socket gives
 # pogi, and anyone who can reach its port, control of your Docker.
-FROM golang:1.27-alpine AS build
+# Keep this tag equal to the go line in go.mod. The image sets GOTOOLCHAIN=local, so an older cached
+# 1.27 image cannot fetch the Go that go.mod asks for, and the build fails.
+FROM golang:1.27.3-alpine AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download

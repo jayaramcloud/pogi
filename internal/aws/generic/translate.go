@@ -1,7 +1,6 @@
 package generic
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"strings"
@@ -22,7 +21,7 @@ func init() {
 		if src == "auto" {
 			src = str(aiAmap(languagesOf(c, text)[0])["LanguageCode"])
 		}
-		out, ok, err := aiGateway(c).Complete(context.Background(), "translate", "You are a translator. Reply with only the translation, nothing else.",
+		out, ok, err := aiGateway(c).Complete(aiCtx(c), "translate", "You are a translator. Reply with only the translation, nothing else.",
 			fmt.Sprintf("Translate from %s to %s:\n\n%s", src, dst, text))
 		if err != nil || !ok || strings.TrimSpace(out) == "" {
 			out = fmt.Sprintf("[pogi canned translation %s->%s] %s", src, dst, text) // ponytail: a failing local model also gives the canned text

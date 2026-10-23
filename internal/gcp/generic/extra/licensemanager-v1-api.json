@@ -1,0 +1,273 @@
+{
+ "name": "licensemanager",
+ "version": "v1",
+ "rootUrl": "https://licensemanager.googleapis.com/",
+ "schemas": {
+  "Configuration": {
+   "type": "object",
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "displayName": {
+     "type": "string"
+    },
+    "product": {
+     "type": "string"
+    },
+    "licenseType": {
+     "type": "string",
+     "enum": [
+      "LICENSE_TYPE_UNSPECIFIED",
+      "LICENSE_TYPE_PER_MONTH_PER_USER",
+      "LICENSE_TYPE_BRING_YOUR_OWN_LICENSE"
+     ]
+    },
+    "currentBillingInfo": {
+     "$ref": "BillingInfo"
+    },
+    "nextBillingInfo": {
+     "$ref": "BillingInfo"
+    },
+    "createTime": {
+     "type": "string",
+     "format": "google-datetime",
+     "readOnly": true
+    },
+    "updateTime": {
+     "type": "string",
+     "format": "google-datetime",
+     "readOnly": true
+    },
+    "labels": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     }
+    },
+    "state": {
+     "type": "string",
+     "readOnly": true,
+     "enum": [
+      "STATE_UNSPECIFIED",
+      "STATE_ACTIVE",
+      "STATE_SUSPENDED",
+      "STATE_DELETED"
+     ]
+    },
+    "licenseCount": {
+     "type": "string",
+     "format": "int64"
+    },
+    "active": {
+     "type": "boolean"
+    }
+   }
+  },
+  "BillingInfo": {
+   "type": "object",
+   "properties": {
+    "userCountBilling": {
+     "$ref": "UserCountBillingInfo"
+    },
+    "startTime": {
+     "type": "string",
+     "format": "google-datetime"
+    },
+    "endTime": {
+     "type": "string",
+     "format": "google-datetime"
+    }
+   }
+  },
+  "UserCountBillingInfo": {
+   "type": "object",
+   "properties": {
+    "userCount": {
+     "type": "integer",
+     "format": "int32"
+    }
+   }
+  },
+  "ListConfigurationsResponse": {
+   "type": "object",
+   "properties": {
+    "configurations": {
+     "type": "array",
+     "items": {
+      "$ref": "Configuration"
+     }
+    },
+    "nextPageToken": {
+     "type": "string"
+    },
+    "unreachable": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "Operation": {
+   "type": "object",
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "done": {
+     "type": "boolean"
+    },
+    "metadata": {
+     "type": "object"
+    },
+    "response": {
+     "type": "object"
+    },
+    "error": {
+     "type": "object"
+    }
+   }
+  },
+  "Empty": {
+   "type": "object",
+   "properties": {}
+  }
+ },
+ "resources": {
+  "projects": {
+   "resources": {
+    "locations": {
+     "resources": {
+      "configurations": {
+       "methods": {
+        "create": {
+         "id": "licensemanager.projects.locations.configurations.create",
+         "path": "v1/{+parent}/configurations",
+         "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/configurations",
+         "httpMethod": "POST",
+         "parameters": {
+          "parent": {
+           "location": "path",
+           "required": true,
+           "type": "string"
+          },
+          "configurationId": {
+           "location": "query",
+           "type": "string"
+          },
+          "requestId": {
+           "location": "query",
+           "type": "string"
+          }
+         },
+         "request": {
+          "$ref": "Configuration"
+         },
+         "response": {
+          "$ref": "Operation"
+         }
+        },
+        "get": {
+         "id": "licensemanager.projects.locations.configurations.get",
+         "path": "v1/{+name}",
+         "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/configurations/{configurationsId}",
+         "httpMethod": "GET",
+         "parameters": {
+          "name": {
+           "location": "path",
+           "required": true,
+           "type": "string"
+          }
+         },
+         "response": {
+          "$ref": "Configuration"
+         }
+        },
+        "list": {
+         "id": "licensemanager.projects.locations.configurations.list",
+         "path": "v1/{+parent}/configurations",
+         "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/configurations",
+         "httpMethod": "GET",
+         "parameters": {
+          "parent": {
+           "location": "path",
+           "required": true,
+           "type": "string"
+          },
+          "pageSize": {
+           "location": "query",
+           "type": "integer"
+          },
+          "pageToken": {
+           "location": "query",
+           "type": "string"
+          },
+          "filter": {
+           "location": "query",
+           "type": "string"
+          },
+          "orderBy": {
+           "location": "query",
+           "type": "string"
+          }
+         },
+         "response": {
+          "$ref": "ListConfigurationsResponse"
+         }
+        },
+        "patch": {
+         "id": "licensemanager.projects.locations.configurations.patch",
+         "path": "v1/{+name}",
+         "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/configurations/{configurationsId}",
+         "httpMethod": "PATCH",
+         "parameters": {
+          "name": {
+           "location": "path",
+           "required": true,
+           "type": "string"
+          },
+          "updateMask": {
+           "location": "query",
+           "type": "string"
+          },
+          "requestId": {
+           "location": "query",
+           "type": "string"
+          }
+         },
+         "request": {
+          "$ref": "Configuration"
+         },
+         "response": {
+          "$ref": "Operation"
+         }
+        },
+        "delete": {
+         "id": "licensemanager.projects.locations.configurations.delete",
+         "path": "v1/{+name}",
+         "flatPath": "v1/projects/{projectsId}/locations/{locationsId}/configurations/{configurationsId}",
+         "httpMethod": "DELETE",
+         "parameters": {
+          "name": {
+           "location": "path",
+           "required": true,
+           "type": "string"
+          },
+          "requestId": {
+           "location": "query",
+           "type": "string"
+          }
+         },
+         "response": {
+          "$ref": "Operation"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

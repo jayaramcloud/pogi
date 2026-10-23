@@ -32,7 +32,7 @@ func Services() []Factory {
 }
 
 // globalServices keep one set of resources for every region, with region-less ARNs.
-var globalServices = map[string]bool{"globalaccelerator": true, "route53": true, "account": true}
+var globalServices = map[string]bool{"globalaccelerator": true, "route53": true, "account": true, "shield": true}
 
 // arnSep is the separator after the first segment of an ARN's resource part (default "/").
 var arnSep = map[string]string{"backup": ":"}

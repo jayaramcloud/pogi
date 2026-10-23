@@ -1,7 +1,6 @@
 package generic
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -118,7 +117,7 @@ func embedding(id string, in map[string]any) (map[string]any, bool) {
 
 // ask runs a request through the gateway; a failing local model is Bedrock's ModelErrorException.
 func ask(c *Call, id string, q aimodel.Request) (aimodel.Response, error) {
-	r, err := aiGateway(c).Chat(context.Background(), id, q)
+	r, err := aiGateway(c).Chat(aiCtx(c), id, q)
 	if err != nil {
 		return r, core.Errorf(424, "ModelErrorException", "%v", err)
 	}

@@ -13,6 +13,7 @@ import (
 	"os"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -424,6 +425,15 @@ func version(engine, v string) string {
 	return v
 }
 
+// pgData is the data folder of the postgres image: from version 18 the image keeps a folder per major version
+// under /var/lib/postgresql.
+func pgData(major string) string {
+	if n, _ := strconv.Atoi(major); n >= 18 {
+		return "/var/lib/postgresql"
+	}
+	return "/var/lib/postgresql/data"
+}
+
 // dbSpec is the container of an engine: the official image of its major version.
 func dbSpec(engine, version, user, password, db string, host int) Spec {
 	if sp, ok := otherSpec(engine, user, password, host); ok {
@@ -432,6 +442,7 @@ func dbSpec(engine, version, user, password, db string, host int) Spec {
 	m := major(engine, version)
 	if strings.Contains(engine, "postgres") {
 		sp := Spec{Image: "postgres:" + m + "-alpine", Port: 5432, Host: host, Hello: "\x00\x00\x00\x08\x04\xd2\x16\x2f", // SSLRequest
+			Data: pgData(m),
 			Env:  []string{"POSTGRES_USER=" + user, "POSTGRES_PASSWORD=" + password},
 			Init: []string{"createuser", "-U", user, "--no-login", "rds_iam"}} // the role RDS grants IAM auth users
 		if db != "" {
@@ -443,7 +454,7 @@ func dbSpec(engine, version, user, password, db string, host int) Spec {
 	if engine == "mariadb" {
 		image, pre, cli = "mariadb:"+m, "MARIADB_", "mariadb"
 	}
-	sp := Spec{Image: image, Port: 3306, Host: host, Env: []string{pre + "ROOT_PASSWORD=" + password}}
+	sp := Spec{Image: image, Port: 3306, Host: host, Data: "/var/lib/mysql", Env: []string{pre + "ROOT_PASSWORD=" + password}}
 	if user != "root" { // the image refuses MYSQL_USER=root; the master user gets what RDS gives it
 		sp.Env = append(sp.Env, pre+"USER="+user, pre+"PASSWORD="+password)
 		sp.Init = []string{"env", "MYSQL_PWD=" + password, cli, "-uroot", "-e", "GRANT ALL PRIVILEGES ON *.* TO '" + user + "'@'%' WITH GRANT OPTION"}
@@ -452,6 +463,25 @@ func dbSpec(engine, version, user, password, db string, host int) Spec {
 		sp.Env = append(sp.Env, pre+"DATABASE="+db)
 	}
 	return sp
+}
+
+// Image is the image an engine runs at a version ("" is the default version): what the service starts,
+// so pogi pull cannot disagree with it. It is "" for an engine pogi does not run.
+func Image(engine, v string) string {
+	if _, ok := engines[engine]; !ok {
+		return ""
+	}
+	return dbSpec(engine, version(engine, v), "u", "p", "", 0).Image
+}
+
+// Images are the images of every engine at its default version, sorted and without repeats.
+func Images() []string {
+	var out []string
+	for e := range engines {
+		out = append(out, Image(e, ""))
+	}
+	slices.Sort(out)
+	return slices.Compact(out)
 }
 
 func (i *DBInstance) spec() Spec {
@@ -1872,14 +1902,14 @@ func (s *Service) Resources() []core.Table {
 	for _, k := range core.SortedKeys(s.st.Instances) {
 		c := ctxOf(k)
 		v := s.view(c, s.st.Instances[k])
-		inst.Rows = append(inst.Rows, []string{v.DBInstanceIdentifier, v.Engine + " " + v.EngineVersion, v.DBInstanceStatus, endpoint(v.Endpoint),
+		inst.Rows = append(inst.Rows, []string{v.DBInstanceIdentifier, v.Engine + " " + v.EngineVersion, StatusCell(v.DBInstanceStatus, &s.st.Instances[k].Pogi), endpoint(v.Endpoint),
 			v.DBInstanceClass, c.Region, c.Account})
 	}
 	cls := core.Table{Name: "DB clusters", Columns: []string{"Identifier", "Engine", "Status", "Endpoint", "Members", "Region", "Account"}}
 	for _, k := range core.SortedKeys(s.st.Clusters) {
 		c := ctxOf(k)
 		v := s.clusterView(c, s.st.Clusters[k])
-		cls.Rows = append(cls.Rows, []string{v.DBClusterIdentifier, v.Engine + " " + v.EngineVersion, v.Status,
+		cls.Rows = append(cls.Rows, []string{v.DBClusterIdentifier, v.Engine + " " + v.EngineVersion, StatusCell(v.Status, &s.st.Clusters[k].Pogi),
 			fmt.Sprintf("%s:%d", v.Endpoint, v.Port), fmt.Sprint(len(v.DBClusterMembers)), c.Region, c.Account})
 	}
 	return []core.Table{inst, cls}

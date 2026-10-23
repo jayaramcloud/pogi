@@ -93,11 +93,19 @@ func yamlErrors(path string, err error) error {
 
 var accessKey = regexp.MustCompile(`^[A-Z0-9]{16,128}$`)
 
-// check validates values, citing the line of each bad one.
+// Check runs the file's checks on settings that flags and environment variables may have changed,
+// naming each bad value by its pogi.yaml key, since it has no line.
+func (f *File) Check() error { return f.check(nil) }
+
+// check validates values, citing the line of each bad one when root, the parsed file, is given.
 func (f *File) check(root *yaml.Node) error {
 	var errs []string
 	bad := func(at, format string, a ...any) {
-		errs = append(errs, fmt.Sprintf("%s:%d: %s: %s", f.Path, line(root, at), at, fmt.Sprintf(format, a...)))
+		msg := at + ": " + fmt.Sprintf(format, a...)
+		if root != nil {
+			msg = fmt.Sprintf("%s:%d: %s", f.Path, line(root, at), msg)
+		}
+		errs = append(errs, msg)
 	}
 	oneOf := func(at, v string, allowed ...string) {
 		if v != "" && !slices.Contains(allowed, v) {
@@ -117,6 +125,12 @@ func (f *File) check(root *yaml.Node) error {
 	}
 	oneOf("iam.mode", f.IAM.Mode, "off", "soft", "strict")
 	oneOf("lambda.executor", f.Lambda.Executor, "auto", "native", "docker")
+	if f.Lambda.InitTimeout < 0 {
+		bad("lambda.initTimeout", "%s is not a positive duration (for example 10s)", f.Lambda.InitTimeout)
+	}
+	if f.AI.Timeout < 0 {
+		bad("ai.timeout", "%s is not a positive duration (for example 5m)", f.AI.Timeout)
+	}
 	if p := f.Email.SMTPPort; p < -1 || p > 65535 {
 		bad("email.smtpPort", "%d is not a port (-1 turns SMTP off)", p)
 	}
@@ -130,6 +144,9 @@ func (f *File) check(root *yaml.Node) error {
 		}
 		if c.Status != 0 && (c.Status < 400 || c.Status > 599) {
 			bad(at+".status", "%d is not an error status (400-599)", c.Status)
+		}
+		if c.Latency < 0 {
+			bad(at+".latency", "%s is negative", c.Latency)
 		}
 	}
 	for i, t := range f.Resources.Typed {

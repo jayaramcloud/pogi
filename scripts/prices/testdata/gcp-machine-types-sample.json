@@ -1,0 +1,98 @@
+[
+ {
+  "name": "n2-standard-2",
+  "guestCpus": 2,
+  "memoryMb": 8192,
+  "zone": "us-central1-a"
+ },
+ {
+  "name": "n2-standard-4",
+  "guestCpus": 4,
+  "memoryMb": 16384,
+  "zone": "us-central1-a"
+ },
+ {
+  "name": "e2-standard-2",
+  "guestCpus": 2,
+  "memoryMb": 8192,
+  "zone": "us-central1-a"
+ },
+ {
+  "name": "e2-micro",
+  "guestCpus": 2,
+  "memoryMb": 1024,
+  "zone": "us-central1-a"
+ },
+ {
+  "name": "n2-standard-4-lssd",
+  "guestCpus": 4,
+  "memoryMb": 16384,
+  "zone": "us-central1-a"
+ },
+ {
+  "name": "n2-standard-2",
+  "guestCpus": 2,
+  "memoryMb": 8192,
+  "zone": "us-central1-b"
+ },
+ {
+  "name": "n2-standard-4",
+  "guestCpus": 4,
+  "memoryMb": 16384,
+  "zone": "us-central1-b"
+ },
+ {
+  "name": "e2-standard-2",
+  "guestCpus": 2,
+  "memoryMb": 8192,
+  "zone": "us-central1-b"
+ },
+ {
+  "name": "e2-micro",
+  "guestCpus": 2,
+  "memoryMb": 1024,
+  "zone": "us-central1-b"
+ },
+ {
+  "name": "n2-standard-4-lssd",
+  "guestCpus": 4,
+  "memoryMb": 16384,
+  "zone": "us-central1-b"
+ },
+ {
+  "name": "n2-standard-2",
+  "guestCpus": 2,
+  "memoryMb": 8192,
+  "zone": "europe-west1-b"
+ },
+ {
+  "name": "n2-standard-4",
+  "guestCpus": 4,
+  "memoryMb": 16384,
+  "zone": "europe-west1-b"
+ },
+ {
+  "name": "e2-standard-2",
+  "guestCpus": 2,
+  "memoryMb": 8192,
+  "zone": "europe-west1-b"
+ },
+ {
+  "name": "e2-micro",
+  "guestCpus": 2,
+  "memoryMb": 1024,
+  "zone": "europe-west1-b"
+ },
+ {
+  "name": "n2-standard-4-lssd",
+  "guestCpus": 4,
+  "memoryMb": 16384,
+  "zone": "europe-west1-b"
+ },
+ {
+  "name": "z9-weird-4",
+  "guestCpus": 4,
+  "memoryMb": 16384,
+  "zone": "us-central1-a"
+ }
+]

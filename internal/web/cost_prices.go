@@ -1,12 +1,13 @@
 package web
 
-// Static prices for the services the embedded AWS price list does not carry.
+// Prices for the services the Cost page lists beyond S3, SQS, DynamoDB, Lambda, EC2 and RDS (those
+// are in cost.go).
 //
-// ponytail: public on-demand list prices as of 2026-10-12, no free tier, no discounts: AWS from
-// aws.amazon.com/<service>/pricing (us-east-1, scaled by the region multiplier), Google Cloud from
-// cloud.google.com/<service>/pricing (us-central1), Azure from azure.microsoft.com/pricing
-// (East US, Linux, pay-as-you-go). Traffic assumptions are marked where they are made. Upgrade
-// path: add a service to the price list generator instead of growing this table.
+// AWS and Azure prices come from the embedded price list (internal/cost); nothing here types one in.
+// Google prices are the one exception, in the marked block below.
+//
+// Not priced yet, because the price list has no key for them: AWS Step Functions and API Gateway.
+// Their rows are listed as not priced.
 
 import (
 	"cmp"
@@ -14,9 +15,11 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/nrndev/pogi/internal/cost"
 )
 
-// staticPriced are the tables staticPrice prices: "service/Table".
+// staticPriced are the tables staticPrice handles: "service/Table".
 var staticPriced = map[string]bool{
 	"sns/Topics": true, "kinesis/Streams": true, "stepfunctions/State machines": true,
 	"apigateway/REST APIs": true, "apigateway/HTTP APIs": true, "logs/Log groups": true,
@@ -30,26 +33,54 @@ var staticPriced = map[string]bool{
 const (
 	perM = 1e-6 // a price quoted per million
 
-	gcpStorageGB   = 0.020 // Cloud Storage standard, regional
-	gcpClassA      = 5.00 * perM
-	gcpClassB      = 0.40 * perM
-	azBlobGB       = 0.0184 // hot LRS, first 50 TB
-	azBlobWrite    = 5.50 * perM
-	azBlobRead     = 0.44 * perM
 	writeShare     = 0.25 // ponytail: a quarter of storage requests are writes/lists
 	kbPerEvent     = 0.5  // ponytail: an average log event or message is this small
 	sfnTransitions = 5    // ponytail: states a state machine run passes through, when its definition is not read
 	cosmosRUPerReq = 5    // ponytail: request units an average Cosmos DB request costs
 )
 
+// ---- Google Cloud: typed-in prices (us-central1) ----------------------------------------------
+// ponytail: move to gcp/... keys when the Google price list is generated (it waits for a gcloud login).
+const (
+	gcpStorageGB = 0.020 // Cloud Storage standard, regional
+	gcpClassA    = 5.00 * perM
+	gcpClassB    = 0.40 * perM
+)
+
 // staticIn is what staticPrice knows about one resource row.
 type staticIn struct {
 	share    float64 // the service's requests a month, divided among its priced rows
 	perMonth float64 // multiplies a count since start to a month
-	mult     float64 // region multiplier (AWS only)
+	db       *cost.DB
+	region   string // the AWS region; Azure rows are priced in East US
 	table    string
 	col      func(string) string
 	inspect  func(table, id string) any
+}
+
+// rate is a unit price: AWS keys in the chosen region, Azure keys in East US.
+func (in staticIn) rate(key string) float64 {
+	region := in.region
+	if strings.HasPrefix(key, "azure/") {
+		region = "eastus"
+	}
+	p, _, _ := in.db.Rate(key, region)
+	return p
+}
+
+// azureVM is the hourly Linux price of a VM size in East US; the size's case may differ from the list's.
+func (in staticIn) azureVM(size string) (float64, bool) {
+	const col = "azure/vm/linux"
+	c := in.db.Columns[col]
+	if c == nil {
+		return 0, false
+	}
+	for _, s := range in.db.Tables[c.Table] {
+		if strings.EqualFold(s.Name, size) {
+			return in.db.Hourly(col, "eastus", s.Name)
+		}
+	}
+	return 0, false
 }
 
 func (in staticIn) num(c string) float64 {
@@ -64,34 +95,34 @@ func staticPrice(svc string, in staticIn) (detail string, monthly float64, ok bo
 	reqs := count(req) + " requests"
 	switch svc {
 	case "sns":
-		return count(req) + " publishes", req * 0.50 * perM * in.mult, true
+		return count(req) + " publishes", req * in.rate("aws/sns/request") * perM, true
 	case "kinesis":
 		if strings.Contains(in.col("Mode"), "ON_DEMAND") {
-			return "on-demand · 730 h", 0.04 * 730 * in.mult, true
+			return "on-demand · 730 h", in.rate("aws/kinesis/ondemand/stream-hour") * 730, true
 		}
-		return fmt.Sprintf("%.0f shards · 730 h", in.num("Shards")), in.num("Shards") * 0.015 * 730 * in.mult, true
+		return fmt.Sprintf("%.0f shards · 730 h", in.num("Shards")), in.num("Shards") * in.rate("aws/kinesis/shard-hour") * 730, true
 	case "stepfunctions":
 		runs := in.num("Executions") * in.perMonth
-		if in.col("Type") == "EXPRESS" {
-			return count(runs) + " executions", runs * 1.00 * perM * in.mult, true
+		if in.col("Type") == "EXPRESS" { // ponytail: Express duration isn't counted, only requests
+			return count(runs) + " executions", runs * in.rate("aws/sfn/express/request") * perM, true
 		}
-		return fmt.Sprintf("%s executions × %d transitions", count(runs), sfnTransitions), runs * sfnTransitions * 0.025 / 1000 * in.mult, true
+		return fmt.Sprintf("%s executions × %d transitions", count(runs), sfnTransitions), runs * sfnTransitions * in.rate("aws/sfn/transition") / 1000, true
 	case "apigateway":
-		per := 3.50
+		key := "aws/apigw/rest/request"
 		if in.table == "HTTP APIs" {
-			per = 1.00
+			key = "aws/apigw/http/request"
 		}
-		return reqs, req * per * perM * in.mult, true
+		return reqs, req * in.rate(key) * perM, true
 	case "logs":
 		gb := in.num("Events") * in.perMonth * kbPerEvent / (1 << 20)
-		return fmt.Sprintf("%.2f GB ingested", gb), gb * 0.50 * in.mult, true
+		return fmt.Sprintf("%.2f GB ingested", gb), gb * in.rate("aws/cloudwatch/logs/ingest"), true
 	case "secretsmanager":
-		return "1 secret · " + reqs, (0.40 + req*0.05/1e4) * in.mult, true
+		return "1 secret · " + reqs, in.rate("aws/secretsmanager/secret") + req*in.rate("aws/secretsmanager/request")*perM, true
 	case "kms":
 		if in.col("State") != "Enabled" || strings.HasPrefix(in.col("Alias"), "alias/aws/") {
 			return "AWS managed or disabled key", 0, true
 		}
-		return "1 key · " + reqs, (1.00 + req*0.03/1e4) * in.mult, true
+		return "1 key · " + reqs, in.rate("aws/kms/key") + req*in.rate("aws/kms/request")*perM, true
 	case "gcs":
 		gb := parseSize(in.col("Size")) / (1 << 30)
 		return fmt.Sprintf("%s stored · %s", in.col("Size"), reqs), gb*gcpStorageGB + req*(writeShare*gcpClassA+(1-writeShare)*gcpClassB), true
@@ -110,14 +141,15 @@ func staticPrice(svc string, in staticIn) (detail string, monthly float64, ok bo
 		return in.col("Tier") + " · 730 h", h * 730, true
 	case "azblob":
 		gb := parseSize(in.col("Size")) / (1 << 30)
-		return fmt.Sprintf("%s stored · %s", in.col("Size"), reqs), gb*azBlobGB + req*(writeShare*azBlobWrite+(1-writeShare)*azBlobRead), true
+		const k = "azure/storage/hot/lrs/" // hot, locally redundant; a write or read is billed per 10,000
+		return fmt.Sprintf("%s stored · %s", in.col("Size"), reqs), gb*in.rate(k+"capacity") + req*(writeShare*in.rate(k+"write")+(1-writeShare)*in.rate(k+"read"))/1e4, true
 	case "azfunctions":
-		return count(req) + " executions", req * 0.20 * perM, true
+		return count(req) + " executions", req * in.rate("azure/functions/executions") * perM, true
 	case "servicebus":
-		return "Standard · " + reqs, 0.0135*730 + req*0.80*perM, true
+		return "Standard · " + reqs, in.rate("azure/servicebus/standard/base") + req*in.rate("azure/servicebus/standard/operations")*perM, true
 	case "cosmos":
 		ru := req * cosmosRUPerReq
-		return count(ru) + " RU (serverless)", ru * 0.25 * perM, true
+		return count(ru) + " RU (serverless)", ru * in.rate("azure/cosmos/serverless") * perM, true
 	case "azcompute":
 		if in.col("State") != "running" {
 			return "", 0, false
@@ -128,20 +160,13 @@ func staticPrice(svc string, in staticIn) (detail string, monthly float64, ok bo
 		b, _ := json.Marshal(in.inspect(in.table, in.col("ID")))
 		_ = json.Unmarshal(b, &vm)
 		size := vm.Properties.HardwareProfile.VMSize
-		h, ok := azureVMHour[strings.ToLower(size)]
+		h, ok := in.azureVM(size)
 		if !ok {
-			return cmp.Or(size, "unknown size") + " is not in the price table", 0, false
+			return cmp.Or(size, "unknown size") + " has no price in East US", 0, false
 		}
 		return size + " · 730 h", h * 730, true
 	}
 	return "", 0, false
-}
-
-// azureVMHour is $/h, Linux, East US, pay-as-you-go.
-var azureVMHour = map[string]float64{
-	"standard_b1s": 0.0104, "standard_b1ms": 0.0207, "standard_b2s": 0.0416, "standard_b2ms": 0.0832,
-	"standard_d2s_v3": 0.096, "standard_d4s_v3": 0.192, "standard_d2s_v5": 0.096, "standard_d4s_v5": 0.192,
-	"standard_ds1_v2": 0.073, "standard_ds2_v2": 0.146, "standard_f2s_v2": 0.085, "standard_e2s_v3": 0.126,
 }
 
 // cloudSQLHour is the Enterprise edition MySQL/Postgres price: shared-core tiers are flat, the
@@ -171,13 +196,4 @@ func cloudSQLHour(tier string) (float64, bool) {
 		return 0, false
 	}
 	return cpu*0.0413 + gb*0.0070, true
-}
-
-// rdsStorage is the $/GB-month of allocated RDS storage (Single-AZ MySQL and PostgreSQL, us-east-1).
-func rdsStorage(kind string) float64 {
-	switch kind {
-	case "io1", "io2":
-		return 0.125
-	}
-	return 0.115 // gp2, gp3 and anything unknown
 }

@@ -1,7 +1,6 @@
 package generic
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 
@@ -21,7 +20,7 @@ func init() {
 		}
 		body, _ := base64.StdEncoding.DecodeString(str(c.In["Body"]))
 		text, isJSON := prompt(body)
-		r, err := aiGateway(c).Chat(context.Background(), name, aimodel.Request{Messages: []aimodel.Message{{Role: "user", Content: text}}})
+		r, err := aiGateway(c).Chat(aiCtx(c), name, aimodel.Request{Messages: []aimodel.Message{{Role: "user", Content: text}}})
 		if err != nil {
 			return nil, core.Errorf(424, "ModelError", "%v", err)
 		}

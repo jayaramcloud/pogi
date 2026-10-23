@@ -21,6 +21,33 @@ var googleHosts = map[string][]string{
 	"iamcredentials": {"iamcredentials"}, "logging": {"logging"}, "managedkafka": {"managedkafka"},
 	"monitoring": {"monitoring"}, "pubsub": {"pubsub"}, "resourcemanager": {"cloudresourcemanager"},
 	"run": {"run"}, "secretmanager": {"secretmanager"}, "serviceusage": {"serviceusage"}, "sqladmin": {"sqladmin"},
+	"redis":     {"redis"},
+	"workflows": {"workflows", "workflowexecutions"},
+	"spanner":   {"spanner"}, "bigtable": {"bigtableadmin"},
+	"gcplb": {"compute"}, "cloudarmor": {"compute"},
+}
+
+// googlePrefixed are the Google APIs (host labels) that pogi also serves under /<label>/ on any host.
+// Two APIs can share their paths (Memorystore and Filestore both have
+// /v1/projects/p/locations/l/instances), and on localhost only the prefix tells them apart. pogi tf
+// writes it into the google provider's custom endpoints; an SDK takes it as part of its endpoint.
+var googlePrefixed = map[string]bool{
+	"bigtableadmin": true, "redis": true, "spanner": true, "workflowexecutions": true, "workflows": true,
+}
+
+// googlePrefix turns a request for /<label>/v1/... into one for /v1/... on <label>.googleapis.com,
+// for the APIs in googlePrefixed, so that the services' path matchers and googleHostOK pick the right
+// one. The client's own host stays in Ctx.Host.
+func googlePrefix(r *http.Request) {
+	label, rest, ok := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
+	if !ok || !googlePrefixed[label] || !APIVersionPath("/"+rest) {
+		return
+	}
+	r.URL.Path = "/" + rest
+	if r.URL.RawPath != "" {
+		r.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, "/"+label)
+	}
+	r.Host = label + ".googleapis.com"
 }
 
 // googleHostOK says whether host may carry the Google service's API: the
@@ -46,8 +73,8 @@ func googleHostOK(service, host string) bool {
 	return false
 }
 
-// apiVersion matches the first path segment of a Google API: v1, v2beta1, v3alpha.
-var apiVersion = regexp.MustCompile(`^v[0-9]+((alpha|beta)[0-9]*)?$`)
+// apiVersion matches the first path segment of a Google API: v1, v2beta1, v3alpha, v1b3 (Dataflow).
+var apiVersion = regexp.MustCompile(`^v[0-9]+((alpha|beta)[0-9]*|b[0-9]+)?$`)
 
 // APIVersionPath says whether a request path starts with a Google API version
 // ("/v1/projects/..."). No S3 bucket has such a name: two characters are too short.
@@ -196,4 +223,12 @@ func (u unknownAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		RESTJSONError(w, c, Errorf(http.StatusNotFound, "UnknownOperationException", "%s", msg))
 	}
+}
+
+// RegisterGoogleAPI adds a Google API that a generic engine serves (internal/gcp/generic): the
+// service's host label goes into googleHosts, and /<label>/v1/... reaches it on any host, like the
+// APIs in googlePrefixed. Call it from an init function, before the server starts.
+func RegisterGoogleAPI(service, label string) {
+	googleHosts[service] = []string{label}
+	googlePrefixed[label] = true
 }

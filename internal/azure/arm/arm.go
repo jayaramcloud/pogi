@@ -26,6 +26,9 @@ import (
 // them as {"error": {"code", "message"}}.
 type Provider struct {
 	Type string // resource type, matched case-insensitively
+	// APIVersions are listed as the type's apiVersions in the provider's resource types; empty lists one default.
+	// Requests are accepted whatever their api-version.
+	APIVersions []string
 
 	// Put creates or updates the resource at id from the request body and
 	// returns it. ARM checks the parent exists first.
@@ -45,6 +48,13 @@ type Provider struct {
 	// 201/202 with Azure-AsyncOperation and Location headers that point at an
 	// operation that has already succeeded. Off, they answer 200/201 at once.
 	Async bool
+	// ParentNotFound makes a PUT of a child whose parent does not exist answer ParentResourceNotFound, as the
+	// resource manager does for types that have no service of their own; off, it is ResourceNotFound, which is
+	// what services that check their own parents (AKS, Service Bus) answer.
+	ParentNotFound bool
+	// AsyncPut and AsyncDelete make only PUT or only DELETE long-running, for types where the other is a plain call
+	// (a DNS zone is deleted by a long-running operation and created by a plain one).
+	AsyncPut, AsyncDelete bool
 	// Created is the status of a PUT that creates the resource: 201 when 0. The SDKs
 	// accept only the statuses the real service answers with (200 for a Service Bus
 	// queue, 202 for a storage account).
@@ -77,19 +87,23 @@ type ID struct {
 	Names         []string // {"ns1", "q1"}; len(Names) == len(Types), or one less for a collection
 }
 
-// ParseID parses a resource ID or a collection path (the last name missing).
+// ParseID parses a resource ID or a collection path (the last name missing). A path that starts at
+// /providers/ (a management group or the tenant) has no Subscription.
 func ParseID(s string) (ID, bool) {
 	seg := strings.Split(strings.Trim(s, "/"), "/")
 	var id ID
-	if len(seg) < 2 || !strings.EqualFold(seg[0], "subscriptions") {
+	if len(seg) >= 3 && strings.EqualFold(seg[0], "providers") {
+		// no subscription: the tenant's own scope
+	} else if len(seg) < 2 || !strings.EqualFold(seg[0], "subscriptions") {
 		return id, false
-	}
-	id.Subscription, seg = seg[1], seg[2:]
-	if len(seg) >= 2 && strings.EqualFold(seg[0], "resourceGroups") {
-		id.ResourceGroup, seg = seg[1], seg[2:]
-	}
-	if len(seg) == 0 {
-		return id, true
+	} else {
+		id.Subscription, seg = seg[1], seg[2:]
+		if len(seg) >= 2 && strings.EqualFold(seg[0], "resourceGroups") {
+			id.ResourceGroup, seg = seg[1], seg[2:]
+		}
+		if len(seg) == 0 {
+			return id, true
+		}
 	}
 	if !strings.EqualFold(seg[0], "providers") || len(seg) < 3 {
 		return id, false
@@ -107,7 +121,9 @@ func ParseID(s string) (ID, bool) {
 // String formats the ID in ARM's casing.
 func (id ID) String() string {
 	var b strings.Builder
-	b.WriteString("/subscriptions/" + id.Subscription)
+	if id.Subscription != "" {
+		b.WriteString("/subscriptions/" + id.Subscription)
+	}
 	if id.ResourceGroup != "" {
 		b.WriteString("/resourceGroups/" + id.ResourceGroup)
 	}

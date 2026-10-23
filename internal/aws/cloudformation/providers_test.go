@@ -363,8 +363,9 @@ func TestDeleteAfterRestart(t *testing.T) {
 "TD":{"Type":"AWS::ECS::TaskDefinition","Properties":{"Family":"f","ContainerDefinitions":[{"Name":"c","Image":"busybox","Memory":64}]}},
 "Svc":{"Type":"AWS::ECS::Service","Properties":{"Cluster":{"Ref":"Cl"},"TaskDefinition":{"Ref":"TD"},"DesiredCount":1}}}}`
 	wantStatus(t, c, deploy(t, c, "keep", tpl), types.StackStatusCreateComplete)
-	// persistent mode saves every write: a second server on the same data dir starts with this state
-
+	// persistent mode saves every write: a second server on the same data dir starts with this state.
+	// A restart stops the first one: it holds the data folder's lock.
+	first.Hub.Close()
 	second := pogi.Start(t, conf)
 	c = cfn.NewFromConfig(awstest.Config(t, second.URL))
 	remove(t, c, "keep")

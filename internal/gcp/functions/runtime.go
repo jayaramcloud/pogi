@@ -140,12 +140,12 @@ func unzip(b []byte, dir string) error {
 	if err != nil {
 		return fmt.Errorf("source is not a zip file: %w", err)
 	}
+	if err := core.CheckZipReader(zr); err != nil {
+		return err
+	}
 	left := int64(maxUnzipped) // bytes still allowed, across all entries
 	for _, f := range zr.File {
 		dst := filepath.Join(dir, f.Name)
-		if rel, err := filepath.Rel(dir, dst); err != nil || strings.HasPrefix(rel, "..") {
-			return fmt.Errorf("zip entry %q leaves the source directory", f.Name)
-		}
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(dst, 0o755)
 			continue

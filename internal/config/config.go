@@ -77,8 +77,9 @@ type IAM struct {
 
 // Lambda is the function executor (auto | native | docker).
 type Lambda struct {
-	Executor string `yaml:"executor"`
-	WarmPool int    `yaml:"warmPool"`
+	Executor    string        `yaml:"executor"`
+	WarmPool    int           `yaml:"warmPool"`
+	InitTimeout time.Duration `yaml:"initTimeout"` // longest a new environment may take to start; 0 means 10s, as on AWS
 }
 
 // Docker is the container engine pogi drives when one is running.
@@ -93,7 +94,8 @@ type Docker struct {
 type AI struct {
 	Endpoint string            `yaml:"endpoint"`
 	APIKey   string            `yaml:"apiKey"`
-	Models   map[string]string `yaml:"models"` // service model id glob → local model
+	Models   map[string]string `yaml:"models"`  // service model id glob → local model
+	Timeout  time.Duration     `yaml:"timeout"` // longest one model call; 0 means 5m
 }
 
 // Email is SES's SMTP side: the port mail can be sent to, and an SMTP server

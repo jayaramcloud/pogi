@@ -277,7 +277,7 @@ func (s *Service) boot(cl *cluster) {
 		case s.st.Clusters[arn] != cl: // deleted meanwhile
 			s.drop(cl)
 		case err != nil:
-			cl.Doc["state"], cl.Doc["stateInfo"], cl.Note = "FAILED", doc{"code": "InternalFailure", "message": err.Error()}, err.Error()
+			cl.Doc["state"], cl.Doc["stateInfo"], cl.Note = "FAILED", doc{"code": "InternalFailure", "message": err.Error()}, docker.Plain(err)
 			s.hub.Log.Warn("kafka cluster failed", "cluster", arn, "err", err)
 		default:
 			cl.Doc["state"], cl.Bootstrap, cl.Note = "ACTIVE", addr, ""

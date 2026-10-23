@@ -51,7 +51,7 @@ var verbKind = map[string]kind{"Create": kCreate, "Put": kCreate, "Register": kC
 	"List": kList, "Update": kUpdate, "Modify": kUpdate, "Delete": kDelete, "Deregister": kDelete, "Unregister": kDelete, "Deprecate": kDelete}
 
 var (
-	tagOps    = map[string]kind{"TagResource": kTag, "AddTags": kTag, "AddTagsToResource": kTag, "TagResources": kTag, "UntagResource": kUntag, "RemoveTags": kUntag, "DeleteTags": kUntag, "RemoveTagsFromResource": kUntag, "UntagResources": kUntag, "ListTagsForResource": kListTags, "ListTags": kListTags, "ListTagsOfResource": kListTags}
+	tagOps    = map[string]kind{"Tag": kTag, "Untag": kUntag, "GetTags": kListTags, "TagResource": kTag, "AddTags": kTag, "AddTagsToResource": kTag, "TagResources": kTag, "UntagResource": kUntag, "RemoveTags": kUntag, "DeleteTags": kUntag, "RemoveTagsFromResource": kUntag, "UntagResources": kUntag, "ListTagsForResource": kListTags, "ListTags": kListTags, "ListTagsOfResource": kListTags}
 	prepWords = []string{"In", "Into", "For", "By", "On", "From", "Of", "To", "With"}
 )
 
@@ -284,18 +284,27 @@ func (m *model) inferIDs(t *rtype) {
 	}
 }
 
-// idShape returns the shape of identifier id of t, taken from any operation that has it.
+// idShape returns the shape of identifier id of t, taken from the operations that have it. One that is not
+// an id-or-ARN shape wins (UpdateAlias takes an AliasIdOrArn, CreateAlias makes an AliasId); the order is fixed so
+// that a resource's ids do not change from run to run.
 func (t *rtype) idShape(id string) *shape {
-	for _, ops := range t.ops {
-		for _, op := range ops {
-			if op.in != nil {
-				if r := op.in.Members[id]; r != nil && r.sh != nil {
+	var first *shape
+	for k := kOther; k <= kListTags; k++ {
+		for _, op := range t.ops[k] {
+			if op.in == nil {
+				continue
+			}
+			if r := op.in.Members[id]; r != nil && r.sh != nil {
+				if !strings.Contains(r.sh.Pattern, "arn:") {
 					return r.sh
+				}
+				if first == nil {
+					first = r.sh
 				}
 			}
 		}
 	}
-	return nil
+	return first
 }
 
 // role says what an identifier is: "arn", "id" or "name".
@@ -344,7 +353,7 @@ func mintID(sh *shape, typ string) string {
 			hi = int(*sh.Max)
 		}
 		if sh.Pattern != "" {
-			if s, ok := fromPattern(sh.Pattern, lo, hi); ok {
+			if s, ok := fromPattern(sh.Pattern, lo, hi); ok && s != "" { // a pattern that allows anything can give an empty id
 				return s
 			}
 		}
@@ -380,15 +389,22 @@ func fromPattern(pat string, lo, hi int) (string, bool) {
 	if err != nil {
 		return "", false
 	}
+	arn := ""
 	for _, reps := range []int{17, 12, 8, 4, 1, 32} {
-		var b strings.Builder
-		gen(re, &b, reps)
-		s := b.String()
-		if len(s) >= lo && len(s) <= hi && cre.MatchString(s) {
-			return s, true
+		for range 8 { // a pattern that takes an id or an ARN (alias-x|arn:...) makes an id, unless it keeps coming out as an ARN
+			var b strings.Builder
+			gen(re, &b, reps)
+			s := b.String()
+			switch {
+			case len(s) < lo || len(s) > hi || !cre.MatchString(s):
+			case strings.HasPrefix(s, "arn:"):
+				arn = s
+			default:
+				return s, true
+			}
 		}
 	}
-	return "", false
+	return arn, arn != ""
 }
 
 func gen(re *syntax.Regexp, b *strings.Builder, reps int) {
@@ -430,7 +446,7 @@ func gen(re *syntax.Regexp, b *strings.Builder, reps int) {
 	case syntax.OpAlternate:
 		var ok []*syntax.Regexp
 		for _, s := range re.Sub {
-			if !strings.HasPrefix(s.String(), "arn:") {
+			if !strings.HasPrefix(strings.TrimLeft(s.String(), "(?:"), "arn:") { // also when the branch is a group
 				ok = append(ok, s)
 			}
 		}

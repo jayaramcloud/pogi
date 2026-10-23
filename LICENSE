@@ -19,3 +19,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+The icon files in internal/web/icons/ (the AWS, Azure and Google Cloud folders) are not covered by the licence above.
+They belong to Amazon Web Services, Microsoft and Google, and their own terms apply. See internal/web/icons/NOTICE.

@@ -17,7 +17,7 @@ const (
 
 var errPatterns = map[errKind][]string{
 	eNotFound: {"notfound", "nosuch", "doesnotexist", "unknownresource", "nonexistent"},
-	eExists:   {"alreadyexist", "conflict", "duplicate"},
+	eExists:   {"alreadyexist", "conflict", "duplicate", "nameexists"},
 	eInvalid:  {"validation", "invalidparametervalue", "invalidparameter", "invalidinput", "invalidrequest", "badrequest"},
 }
 

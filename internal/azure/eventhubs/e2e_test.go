@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -269,7 +270,36 @@ func TestEpochStealing(t *testing.T) {
 
 // TestProcessorCheckpoints runs the Processor on pogi's own Blob emulator as
 // the checkpoint store: it checkpoints, restarts and resumes after the checkpoint.
-func TestProcessorCheckpoints(t *testing.T) {
+func TestProcessorCheckpoints(t *testing.T) { processorCheckpoints(t, false) }
+
+// TestProcessorResumesAfterAClaimLostAtStop stops the first processor while one of its ownership claims is in
+// flight, which made TestProcessorCheckpoints fail once under the full parallel suite (2026-10-21): the second
+// processor must still get every event.
+func TestProcessorResumesAfterAClaimLostAtStop(t *testing.T) { processorCheckpoints(t, true) }
+
+// lostClaimStore is a checkpoint store whose next ownership claim, once armed, reaches Blob storage but whose answer
+// is held until the processor stops: as when a processor is stopped while a claim is in flight. The ownership blobs
+// get new ETags the processor never learns.
+type lostClaimStore struct {
+	azeventhubs.CheckpointStore
+	armed atomic.Bool
+	fired chan struct{}
+}
+
+func (s *lostClaimStore) ClaimOwnership(ctx context.Context, own []azeventhubs.Ownership, o *azeventhubs.ClaimOwnershipOptions) ([]azeventhubs.Ownership, error) {
+	if len(own) == 0 || own[0].OwnerID == "" || !s.armed.CompareAndSwap(true, false) { // OwnerID "": the relinquish at close
+		return s.CheckpointStore.ClaimOwnership(ctx, own, o)
+	}
+	_, err := s.CheckpointStore.ClaimOwnership(context.WithoutCancel(ctx), own, o)
+	close(s.fired)
+	if err != nil {
+		return nil, err
+	}
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+func processorCheckpoints(t *testing.T, loseClaim bool) {
 	e := startHub(t, "proc", 2)
 	if e.srv.Ports["azblob"] == "" {
 		t.Fatal("no Blob port")
@@ -277,7 +307,7 @@ func TestProcessorCheckpoints(t *testing.T) {
 	conn := "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=" + blobKey + ";BlobEndpoint=" + e.srv.Ports["azblob"] + "/devstoreaccount1;"
 	blobs := must(azblob.NewClientFromConnectionString(conn, nil))
 	must(blobs.CreateContainer(timeout(t), "checkpoints", nil))
-	store := must(checkpoints.NewBlobStore(blobs.ServiceClient().NewContainerClient("checkpoints"), nil))
+	store := &lostClaimStore{CheckpointStore: must(checkpoints.NewBlobStore(blobs.ServiceClient().NewContainerClient("checkpoints"), nil)), fired: make(chan struct{})}
 	p := e.producer(t)
 
 	var mu sync.Mutex
@@ -286,7 +316,12 @@ func TestProcessorCheckpoints(t *testing.T) {
 	run := func(gen string) (stop func()) {
 		consumer := must(azeventhubs.NewConsumerClientFromConnectionString(e.cs, "", azeventhubs.DefaultConsumerGroup, nil))
 		proc := must(azeventhubs.NewProcessor(consumer, store, &azeventhubs.ProcessorOptions{UpdateInterval: 500 * time.Millisecond,
-			StartPositions: azeventhubs.StartPositions{Default: azeventhubs.StartPosition{Earliest: ptr(true)}}}))
+			// A processor stopped while an ownership claim is in flight keeps its partitions, as on Azure: Blob storage
+			// applied the claim, so the relinquish at close carries the old ETag and is refused (412), and the next
+			// processor gets them only when they expire. The SDK's default expiry (60 s) took all of wait's minute;
+			// 10 s leaves the rest (a running processor renews its claims every UpdateInterval).
+			PartitionExpirationDuration: 10 * time.Second,
+			StartPositions:              azeventhubs.StartPositions{Default: azeventhubs.StartPosition{Earliest: ptr(true)}}}))
 		ctx, cancel := context.WithCancel(context.Background())
 		var wg sync.WaitGroup
 		wg.Add(1)
@@ -351,16 +386,31 @@ func TestProcessorCheckpoints(t *testing.T) {
 	}
 	stop := run("one")
 	wait("one", 6)
+	if loseClaim {
+		store.armed.Store(true)
+		select {
+		case <-store.fired:
+		case <-time.After(30 * time.Second):
+			t.Fatal("the first processor made no claim to lose")
+		}
+	}
 	stop()
 
 	// checkpoints are in the container, one per partition
 	var names []string
-	pager := blobs.NewListBlobsFlatPager("checkpoints", nil)
+	owned := 0 // ownership blobs the stopped processor still holds
+	pager := blobs.NewListBlobsFlatPager("checkpoints", &azblob.ListBlobsFlatOptions{Include: azblob.ListBlobsInclude{Metadata: true}})
 	for pager.More() {
 		page := must(pager.NextPage(timeout(t)))
 		for _, b := range page.Segment.BlobItems {
 			names = append(names, *b.Name)
+			if o := b.Metadata["ownerid"]; strings.Contains(*b.Name, "/ownership/") && o != nil && *o != "" {
+				owned++
+			}
 		}
+	}
+	if loseClaim && owned != 2 {
+		t.Fatalf("the trigger did not happen: the stopped processor holds %d of 2 partitions", owned)
 	}
 	sort.Strings(names)
 	var checkpointBlobs int

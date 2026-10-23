@@ -2,8 +2,8 @@ package web
 
 // The Cost page: a rough monthly bill for what is running, from the resources the services hold
 // and the traffic they have served (each service's request counter over the uptime, as a rate, times
-// 30 days). AWS EC2, S3, Lambda, DynamoDB, RDS and SQS use the embedded price list; the other
-// services use the static table in cost_prices.go.
+// 30 days). AWS and Azure prices come from the embedded price list in internal/cost; the Google
+// constants in cost_prices.go stand in until the Google price list is generated.
 //
 // ponytail: the request log's last 1,000 entries only split a service's traffic among its S3, SQS,
 // DynamoDB and Lambda resources; a DynamoDB request counts as one request unit.
@@ -21,8 +21,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nrndev/pogi/internal/aws/pricelist"
 	"github.com/nrndev/pogi/internal/core"
+	"github.com/nrndev/pogi/internal/cost"
 )
 
 const monthSeconds = 30 * 24 * 3600 // traffic is scaled to 30 days; always-on resources bill 730 h
@@ -80,10 +80,19 @@ func perMonth(v float64) string {
 func (ui *UI) costRoutes(m *http.ServeMux) {
 	ui.pages["cost"] = template.Must(template.Must(shell().Clone()).ParseFS(files, "templates/cost.html"))
 	m.HandleFunc("GET /_pogi/cost", ui.costPage)
+	ui.tfRoutes(m)
+	m.HandleFunc("GET /_pogi/cost.json", ui.costAPI)
 }
 
+// costRegions is every AWS region the price list has prices for.
+func costRegions() []string {
+	db, _ := cost.Default()
+	return db.Regions("aws")
+}
+
+// defaultRegion is the pogi region when it is in the price list, else us-east-1.
 func (ui *UI) defaultRegion() string {
-	if _, ok := pricelist.RegionOf(ui.hub.Cfg.Region); ok {
+	if slices.Contains(costRegions(), ui.hub.Cfg.Region) {
 		return ui.hub.Cfg.Region
 	}
 	return "us-east-1"
@@ -114,25 +123,23 @@ type costEstimate struct {
 type costData struct {
 	costEstimate
 	Region  string
-	Regions []struct{ Code, Label string }
+	Regions []string
 	PerDay  float64
 }
 
 func (ui *UI) costPage(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	region := q.Get("region")
-	if _, ok := pricelist.RegionOf(region); !ok {
+	if region != "" && !slices.Contains(costRegions(), region) {
+		http.Error(w, "unknown region "+region, http.StatusBadRequest)
+		return
+	}
+	if region == "" {
 		region = ui.defaultRegion()
 	}
 	d := costData{costEstimate: ui.estimate(region, ui.scope(r), ui.cloud(r)), Region: region}
 	d.PerDay = d.Total / 30
-	for _, c := range pricelist.Regions() {
-		label := c
-		if rg, _ := pricelist.RegionOf(c); rg.Mult != 1 {
-			label += fmt.Sprintf(" (%+.0f%%)", (rg.Mult-1)*100)
-		}
-		d.Regions = append(d.Regions, struct{ Code, Label string }{c, label})
-	}
+	d.Regions = costRegions()
 	ui.render(w, r, "cost", "Cost estimate", "cost", d)
 }
 
@@ -217,12 +224,10 @@ func (ui *UI) estimate(region string, sc scope, cloud string) costEstimate {
 		}
 		return rate[svc] / sample[svc]
 	}
-	price := func(code, usage string) float64 {
-		if s := pricelist.Lookup(code); s != nil {
-			p, _ := s.Price(region, usage, "")
-			return p.Price
-		}
-		return 0
+	db, _ := cost.Default()
+	rt := func(key string) float64 { // a unit price in the chosen region; 0 when the list has none
+		p, _, _ := db.Rate(key, region)
+		return p
 	}
 	var out costEstimate
 	out.Basis = fmt.Sprintf("%s requests counted in %s of uptime, as a rate over 30 days", count(float64(total)), (time.Duration(up) * time.Second).Round(time.Second))
@@ -260,18 +265,18 @@ func (ui *UI) estimate(region string, sc scope, cloud string) costEstimate {
 					gb := parseSize(col(row, "Size")) / (1 << 30)
 					t1, t2 := tr.s3Tier1[name]*scale("s3"), tr.s3Tier2[name]*scale("s3")
 					add("aws", "S3", name, fmt.Sprintf("%s stored · %s requests", col(row, "Size"), count(t1+t2)),
-						gb*price("AmazonS3", "TimedStorage-ByteHrs")+t1*price("AmazonS3", "Requests-Tier1")+t2*price("AmazonS3", "Requests-Tier2"))
+						gb*rt("aws/s3/standard/storage")+(t1*rt("aws/s3/put")+t2*rt("aws/s3/get"))*perM)
 				case info.Name == "sqs" && t.Name == "Queues":
-					n, usage := tr.sqs[name]*scale("sqs"), "Requests"
+					n, kind := tr.sqs[name]*scale("sqs"), "standard"
 					if strings.HasSuffix(name, ".fifo") {
-						usage = "Requests-FIFO"
+						kind = "fifo"
 					}
-					add("aws", "SQS", name, count(n)+" requests", n*price("AWSQueueService", usage))
+					add("aws", "SQS", name, count(n)+" requests", n*rt("aws/sqs/"+kind+"/request")*perM)
 				case info.Name == "dynamodb" && t.Name == "Tables":
 					w, rd := tr.ddbW[name]*scale("dynamodb"), tr.ddbR[name]*scale("dynamodb")
 					bytes, _ := strconv.ParseFloat(col(row, "Size"), 64)
 					add("aws", "DynamoDB", name, fmt.Sprintf("%s writes, %s reads", count(w), count(rd)),
-						w*price("AmazonDynamoDB", "WriteRequestUnits")+rd*price("AmazonDynamoDB", "ReadRequestUnits")+bytes/(1<<30)*price("AmazonDynamoDB", "TimedStorage-ByteHrs"))
+						(w*rt("aws/dynamodb/write-request")+rd*rt("aws/dynamodb/read-request"))*perM+bytes/(1<<30)*rt("aws/dynamodb/storage"))
 				case info.Name == "lambda" && t.Name == "Functions":
 					mb, _ := strconv.ParseFloat(strings.TrimSuffix(col(row, "Memory"), " MB"), 64)
 					n, ms := tr.lambda[name]*scale("lambda"), tr.lambdaMs[name]*scale("lambda")
@@ -280,41 +285,44 @@ func (ui *UI) estimate(region string, sc scope, cloud string) costEstimate {
 						avg = ms / n
 					}
 					add("aws", "Lambda", name, fmt.Sprintf("%s inv · %.0f MB · %.0f ms", count(n), mb, avg),
-						n*price("AWSLambda", "Request")+mb/1024*ms/1000*price("AWSLambda", "Lambda-GB-Second"))
+						n*rt("aws/lambda/request")*perM+mb/1024*ms/1000*rt("aws/lambda/gb-second"))
 				case info.Name == "ec2" && t.Name == "Instances":
 					if col(row, "State") != "running" {
 						continue
 					}
 					typ := col(row, "Type")
-					p := price("AmazonEC2", "BoxUsage:"+typ)
-					if p == 0 {
-						out.Rows = append(out.Rows, costRow{Cloud: "aws", Service: "EC2", Name: name, Detail: typ + " is not in the price list", Href: "/_pogi/resources/ec2"})
+					p, ok := db.Hourly("aws/ec2/linux", region, typ)
+					if !ok {
+						out.Rows = append(out.Rows, costRow{Cloud: "aws", Service: "EC2", Name: name, Detail: "no price for " + typ + " in " + region, Href: "/_pogi/resources/ec2"})
 						continue
 					}
 					add("aws", "EC2", name, typ+" · 730 h", p*730)
 				case info.Name == "rds" && t.Name == "DB instances":
 					class, engine := col(row, "Class"), strings.ToLower(col(row, "Engine"))
-					want := map[bool]string{true: "PostgreSQL", false: "MySQL"}[strings.HasPrefix(engine, "postgres")]
-					if !strings.HasPrefix(engine, "postgres") && !strings.HasPrefix(engine, "mysql") && !strings.HasPrefix(engine, "mariadb") {
-						want = ""
+					eng, _, _ := strings.Cut(engine, " ") // "postgres 17.4" → postgres; mysql and mariadb too, aurora-* and the rest are not priced
+					var m struct {
+						AllocatedStorage int
+						StorageType      string
+						MultiAZ          bool
 					}
-					p := rdsPrice(region, class, want)
-					storage, storageCost := "", 0.0
 					if v, ok := s.(core.Inspectable); ok {
-						var m struct {
-							AllocatedStorage int
-							StorageType      string
-						}
 						b, _ := json.Marshal(v.Inspect(t.Name, name))
-						if json.Unmarshal(b, &m) == nil && m.AllocatedStorage > 0 {
-							st := cmp.Or(m.StorageType, "gp2")
-							storage = fmt.Sprintf(" + %d GB %s", m.AllocatedStorage, st)
-							storageCost = float64(m.AllocatedStorage) * rdsStorage(st) * regionMult(region)
-						}
+						_ = json.Unmarshal(b, &m)
 					}
-					if p == 0 {
-						out.Rows = append(out.Rows, costRow{Cloud: "aws", Service: "RDS", Name: name, Detail: class + " " + engine + " is not in the price list", Href: "/_pogi/resources/rds"})
+					variant, sfx := "single-az", ""
+					if m.MultiAZ {
+						variant, sfx = "multi-az", "/multi-az"
+					}
+					p, ok := db.Hourly("aws/rds/"+eng+"/"+variant, region, class)
+					if !ok || (eng != "postgres" && eng != "mysql" && eng != "mariadb") {
+						out.Rows = append(out.Rows, costRow{Cloud: "aws", Service: "RDS", Name: name, Detail: "no price for " + class + " " + engine + " in " + region, Href: "/_pogi/resources/rds"})
 						continue
+					}
+					storage, storageCost := "", 0.0
+					if m.AllocatedStorage > 0 {
+						st := cmp.Or(m.StorageType, "gp2")
+						storage = fmt.Sprintf(" + %d GB %s", m.AllocatedStorage, st)
+						storageCost = float64(m.AllocatedStorage) * rt("aws/rds/"+eng+"/storage/"+st+sfx)
 					}
 					add("aws", "RDS", name, class+" · 730 h"+storage, p*730+storageCost)
 				case staticPriced[info.Name+"/"+t.Name]:
@@ -324,10 +332,7 @@ func (ui *UI) estimate(region string, sc scope, cloud string) costEstimate {
 							n += len(t2.Rows)
 						}
 					}
-					in := staticIn{share: rate[info.Name] / float64(max(n, 1)), perMonth: monthSeconds / up, mult: 1, table: t.Name, col: func(c string) string { return col(row, c) }}
-					if info.Cloud == core.AWS {
-						in.mult = regionMult(region)
-					}
+					in := staticIn{share: rate[info.Name] / float64(max(n, 1)), perMonth: monthSeconds / up, db: db, region: region, table: t.Name, col: func(c string) string { return col(row, c) }}
 					if i, ok := s.(core.Inspectable); ok {
 						in.inspect = i.Inspect
 					}
@@ -400,23 +405,6 @@ func (ui *UI) estimate(region string, sc scope, cloud string) costEstimate {
 		}
 	}
 	return out
-}
-
-// rdsPrice is the hourly price of a DB instance class for an engine ("MySQL" or "PostgreSQL"), 0 when unlisted.
-func rdsPrice(region, class, engine string) float64 {
-	for _, p := range pricelist.Lookup("AmazonRDS").Products() {
-		if p.Region == region && p.Attrs["instanceType"] == class && p.Attrs["databaseEngine"] == engine {
-			return p.Price
-		}
-	}
-	return 0
-}
-
-func regionMult(region string) float64 {
-	if r, ok := pricelist.RegionOf(region); ok {
-		return r.Mult
-	}
-	return 1
 }
 
 // parseSize reads "4.2 MB" (the buckets table's size) back to bytes.

@@ -4,6 +4,7 @@ package web
 import (
 	"bytes"
 	"cmp"
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -22,6 +23,7 @@ import (
 	"github.com/nrndev/pogi/internal/aws/s3"
 	"github.com/nrndev/pogi/internal/core"
 	"github.com/nrndev/pogi/internal/docker"
+	"github.com/nrndev/pogi/internal/terraform"
 )
 
 //go:embed templates/*.html static/*
@@ -31,7 +33,9 @@ var files embed.FS
 type UI struct {
 	hub   *core.Hub
 	pages map[string]*template.Template
+	tf    tfHeld // the Terraform stack the console holds
 
+	base        map[string]int // resources each service held at start, by service name
 	formOpsOnce sync.Once
 	formOpsAll  map[string][]formOp // allFormOps
 }
@@ -92,6 +96,8 @@ var funcs = template.FuncMap{
 		return template.HTML(`<svg class="i"><use href="#i-` + template.HTMLEscapeString(name) + `"/></svg>`)
 	},
 	"navlink":    navlink,
+	"svcIcon":    svcIconHTML,
+	"depthTag":   depthTag,
 	"trimScheme": func(u string) string { _, rest, _ := strings.Cut(u, "://"); return rest },
 }
 
@@ -105,7 +111,10 @@ func shell() *template.Template {
 
 // New builds the console handler.
 func New(hub *core.Hub) http.Handler {
-	ui := &UI{hub: hub, pages: map[string]*template.Template{}}
+	ui := &UI{hub: hub, pages: map[string]*template.Template{}, base: map[string]int{}}
+	for _, s := range hub.Status().Services {
+		ui.base[s.Name] = s.Resources // what a service holds from the start
+	}
 	for _, s := range hub.Services() {
 		titles.Store(s.Info().Name, s.Info().Title)
 	}
@@ -115,6 +124,7 @@ func New(hub *core.Hub) http.Handler {
 	}
 	m := http.NewServeMux()
 	m.Handle("GET /_pogi/static/", http.StripPrefix("/_pogi/", http.FileServerFS(files)))
+	m.Handle("GET /_pogi/icons/", iconHandler())
 	m.HandleFunc("GET /_pogi/{$}", ui.overview)
 	m.HandleFunc("GET /_pogi/search", ui.search)
 	m.HandleFunc("GET /_pogi/requests", ui.requests)
@@ -124,6 +134,8 @@ func New(hub *core.Hub) http.Handler {
 	m.HandleFunc("GET /_pogi/map", ui.mapPage)
 	m.HandleFunc("GET /_pogi/map.svg", ui.mapSVG)
 	m.HandleFunc("GET /_pogi/map/node", ui.mapNode)
+	m.HandleFunc("GET /_pogi/tasks", ui.tasks)
+	m.HandleFunc("GET /_pogi/rev", ui.svcRev)
 	m.HandleFunc("GET /_pogi/resources", ui.resources)
 	m.HandleFunc("GET /_pogi/resources/{service}", ui.resources)
 	m.HandleFunc("GET /_pogi/resources/{service}/{table}/{id...}", ui.inspect)
@@ -165,8 +177,30 @@ func New(hub *core.Hub) http.Handler {
 		hd.Set("Cross-Origin-Resource-Policy", "same-origin")
 		hd.Set("Cross-Origin-Embedder-Policy", "require-corp")
 		hd.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), midi=(), display-capture=(), accelerometer=(), gyroscope=(), magnetometer=()")
+		if r.Body != nil && r.Body != http.NoBody {
+			raw := r.Body
+			r = r.WithContext(context.WithValue(r.Context(), rawBodyKey{}, raw))
+			r.Body = http.MaxBytesReader(w, raw, ui.bodyLimit(r))
+		}
 		safe.ServeHTTP(w, r)
 	})
+}
+
+// rawBodyKey holds the request body before the limit was put on it: a refused upload is drained from it,
+// so the message can show the real size.
+type rawBodyKey struct{}
+
+// bodyLimit is the most any console request may send: the upload limit, or the code limit for a new Lambda
+// function (its zip), or the Terraform limit, each plus room for the form's own framing. It is set once, here,
+// so no console form can fill the disk or memory.
+func (ui *UI) bodyLimit(r *http.Request) int64 {
+	switch {
+	case strings.HasPrefix(r.URL.Path, "/_pogi/new/lambda/"):
+		return ui.hub.CodeLimit(false) + 1<<20
+	case r.URL.Path == "/_pogi/cost/terraform":
+		return terraform.MaxBytes + tfFormMax
+	}
+	return ui.hub.MaxUpload() + 1<<20
 }
 
 const consoleCSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; " +
@@ -181,16 +215,17 @@ var Favicon = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 // page is what every template receives.
 type page struct {
-	Title, Active, Error, Version, Endpoint string
-	Eyebrow                                 string // the small line above a drawer's title
-	Scope                                   scope
-	Back                                    string // where the switcher returns to
-	Cloud, Foreign                          string // the cloud selector ("" is all), and the cloud of a service page that is not it
-	Note                                    bool   // show the "showing one cloud only" notice
-	Data                                    any
-	Nav                                     nav
-	Theme, Side, Foot                       string // the theme and sidebar cookies, the sidebar footer
-	UploadMB, CodeMB                        int64  // the upload limit and the function code limit, for the upload forms
+	Title, Active, Error, Flash, Version, Endpoint string
+	Eyebrow                                        string // the small line above a drawer's title
+	Scope                                          scope
+	Back                                           string // where the switcher returns to
+	Cloud, Foreign                                 string // the cloud selector ("" is all), and the cloud of a service page that is not it
+	Note                                           bool   // show the "showing one cloud only" notice
+	Data                                           any
+	Nav                                            nav
+	Problems                                       []core.Problem // pogi-wide: saved state that can't be read or written, ports that could not be opened
+	Theme, Side, Foot                              string         // the theme and sidebar cookies, the sidebar footer
+	UploadMB, CodeMB                               int64          // the upload limit and the function code limit, for the upload forms
 }
 
 // render writes a page. A request htmx sends into the drawer (hx-target="#drawer") gets the page's
@@ -203,7 +238,7 @@ func (ui *UI) render(w http.ResponseWriter, r *http.Request, name, title, active
 // renderX is render with a drawer eyebrow.
 func (ui *UI) renderX(w http.ResponseWriter, r *http.Request, name, title, active, eyebrow string, data any) {
 	st := ui.hub.Status()
-	p := page{Title: title, Active: active, Eyebrow: eyebrow, Error: r.URL.Query().Get("err"), Version: st.Version, Endpoint: "http://" + r.Host,
+	p := page{Title: title, Active: active, Eyebrow: eyebrow, Error: r.URL.Query().Get("err"), Flash: r.URL.Query().Get("ok"), Version: st.Version, Endpoint: "http://" + r.Host,
 		Scope: ui.scope(r), Back: r.URL.RequestURI(), Data: data, Cloud: ui.cloud(r), UploadMB: ui.hub.MaxUpload() >> 20, CodeMB: ui.hub.CodeLimit(false) >> 20}
 	switch name {
 	case "overview", "requests", "flows", "catalog", "map", "cost":
@@ -219,7 +254,7 @@ func (ui *UI) renderX(w http.ResponseWriter, r *http.Request, name, title, activ
 			root = "drawer"
 		}
 	} else {
-		p.Nav, p.Foot = ui.nav(r, st), foot(st)
+		p.Nav, p.Foot, p.Problems = ui.nav(r, st), foot(st), st.Problems
 		p.Theme, p.Side = cookie(r, "pogi-theme", "light", "dark"), cookie(r, "pogi-side", "mini", "wide")
 	}
 	var buf bytes.Buffer
@@ -249,13 +284,25 @@ func done(w http.ResponseWriter, r *http.Request, to, msg string, err error) {
 		return
 	}
 	if err != nil {
-		sep := "?"
-		if strings.Contains(to, "?") {
-			sep = "&"
-		}
-		to += sep + "err=" + url.QueryEscape(err.Error())
+		to = withNote(to, "err", err.Error())
+	} else if msg != "" {
+		to = withNote(to, "ok", msg) // a redirect has no toast, so the next page shows a success flash
 	}
 	http.Redirect(w, r, to, http.StatusSeeOther)
+}
+
+// withNote adds ?err= or ?ok= to a path, replacing a note an earlier post left there.
+func withNote(to, key, msg string) string {
+	u, err := url.Parse(to)
+	if err != nil {
+		return to
+	}
+	q := u.Query()
+	q.Del("err")
+	q.Del("ok")
+	q.Set(key, msg)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // resources is a service's page; without a service it is the catalog's old address.
@@ -372,8 +419,8 @@ func (ui *UI) chaosAdd(w http.ResponseWriter, r *http.Request) {
 	case "slow":
 		rule = core.Rule{LatencyMs: 800}
 	}
-	if rule.Status == 0 && rule.LatencyMs == 0 {
-		done(w, r, "/_pogi/chaos", "", fmt.Errorf("a rule needs an error status, latency or both"))
+	if err := rule.Check(); err != nil {
+		done(w, r, "/_pogi/chaos", "", err)
 		return
 	}
 	ui.hub.Chaos.Add(rule)

@@ -28,6 +28,7 @@ import (
 	"time"
 	_ "time/tzdata" // schedules with time zones work in minimal containers too
 
+	"github.com/charmbracelet/x/term"
 	"github.com/nrndev/pogi"
 	"github.com/nrndev/pogi/internal/aws/lambda"
 	"github.com/nrndev/pogi/internal/azure/arm"
@@ -35,6 +36,7 @@ import (
 	"github.com/nrndev/pogi/internal/docker"
 	"github.com/nrndev/pogi/internal/gcp/functions"
 	"github.com/nrndev/pogi/internal/tui"
+	"github.com/nrndev/pogi/internal/web"
 )
 
 const usage = `pogi — the whole cloud on your machine (AWS, Google Cloud, Azure)
@@ -49,11 +51,14 @@ Usage:
   pogi env [--shell sh]    print SDK environment variables (eval "$(pogi env)"; --hostname aws.localhost)
   pogi aws <args>          run the aws CLI against pogi
   pogi tf                  print a Terraform provider override for pogi
+  pogi tf diagram [path]   draw a Terraform folder or plan.json in the console (-o diagram.svg: write a file)
+  pogi cost [path]         what a Terraform folder or plan.json costs a month (sizes: list sizes); no path: what runs now
   pogi kubeconfig gke <cluster>  print a kubeconfig for a GKE cluster (--project, --location)
-  pogi logs [-f]           show recent API calls (follow with -f)
+  pogi logs [-f]           show recent API calls (-f, --follow: keep printing new ones)
   pogi ls [service]        list resources
   pogi reset [service…]    delete state (all services when none given)
   pogi clean               delete containers and volumes left by a pogi that is gone (--dry-run, --yes, --state)
+  pogi pull <path>         download the images a Terraform folder or plan.json needs (--all: every service's, --list: show them)
   pogi snapshot <cmd>      save | load | ls | rm | export | import
   pogi chaos <cmd>         add | ls | rm | clear fault-injection rules
   pogi lambda-sdks [pkg…]  install the AWS SDKs Lambda runtimes include (and the Functions Framework), for native functions
@@ -63,16 +68,30 @@ Usage:
   pogi agents init         add a pogi brief for coding agents to AGENTS.md (--file CLAUDE.md)
   pogi version
 
-Run "pogi start -h" for server flags. Client commands use --endpoint or
-$POGI_ENDPOINT (default http://localhost:7644).
+Run "pogi help <command>" or "pogi <command> -h" for a command's flags, and
+"pogi start -h" for server flags. Client commands use --endpoint or
+$POGI_ENDPOINT (default http://localhost:7644). status, services, ls, logs,
+snapshot ls and chaos ls print JSON with --json.
+
+Docs:   https://pogi.nrnx.dev
+Issues: https://github.com/nrndev/pogi/issues
 `
 
-func main() {
-	args := os.Args[1:]
-	cmd := "start"
-	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
-		cmd, args = args[0], args[1:]
+// command splits the subcommand off the arguments. With none, or when the first word is a flag,
+// the command is start and the flags are its own; --version and -v are the exception.
+// "pogi help X" is "pogi X -h".
+func command(args []string) (string, []string) {
+	if len(args) > 1 && args[0] == "help" {
+		return args[1], []string{"-h"}
 	}
+	if len(args) > 0 && (!strings.HasPrefix(args[0], "-") || args[0] == "--version" || args[0] == "-v") {
+		return args[0], args[1:]
+	}
+	return "start", args
+}
+
+func main() {
+	cmd, args := command(os.Args[1:])
 	var err error
 	switch cmd {
 	case "start", "up", "run":
@@ -93,6 +112,8 @@ func main() {
 		err = awsCLI(args)
 	case "tf", "terraform":
 		err = terraform(args)
+	case "cost":
+		err = costCmd(args)
 	case "kubeconfig":
 		err = kubeconfig(args)
 	case "logs":
@@ -103,6 +124,8 @@ func main() {
 		err = reset(args)
 	case "clean":
 		err = clean(args)
+	case "pull":
+		err = pull(args, os.Stdout)
 	case "snapshot", "snapshots", "snap":
 		err = snapshot(args)
 	case "chaos":
@@ -118,21 +141,40 @@ func main() {
 	case "agents":
 		err = agentsCmd(args)
 	case "version", "--version", "-v":
-		fmt.Println("pogi", pogi.Version)
+		switch {
+		case len(args) > 0 && isHelp(args[0]):
+			fmt.Println("usage: pogi version   print pogi's version (also --version or -v)")
+		case len(args) > 0:
+			err = usagef("version: unexpected argument %q", args[0])
+		default:
+			fmt.Println("pogi", pogi.Version)
+		}
 	case "help", "-h", "--help":
 		fmt.Print(usage)
 	default:
-		err = fmt.Errorf("unknown command %q\n\n%s", cmd, usage)
+		err = usagef("unknown command %q\n\n%s", cmd, usage)
 	}
 	if err != nil {
 		var exit *exec.ExitError
 		if errors.As(err, &exit) {
 			os.Exit(exit.ExitCode())
 		}
+		if errors.Is(err, flag.ErrHelp) {
+			return // the command printed its usage; asking for help is not a failure
+		}
 		fmt.Fprintln(os.Stderr, "pogi:", err)
+		if errors.As(err, new(usageError)) {
+			os.Exit(2)
+		}
 		os.Exit(1)
 	}
 }
+
+// usageError is a mistake in how a command was called: a bad flag, a word it does not take, a
+// missing argument. main exits 2 for it and 1 for every other error, as the flag package does.
+type usageError struct{ error }
+
+func usagef(format string, a ...any) error { return usageError{fmt.Errorf(format, a...)} }
 
 func getenv(keys ...string) string {
 	for _, k := range keys {
@@ -143,22 +185,100 @@ func getenv(keys ...string) string {
 	return ""
 }
 
-func isTerminal(f *os.File) bool {
-	st, err := f.Stat()
-	return err == nil && st.Mode()&os.ModeCharDevice != 0
+// setUsage gives fs the help that -h prints (to stdout, see parseArgs): what the command does, how
+// to call it, an example, then its flags. use and example may have several lines.
+func setUsage(fs *flag.FlagSet, summary, use, example string) {
+	fs.Usage = func() {
+		indent := func(s string) string { return "  " + strings.ReplaceAll(s, "\n", "\n  ") }
+		fmt.Fprintf(fs.Output(), "%s\n\nUsage:\n%s\n\nExample:\n%s\n", summary, indent(use), indent(example))
+		printFlags(fs.Output(), fs)
+	}
+}
+
+// printFlags lists fs's flags as the docs spell them, --name (or -n for one letter), each with its
+// value's type, what it does and its default. The flag package's own list writes -name.
+func printFlags(w io.Writer, fs *flag.FlagSet) {
+	fmt.Fprintln(w, "\nFlags:")
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	fs.VisitAll(func(f *flag.Flag) {
+		name := "--" + f.Name
+		if len(f.Name) == 1 {
+			name = "-" + f.Name
+		}
+		typ, text := flag.UnquoteUsage(f)
+		switch f.DefValue {
+		case "", "false", "0", "0s":
+		default:
+			if typ == "string" {
+				text += fmt.Sprintf(" (default %q)", f.DefValue)
+			} else {
+				text += " (default " + f.DefValue + ")"
+			}
+		}
+		fmt.Fprintf(tw, "  %s\t%s\n", strings.TrimSpace(name+" "+typ), text)
+	})
+	tw.Flush()
+}
+
+// isHelp reports whether arg asks for help in place of a subcommand.
+func isHelp(arg string) bool {
+	return arg == "-h" || arg == "-help" || arg == "--help" || arg == "help"
+}
+
+// parseMax reads flags anywhere among the arguments, so -h works at the end too (see parseArgs), and
+// fails when more than max arguments are left, so a word the command does not take is not ignored.
+// fs must be flag.ContinueOnError: parseArgs silences the flag package and returns its errors.
+func parseMax(fs *flag.FlagSet, args []string, max int) ([]string, error) {
+	pos, err := parseArgs(fs, args)
+	if err == nil && len(pos) > max {
+		err = usagef("%s: unexpected argument %q", fs.Name(), pos[max])
+	}
+	return pos, err
+}
+
+// at is pos[i], or "" when there are fewer arguments.
+func at(pos []string, i int) string {
+	if i < len(pos) {
+		return pos[i]
+	}
+	return ""
+}
+
+// isTerminal reports whether f is an interactive terminal. A character device is not enough:
+// /dev/null is one too.
+func isTerminal(f *os.File) bool { return term.IsTerminal(f.Fd()) }
+
+// styled reports whether f may get escape codes (bold text, a redrawn progress line): it is a
+// terminal, and neither NO_COLOR (https://no-color.org) nor TERM=dumb asks for plain text.
+func styled(f *os.File) bool {
+	return isTerminal(f) && os.Getenv("NO_COLOR") == "" && os.Getenv("TERM") != "dumb"
+}
+
+// printJSON writes v to stdout as indented JSON, for --json.
+func printJSON(v any) error {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(v)
 }
 
 // ---- server ----
 
 func start(args []string) error {
-	fs := flag.NewFlagSet("start", flag.ExitOnError)
+	fs := flag.NewFlagSet("start", flag.ContinueOnError)
+	setUsage(fs, "Start the emulator: the TUI in a terminal, logs and requests otherwise.",
+		"pogi [start] [flags]", "pogi start --services s3,sqs,dynamodb --persist")
 	apply := serverFlags(fs)
 	file := fs.String("config", "", "pogi.yaml to load (default $POGI_CONFIG, else ./pogi.yaml or ./pogi.yml)")
 	headless := fs.Bool("headless", false, "no TUI: print logs and requests")
 	quiet := fs.Bool("quiet", false, "headless: do not print each request")
+	fs.BoolVar(quiet, "q", false, "same as --quiet")
 	debug := fs.Bool("debug", false, "verbose logging")
-	applyEnvDefaults(fs)
-	fs.Parse(args)
+	if err := applyEnvDefaults(fs); err != nil {
+		return err
+	}
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
 
 	cfg, err := loadConfig(*file, apply)
 	if err != nil {
@@ -189,6 +309,19 @@ func start(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	defer func() { fmt.Fprint(os.Stderr, srv.Hub.ShutdownList()) }() // what was stopped; empty if pogi never ran
+	// Stopping can take seconds (containers, open requests). Say so at once, and let a second Ctrl-C
+	// quit: stop() hands the signal back to Go, whose default ends pogi. pogi clean and the orphan
+	// sweep at the next start handle any container left behind.
+	stopping := func() {
+		stop()
+		fmt.Fprintln(os.Stderr, "Stopping… (press Ctrl-C again to quit now)")
+	}
+	go func() {
+		<-ctx.Done()
+		if context.Cause(ctx) != context.Canceled { // a signal, not stop(); errors.Is would match both
+			stopping()
+		}
+	}()
 
 	if useTUI {
 		ready := make(chan string, 1)
@@ -197,23 +330,27 @@ func start(args []string) error {
 		select {
 		case u := <-ready:
 			err := tui.Run(u, true)
-			stop()
+			stopping()
 			<-done
 			return err
 		case err := <-done:
 			return err
 		}
 	}
-	return srv.Run(ctx, func(u string) {
+	err = srv.Run(ctx, func(u string) {
 		st := srv.Hub.Status()
-		fmt.Fprintf(os.Stderr, "pogi %s  ·  %d services  ·  data %s%s\n", pogi.Version, len(st.Services), srv.Hub.Cfg.DataDir,
+		n := web.ServiceCount(st.Services)
+		fmt.Fprintf(os.Stderr, "pogi %s  ·  %d %s  ·  data %s%s\n", pogi.Version, n, plural("service", n), srv.Hub.Cfg.DataDir,
 			map[bool]string{true: " (persistent)", false: ""}[st.Persist])
-		fmt.Fprintf(os.Stderr, "  endpoint  %s\n  console   %s/_pogi/\n  env       eval \"$(pogi env)\"\n", u, u)
+		fmt.Fprintf(os.Stderr, "  endpoint  %s\n  console   %s/_pogi/\n  env       %s\n", u, u, envHint(u))
 		if smtp := srv.Ports["ses"]; smtp != "" {
 			fmt.Fprintf(os.Stderr, "  smtp      %s\n", strings.TrimPrefix(smtp, "smtp://"))
 		}
 		if amqp := srv.Ports["amqp"]; amqp != "" {
 			fmt.Fprintf(os.Stderr, "  amqp      %s\n", strings.TrimPrefix(amqp, "amqp://"))
+		}
+		for _, name := range slices.Sorted(maps.Keys(srv.Busy)) {
+			fmt.Fprintf(os.Stderr, "  %-9s %s\n", name, srv.Busy[name])
 		}
 		if cfg.File != nil {
 			fmt.Fprintf(os.Stderr, "  config    %s\n", cfg.File.Path)
@@ -223,13 +360,24 @@ func start(args []string) error {
 			core.Go("pogi.printRequests", func() { printRequests(ctx, srv.Hub) })
 		}
 	})
+	if errors.Is(err, syscall.EADDRINUSE) {
+		return fmt.Errorf("port %d is in use (another pogi?); use --port — %w", cfg.Port, err)
+	}
+	return err
 }
 
-// applyEnvDefaults lets POGI_* and common LocalStack variables set flag defaults.
-func applyEnvDefaults(fs *flag.FlagSet) {
+// applyEnvDefaults lets POGI_* and common LocalStack variables set flag defaults. A value the flag
+// does not take is an error that names the variable.
+func applyEnvDefaults(fs *flag.FlagSet) error {
+	var errs []error
 	set := func(name string, keys ...string) {
-		if v := getenv(keys...); v != "" {
-			fs.Set(name, v)
+		for _, k := range keys {
+			if v := os.Getenv(k); v != "" {
+				if fs.Set(name, v) != nil {
+					errs = append(errs, fmt.Errorf("%s=%q is not a valid --%s", k, v, name))
+				}
+				return
+			}
 		}
 	}
 	set("port", "POGI_PORT")
@@ -258,9 +406,12 @@ func applyEnvDefaults(fs *flag.FlagSet) {
 		first, _, _ := strings.Cut(gl, ",")
 		if h, p, ok := strings.Cut(first, ":"); ok {
 			fs.Set("host", h)
-			fs.Set("port", p)
+			if fs.Set("port", p) != nil {
+				errs = append(errs, fmt.Errorf("GATEWAY_LISTEN=%q has no valid port", gl))
+			}
 		}
 	}
+	return errors.Join(errs...)
 }
 
 func printRequests(ctx context.Context, hub *core.Hub) {
@@ -288,21 +439,44 @@ func formatEntry(e core.Entry) string {
 // ---- client commands (admin API) ----
 
 func endpointFlag(fs *flag.FlagSet) *string {
-	def := getenv("POGI_ENDPOINT")
-	if def == "" {
-		def = "http://localhost:7644"
-	}
-	return fs.String("endpoint", def, "pogi endpoint")
+	return fs.String("endpoint", defaultEndpoint(), "pogi endpoint")
 }
+
+// defaultEndpoint is where client commands look for pogi without --endpoint.
+func defaultEndpoint() string {
+	if ep := getenv("POGI_ENDPOINT"); ep != "" {
+		return ep
+	}
+	return "http://localhost:7644"
+}
+
+// envHint is the start banner's command for SDK settings. Plain `pogi env` reaches this pogi only
+// when u is its default endpoint (any loopback name counts as the same host).
+func envHint(u string) string {
+	a, errA := url.Parse(u)
+	b, errB := url.Parse(defaultEndpoint())
+	if errA == nil && errB == nil && a.Port() == b.Port() &&
+		(a.Hostname() == b.Hostname() || core.Loopback(a.Hostname()) && core.Loopback(b.Hostname())) {
+		return `eval "$(pogi env)"`
+	}
+	return `eval "$(pogi env --endpoint ` + u + `)"`
+}
+
+// apiClient gives up on a pogi that does not answer, so no command hangs forever. Two minutes leave
+// room for a reset or snapshot load that stops containers; logs -f long-polls 25 s at a time.
+var apiClient = &http.Client{Timeout: 2 * time.Minute}
 
 func api(endpoint, method, path string, body io.Reader, out any) error {
 	req, err := http.NewRequest(method, strings.TrimRight(endpoint, "/")+path, body)
 	if err != nil {
 		return err
 	}
-	res, err := http.DefaultClient.Do(req)
+	res, err := apiClient.Do(req)
+	if os.IsTimeout(err) {
+		return fmt.Errorf("pogi at %s did not answer within %s", endpoint, apiClient.Timeout)
+	}
 	if err != nil {
-		return fmt.Errorf("pogi is not reachable at %s (start it with `pogi`): %v", endpoint, err)
+		return fmt.Errorf("cannot reach pogi at %s (start it with `pogi`): %v", endpoint, err)
 	}
 	defer res.Body.Close()
 	if res.StatusCode >= 400 {
@@ -324,15 +498,24 @@ func api(endpoint, method, path string, body io.Reader, out any) error {
 }
 
 func status(args []string) error {
-	fs := flag.NewFlagSet("status", flag.ExitOnError)
+	fs := flag.NewFlagSet("status", flag.ContinueOnError)
+	setUsage(fs, "Show the running pogi's services, with their resource and request counts.", "pogi status [flags]", "pogi status --json")
 	ep := endpointFlag(fs)
-	fs.Parse(args)
+	asJSON := fs.Bool("json", false, "print the status as JSON")
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
 	var st core.Status
 	if err := api(*ep, "GET", "/_pogi/api/info", nil, &st); err != nil {
 		return err
 	}
-	fmt.Printf("pogi %s at %s · up %s · region %s · persistence %v · iam %s\n\n", st.Version, *ep,
+	if *asJSON {
+		return printJSON(st)
+	}
+	fmt.Printf("pogi %s at %s · up %s · region %s · persistence %v · iam %s\n", st.Version, *ep,
 		time.Duration(st.Uptime)*time.Second, st.Region, st.Persist, st.IAM)
+	writeProblems(os.Stdout, st.Problems, styled(os.Stdout))
+	fmt.Println()
 	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "CLOUD\tSERVICE\tRESOURCES\tREQUESTS")
 	for _, s := range st.Services {
@@ -341,13 +524,31 @@ func status(args []string) error {
 	return tw.Flush()
 }
 
+// writeProblems lists what is wrong with pogi as a whole (saved state it can't read or write, a port
+// it could not open), one "! " line each, in red when color is true.
+func writeProblems(w io.Writer, ps []core.Problem, color bool) {
+	for _, p := range ps {
+		line := "! " + p.Text
+		if color {
+			line = "\x1b[31m" + line + "\x1b[0m"
+		}
+		fmt.Fprintln(w, line)
+	}
+}
+
 func env(args []string) error {
-	fs := flag.NewFlagSet("env", flag.ExitOnError)
+	fs := flag.NewFlagSet("env", flag.ContinueOnError)
+	setUsage(fs, "Print the environment variables that point SDKs and CLIs at pogi.", "pogi env [flags]", `eval "$(pogi env)"`)
 	ep := endpointFlag(fs)
 	shell := fs.String("shell", "sh", "sh | fish | pwsh | dotenv")
 	region := fs.String("region", getenv("AWS_DEFAULT_REGION", "AWS_REGION", "POGI_REGION"), "AWS region")
 	hostname := fs.String("hostname", "", "endpoint host name, e.g. aws.localhost (SDKs then use S3 virtual-host style)")
-	fs.Parse(args)
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
+	if !slices.Contains([]string{"sh", "bash", "zsh", "fish", "pwsh", "powershell", "dotenv"}, *shell) {
+		return usagef("env: --shell %q is not one of sh, bash, zsh, fish, pwsh, dotenv", *shell)
+	}
 	if *region == "" {
 		*region = core.DefaultRegion
 	}
@@ -435,43 +636,62 @@ func awsCLI(args []string) error {
 // terraformEndpoints maps pogi service names to Terraform AWS provider endpoint keys.
 var terraformEndpoints = map[string][]string{
 	"accessanalyzer": {"accessanalyzer"}, "account": {"account"}, "acm": {"acm"},
-	"amp": {"prometheus"}, "apigateway": {"apigateway", "apigatewayv2"}, "appconfig": {"appconfig"},
+	"acm-pca": {"acmpca"}, "amp": {"prometheus"}, "amplify": {"amplify"},
+	"apigateway": {"apigateway", "apigatewayv2"}, "appconfig": {"appconfig"}, "appflow": {"appflow"},
 	"appintegrations": {"appintegrations"}, "application-autoscaling": {"appautoscaling"},
-	"appsync": {"appsync"}, "athena": {"athena"}, "autoscaling": {"autoscaling"}, "backup": {"backup"},
-	"batch": {"batch"}, "bcm-data-exports": {"bcmdataexports"}, "bedrock": {"bedrock"},
-	"bedrock-agent": {"bedrockagent"}, "bedrock-agentcore-control": {"bedrockagentcore"},
-	"bedrock-runtime": {"bedrockruntime"}, "budgets": {"budgets"}, "ce": {"ce"},
+	"appstream": {"appstream"}, "appsync": {"appsync"}, "athena": {"athena"},
+	"autoscaling": {"autoscaling"}, "backup": {"backup"}, "batch": {"batch"},
+	"bcm-data-exports": {"bcmdataexports"}, "bedrock": {"bedrock"}, "bedrock-agent": {"bedrockagent"},
+	"bedrock-agentcore-control": {"bedrockagentcore"}, "bedrock-runtime": {"bedrockruntime"},
+	"budgets": {"budgets"}, "ce": {"ce"}, "cleanrooms": {"cleanrooms"},
 	"cloudcontrol": {"cloudcontrolapi"}, "cloudformation": {"cloudformation"},
 	"cloudfront": {"cloudfront"}, "cloudhsmv2": {"cloudhsmv2"}, "cloudtrail": {"cloudtrail"},
 	"cloudwatch": {"cloudwatch"}, "codeartifact": {"codeartifact"}, "codebuild": {"codebuild"},
-	"codedeploy": {"deploy"}, "codeguru-reviewer": {"codegurureviewer"},
-	"codepipeline": {"codepipeline"}, "cognito-identity": {"cognitoidentity"},
-	"cognito-idp": {"cognitoidp"}, "comprehend": {"comprehend"}, "config": {"configservice"},
-	"connect": {"connect"}, "controltower": {"controltower"}, "cur": {"cur"}, "datasync": {"datasync"},
-	"detective": {"detective"}, "dlm": {"dlm"}, "dms": {"dms"}, "dynamodb": {"dynamodb"},
-	"ec2": {"ec2"}, "ecr": {"ecr"}, "ecs": {"ecs"}, "efs": {"efs"}, "eks": {"eks"},
-	"elasticache": {"elasticache"}, "elasticbeanstalk": {"elasticbeanstalk"}, "elb": {"elb"},
-	"elbv2": {"elbv2"}, "emr": {"emr"}, "emr-serverless": {"emrserverless"}, "events": {"events"},
-	"firehose": {"firehose"}, "fis": {"fis"}, "globalaccelerator": {"globalaccelerator"},
-	"glue": {"glue"}, "guardduty": {"guardduty"}, "iam": {"iam"}, "identitystore": {"identitystore"},
-	"inspector2": {"inspector2"}, "iot": {"iot"}, "kafka": {"kafka"}, "kinesis": {"kinesis"},
-	"kinesisanalyticsv2": {"kinesisanalyticsv2"}, "kms": {"kms"}, "lakeformation": {"lakeformation"},
-	"lambda": {"lambda"}, "lightsail": {"lightsail"}, "logs": {"cloudwatchlogs"}, "macie2": {"macie2"},
-	"memorydb": {"memorydb"}, "mq": {"mq"}, "mwaa": {"mwaa"}, "network-firewall": {"networkfirewall"},
-	"oam": {"oam"}, "opensearch": {"opensearch", "es"}, "organizations": {"organizations"},
-	"pipes": {"pipes"}, "pricing": {"pricing"}, "ram": {"ram"}, "rds": {"rds", "docdb", "neptune"},
-	"rds-data": {"rdsdata"}, "redshift": {"redshift"}, "redshift-data": {"redshiftdata"},
+	"codecommit": {"codecommit"}, "codedeploy": {"deploy"}, "codepipeline": {"codepipeline"},
+	"codestar-connections": {"codestarconnections"}, "cognito-identity": {"cognitoidentity"},
+	"cognito-idp": {"cognitoidp"}, "comprehend": {"comprehend"},
+	"compute-optimizer": {"computeoptimizer"}, "config": {"configservice"}, "connect": {"connect"},
+	"controltower": {"controltower"}, "cost-optimization-hub": {"costoptimizationhub"}, "cur": {"cur"},
+	"dataexchange": {"dataexchange"}, "datasync": {"datasync"}, "datazone": {"datazone"},
+	"dax": {"dax"}, "detective": {"detective"}, "devicefarm": {"devicefarm"},
+	"directconnect": {"directconnect"}, "dlm": {"dlm"}, "dms": {"dms"}, "drs": {"drs"}, "ds": {"ds"},
+	"dsql": {"dsql"}, "dynamodb": {"dynamodb"}, "ec2": {"ec2"}, "ecr": {"ecr"}, "ecs": {"ecs"},
+	"efs": {"efs"}, "eks": {"eks"}, "elasticache": {"elasticache"},
+	"elasticbeanstalk": {"elasticbeanstalk"}, "elb": {"elb"}, "elbv2": {"elbv2"}, "emr": {"emr"},
+	"emr-serverless": {"emrserverless"}, "events": {"events"}, "firehose": {"firehose"},
+	"fis": {"fis"}, "fms": {"fms"}, "fsx": {"fsx"}, "gamelift": {"gamelift"},
+	"globalaccelerator": {"globalaccelerator"}, "glue": {"glue"}, "grafana": {"grafana"},
+	"guardduty": {"guardduty"}, "iam": {"iam"}, "identitystore": {"identitystore"},
+	"imagebuilder": {"imagebuilder"}, "inspector2": {"inspector2"}, "iot": {"iot"}, "ivs": {"ivs"},
+	"kafka": {"kafka"}, "keyspaces": {"keyspaces"}, "kinesis": {"kinesis"},
+	"kinesisanalyticsv2": {"kinesisanalyticsv2"}, "kinesisvideo": {"kinesisvideo"}, "kms": {"kms"},
+	"lakeformation": {"lakeformation"}, "lambda": {"lambda"}, "license-manager": {"licensemanager"},
+	"lightsail": {"lightsail"}, "location": {"location"}, "logs": {"cloudwatchlogs"},
+	"macie2": {"macie2"}, "mediaconvert": {"mediaconvert"}, "medialive": {"medialive"},
+	"mediapackagev2": {"mediapackagev2"}, "memorydb": {"memorydb"}, "mq": {"mq"}, "mwaa": {"mwaa"},
+	"network-firewall": {"networkfirewall"}, "networkmanager": {"networkmanager"},
+	"notifications": {"notifications"}, "oam": {"oam"}, "odb": {"odb"},
+	"opensearch": {"opensearch", "es"}, "organizations": {"organizations"},
+	"payment-cryptography": {"paymentcryptography"}, "pinpoint-sms-voice-v2": {"pinpointsmsvoicev2"},
+	"pipes": {"pipes"}, "polly": {"polly"}, "pricing": {"pricing"}, "quicksight": {"quicksight"},
+	"ram": {"ram"}, "rds": {"rds", "docdb", "neptune"}, "rds-data": {"rdsdata"},
+	"redshift": {"redshift"}, "redshift-data": {"redshiftdata"},
 	"redshift-serverless": {"redshiftserverless"}, "rekognition": {"rekognition"},
-	"resource-explorer-2": {"resourceexplorer2"}, "route53": {"route53"},
-	"route53resolver": {"route53resolver"}, "rum": {"rum"}, "s3": {"s3", "s3control"},
+	"resiliencehub": {"resiliencehub"}, "resource-explorer-2": {"resourceexplorer2"},
+	"resource-groups": {"resourcegroups"}, "route53": {"route53"},
+	"route53-recovery-control-config": {"route53recoverycontrolconfig"},
+	"route53resolver":                 {"route53resolver"}, "rum": {"rum"}, "s3": {"s3", "s3control"},
 	"s3tables": {"s3tables"}, "s3vectors": {"s3vectors"}, "sagemaker": {"sagemaker"},
 	"scheduler": {"scheduler"}, "secretsmanager": {"secretsmanager"}, "securityhub": {"securityhub"},
+	"securitylake": {"securitylake"}, "serverlessrepo": {"serverlessrepo"},
 	"service-quotas": {"servicequotas"}, "servicecatalog": {"servicecatalog"},
-	"servicediscovery": {"servicediscovery"}, "ses": {"ses", "sesv2"}, "sns": {"sns"}, "sqs": {"sqs"},
-	"ssm": {"ssm"}, "sso": {"sso"}, "sso-admin": {"ssoadmin"}, "stepfunctions": {"sfn"},
+	"servicediscovery": {"servicediscovery"}, "ses": {"ses", "sesv2"}, "shield": {"shield"},
+	"signer": {"signer"}, "sns": {"sns"}, "sqs": {"sqs"}, "ssm": {"ssm"}, "sso": {"sso"},
+	"sso-admin": {"ssoadmin"}, "stepfunctions": {"sfn"}, "storagegateway": {"storagegateway"},
 	"sts": {"sts"}, "swf": {"swf"}, "timestream-influxdb": {"timestreaminfluxdb"},
 	"transcribe": {"transcribe"}, "transfer": {"transfer"},
-	"verifiedpermissions": {"verifiedpermissions"}, "wafv2": {"wafv2"},
+	"verifiedpermissions": {"verifiedpermissions"}, "vpc-lattice": {"vpclattice"}, "wafv2": {"wafv2"},
+	"workspaces": {"workspaces"}, "workspaces-web": {"workspacesweb"}, "xray": {"xray"},
 }
 
 // googleEndpoints maps the Terraform google provider's custom endpoint arguments to the base path
@@ -482,6 +702,9 @@ var googleEndpoints = map[string]string{
 	"iam": "/v1/", "iam_beta": "/v1/", "iam_credentials": "/v1/", "resource_manager": "/v1/", "service_usage": "/v1/", "kms": "/v1/",
 	"sql": "/sql/v1beta4/", "big_query": "/bigquery/v2/", "logging": "/v2/", "monitoring": "/",
 	"cloud_resource_manager": "/v1/", "resource_manager_v3": "/v3/",
+	// the APIs below share their paths with others, so they are served under a prefix (core.googlePrefixed)
+	"spanner": "/spanner/v1/", "bigtable": "/bigtableadmin/v2/", "redis": "/redis/v1/", "workflows": "/workflows/v1/",
+	"compute": "/compute/v1/",
 }
 
 // googleProvider prints the google provider's override: every API on pogi's main port.
@@ -538,32 +761,37 @@ provider "azurerm" {
 // kubeconfig prints a kubeconfig for a GKE cluster that carries a static pogi access token,
 // for machines without gke-gcloud-auth-plugin: pogi kubeconfig gke <cluster> [--project p] [--location l].
 func kubeconfig(args []string) error {
-	fs := flag.NewFlagSet("kubeconfig", flag.ExitOnError)
+	fs := flag.NewFlagSet("kubeconfig", flag.ContinueOnError)
+	setUsage(fs, "Print a kubeconfig for a GKE cluster in pogi, for machines without gke-gcloud-auth-plugin.",
+		"pogi kubeconfig gke <cluster> [flags]", "pogi kubeconfig gke my-cluster --location us-central1 > kubeconfig")
 	ep := endpointFlag(fs)
 	project := fs.String("project", core.DefaultProject, "Google Cloud project")
 	location := fs.String("location", "us-central1", "cluster location")
-	var pos []string
-	if len(args) >= 2 && !strings.HasPrefix(args[0], "-") { // flags may follow the arguments
-		pos, args = args[:2], args[2:]
-	}
-	fs.Parse(args)
-	if pos == nil {
-		pos = fs.Args()
+	pos, err := parseMax(fs, args, 2)
+	if err != nil {
+		return err
 	}
 	if len(pos) != 2 || pos[0] != "gke" {
-		return errors.New("usage: pogi kubeconfig gke <cluster> [--project p] [--location l]")
+		return usagef("usage: pogi kubeconfig gke <cluster> [--project p] [--location l]")
 	}
 	return api(*ep, "GET", "/_gcp/gke/kubeconfig/"+url.PathEscape(*project)+"/"+url.PathEscape(*location)+"/"+url.PathEscape(pos[1]), nil, os.Stdout)
 }
 
 func terraform(args []string) error {
-	fs := flag.NewFlagSet("tf", flag.ExitOnError)
+	if len(args) > 0 && args[0] == "diagram" {
+		return tfDiagramCmd(os.Stdout, isTerminal(os.Stdout), args[1:])
+	}
+	fs := flag.NewFlagSet("tf", flag.ContinueOnError)
+	setUsage(fs, "Print a Terraform provider override that points the provider at pogi.",
+		"pogi tf [flags]\npogi tf diagram [folder | plan.json] [flags]", "pogi tf > pogi_override.tf")
 	ep := endpointFlag(fs)
 	region := fs.String("region", "", "region (default us-east-1 for aws, us-central1 for gcp)")
 	cloud := fs.String("cloud", "aws", "aws, gcp or azure")
 	project := fs.String("project", core.DefaultProject, "Google Cloud project")
 	metadataHost := fs.String("metadata-host", "", "azurerm's metadata_host: host:port (default host.docker.internal and the endpoint's port)")
-	fs.Parse(args)
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
 	switch *cloud {
 	case "gcp":
 		if *region == "" {
@@ -578,7 +806,7 @@ func terraform(args []string) error {
 			*region = core.DefaultRegion
 		}
 	default:
-		return fmt.Errorf("--cloud %q: want aws, gcp or azure", *cloud)
+		return usagef("--cloud %q: want aws, gcp or azure", *cloud)
 	}
 	var keys []string
 	var st core.Status
@@ -613,13 +841,22 @@ provider "aws" {
 }
 
 func logs(args []string) error {
-	fs := flag.NewFlagSet("logs", flag.ExitOnError)
+	fs := flag.NewFlagSet("logs", flag.ContinueOnError)
+	setUsage(fs, "Show recent API calls to pogi, oldest first.", "pogi logs [flags]", "pogi logs -f --service s3 --errors")
 	ep := endpointFlag(fs)
-	follow := fs.Bool("f", false, "follow")
+	follow := fs.Bool("f", false, "keep printing new calls as they arrive")
+	fs.BoolVar(follow, "follow", false, "same as -f")
 	service := fs.String("service", "", "only this service")
 	errorsOnly := fs.Bool("errors", false, "only failed calls")
 	n := fs.Int("n", 50, "how many recent calls to show")
-	fs.Parse(args)
+	fs.IntVar(n, "lines", 50, "same as -n")
+	asJSON := fs.Bool("json", false, "print each call as one line of JSON")
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
+	if *n < 1 {
+		return usagef("logs: -n %d is not a positive number", *n)
+	}
 	q := url.Values{"service": {*service}, "limit": {strconv.Itoa(*n)}}
 	if *errorsOnly {
 		q.Set("errors", "1")
@@ -632,7 +869,12 @@ func logs(args []string) error {
 		}
 		for _, e := range entries {
 			after = e.ID
-			fmt.Println(formatEntry(e))
+			if *asJSON {
+				b, _ := json.Marshal(e)
+				fmt.Println(string(b))
+			} else {
+				fmt.Println(formatEntry(e))
+			}
 		}
 		if !*follow {
 			return nil
@@ -644,16 +886,24 @@ func logs(args []string) error {
 }
 
 func list(args []string) error {
-	fs := flag.NewFlagSet("ls", flag.ExitOnError)
+	fs := flag.NewFlagSet("ls", flag.ContinueOnError)
+	setUsage(fs, "List the resources of one service, or of all.", "pogi ls [service] [flags]", "pogi ls s3")
 	ep := endpointFlag(fs)
-	fs.Parse(args)
+	asJSON := fs.Bool("json", false, "print the resources as JSON")
+	pos, err := parseMax(fs, args, 1)
+	if err != nil {
+		return err
+	}
 	path := "/_pogi/api/resources"
-	if fs.NArg() > 0 {
-		path += "?service=" + url.QueryEscape(fs.Arg(0))
+	if len(pos) > 0 {
+		path += "?service=" + url.QueryEscape(pos[0])
 	}
 	var res map[string][]core.Table
 	if err := api(*ep, "GET", path, nil, &res); err != nil {
 		return err
+	}
+	if *asJSON {
+		return printJSON(res)
 	}
 	for _, svc := range core.SortedKeys(res) {
 		for _, t := range res[svc] {
@@ -675,32 +925,53 @@ func list(args []string) error {
 }
 
 func reset(args []string) error {
-	fs := flag.NewFlagSet("reset", flag.ExitOnError)
+	fs := flag.NewFlagSet("reset", flag.ContinueOnError)
+	setUsage(fs, "Delete the state of the services named, or of every service when none is.", "pogi reset [service…] [flags]", "pogi reset s3 sqs")
 	ep := endpointFlag(fs)
-	fs.Parse(args)
+	names, err := parseArgs(fs, args) // any number of services
+	if err != nil {
+		return err
+	}
 	path := "/_pogi/api/reset"
-	if fs.NArg() > 0 {
-		path += "?service=" + url.QueryEscape(strings.Join(fs.Args(), ","))
+	if len(names) > 0 {
+		path += "?service=" + url.QueryEscape(strings.Join(names, ","))
 	}
 	if err := api(*ep, "POST", path, nil, nil); err != nil {
 		return err
 	}
-	fmt.Println("reset", map[bool]string{true: "all services", false: strings.Join(fs.Args(), ", ")}[fs.NArg() == 0])
+	fmt.Println("reset", map[bool]string{true: "all services", false: strings.Join(names, ", ")}[len(names) == 0])
 	return nil
 }
 
 func snapshot(args []string) error {
-	fs := flag.NewFlagSet("snapshot", flag.ExitOnError)
+	fs := flag.NewFlagSet("snapshot", flag.ContinueOnError)
+	setUsage(fs, "Save, load, list and share snapshots of pogi's state. A FILE of - is stdout for export and stdin\nfor import (import - then needs a NAME).",
+		"pogi snapshot save [NAME] | load NAME | ls | rm NAME | export NAME [FILE] | import FILE [NAME]",
+		"pogi snapshot save clean && pogi snapshot load clean")
 	ep := endpointFlag(fs)
-	if len(args) == 0 {
-		args = []string{"ls"}
+	asJSON := fs.Bool("json", false, "ls: print the snapshots as JSON")
+	if len(args) > 0 && isHelp(args[0]) {
+		args = []string{"-h"} // "pogi snapshot help"; parseArgs prints the help
 	}
-	sub := args[0]
-	fs.Parse(args[1:])
-	name := fs.Arg(0)
+	pos, err := parseArgs(fs, args) // flags may come before or after the subcommand
+	if err != nil {
+		return err
+	}
+	sub := "ls"
+	if len(pos) > 0 {
+		sub, pos = pos[0], pos[1:]
+	}
+	// The most arguments each subcommand takes; an unknown one fails in the switch below.
+	if n, ok := map[string]int{"ls": 0, "list": 0, "save": 1, "load": 1, "restore": 1, "rm": 1, "delete": 1, "export": 2, "import": 2}[sub]; ok && len(pos) > n {
+		return usagef("snapshot %s: unexpected argument %q", sub, pos[n])
+	}
+	if *asJSON && sub != "ls" && sub != "list" {
+		return usagef("snapshot %s: --json only works with snapshot ls", sub)
+	}
+	name := at(pos, 0)
 	need := func() error {
 		if name == "" {
-			return fmt.Errorf("usage: pogi snapshot %s NAME", sub)
+			return usagef("usage: pogi snapshot %s NAME", sub)
 		}
 		return nil
 	}
@@ -710,6 +981,9 @@ func snapshot(args []string) error {
 		var snaps []core.SnapshotInfo
 		if err := api(*ep, "GET", "/_pogi/api/snapshots", nil, &snaps); err != nil {
 			return err
+		}
+		if *asJSON {
+			return printJSON(snaps)
 		}
 		tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		fmt.Fprintln(tw, "NAME\tSIZE\tSAVED")
@@ -738,47 +1012,76 @@ func snapshot(args []string) error {
 		if err := need(); err != nil {
 			return err
 		}
-		return api(*ep, "DELETE", p, nil, nil)
+		if err := api(*ep, "DELETE", p, nil, nil); err != nil {
+			return err
+		}
+		fmt.Println("removed snapshot", name)
 	case "export":
 		if err := need(); err != nil {
 			return err
 		}
-		out := io.Writer(os.Stdout)
-		if file := fs.Arg(1); file != "" {
-			f, err := os.Create(file)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			out = f
-		}
-		return api(*ep, "GET", p, nil, out)
+		return exportSnapshot(*ep, p, at(pos, 1))
 	case "import":
-		file := fs.Arg(0)
+		file := at(pos, 0)
 		if file == "" {
-			return errors.New("usage: pogi snapshot import FILE [NAME]")
+			return usagef("usage: pogi snapshot import FILE [NAME]")
 		}
-		b, err := os.ReadFile(file)
-		if err != nil {
-			return err
+		name = at(pos, 1)
+		if name == "" && file == "-" {
+			return usagef("usage: pogi snapshot import - NAME (stdin has no file name to take the name from)")
 		}
-		name = fs.Arg(1)
 		if name == "" {
 			name = strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
+		}
+		var b []byte
+		var err error
+		if file == "-" {
+			b, err = io.ReadAll(os.Stdin)
+		} else {
+			b, err = os.ReadFile(file)
+		}
+		if err != nil {
+			return err
 		}
 		if err := api(*ep, "PUT", "/_pogi/api/snapshots/"+url.PathEscape(name), bytes.NewReader(b), nil); err != nil {
 			return err
 		}
 		fmt.Println("imported", name, "(load it with: pogi snapshot load", name+")")
 	default:
-		return fmt.Errorf("unknown snapshot command %q (save | load | ls | rm | export | import)", sub)
+		return usagef("unknown snapshot command %q (save | load | ls | rm | export | import)", sub)
 	}
 	return nil
 }
 
+// exportSnapshot writes the snapshot at API path p to file, or to stdout when file is "" or "-". A file
+// is written beside its final name and renamed only when the whole snapshot arrived, so a failed
+// export (an unknown name, a dropped connection) leaves no file behind.
+func exportSnapshot(ep, p, file string) error {
+	if file == "" || file == "-" {
+		return api(ep, "GET", p, nil, os.Stdout)
+	}
+	f, err := os.CreateTemp(filepath.Dir(file), ".pogi-export-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name()) // does nothing once renamed
+	err = api(ep, "GET", p, nil, f)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		return err
+	}
+	return os.Rename(f.Name(), file)
+}
+
 func chaos(args []string) error {
-	fs := flag.NewFlagSet("chaos", flag.ExitOnError)
+	fs := flag.NewFlagSet("chaos", flag.ContinueOnError)
+	setUsage(fs, "Add, list and remove fault-injection rules: errors and latency on matching calls.",
+		"pogi chaos add --status n | --latency d [flags]\npogi chaos ls | rm ID | clear",
+		"pogi chaos add --service s3 --op 'Put*' --status 503 --rate 0.2")
 	ep := endpointFlag(fs)
+	asJSON := fs.Bool("json", false, "ls: print the rules as JSON")
 	service := fs.String("service", "", "service glob (default: any)")
 	op := fs.String("op", "", "operation glob, e.g. Put* (default: any)")
 	rate := fs.Float64("rate", 1, "probability 0..1")
@@ -786,16 +1089,44 @@ func chaos(args []string) error {
 	status := fs.Int("status", 0, "HTTP status to inject, e.g. 500")
 	code := fs.String("code", "", "error code, e.g. ThrottlingException")
 	msg := fs.String("message", "", "error message")
-	if len(args) == 0 {
-		args = []string{"ls"}
+	if len(args) > 0 && isHelp(args[0]) {
+		args = []string{"-h"} // "pogi chaos help"; parseArgs prints the help
 	}
-	sub := args[0]
-	fs.Parse(args[1:])
+	pos, err := parseArgs(fs, args) // flags may come before or after the subcommand
+	if err != nil {
+		return err
+	}
+	sub := "ls"
+	if len(pos) > 0 {
+		sub, pos = pos[0], pos[1:]
+	}
+	// The most arguments each subcommand takes; an unknown one fails in the switch below.
+	if n, ok := map[string]int{"ls": 0, "list": 0, "add": 0, "rm": 1, "remove": 1, "clear": 0}[sub]; ok && len(pos) > n {
+		return usagef("chaos %s: unexpected argument %q", sub, pos[n])
+	}
+	// The rule flags mean something to add only, and --json to ls only; elsewhere they would be ignored.
+	if sub != "add" {
+		var ruleFlags []string
+		fs.Visit(func(f *flag.Flag) {
+			if f.Name != "endpoint" && f.Name != "json" {
+				ruleFlags = append(ruleFlags, "--"+f.Name)
+			}
+		})
+		if len(ruleFlags) > 0 {
+			return usagef("chaos %s: %s only work with chaos add", sub, strings.Join(ruleFlags, ", "))
+		}
+	}
+	if *asJSON && sub != "ls" && sub != "list" {
+		return usagef("chaos %s: --json only works with chaos ls", sub)
+	}
 	switch sub {
 	case "ls", "list":
 		var rules []core.Rule
 		if err := api(*ep, "GET", "/_pogi/api/chaos", nil, &rules); err != nil {
 			return err
+		}
+		if *asJSON {
+			return printJSON(rules)
 		}
 		tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		fmt.Fprintln(tw, "ID\tSERVICE\tOP\tRATE\tLATENCY\tERROR\tHITS")
@@ -809,7 +1140,7 @@ func chaos(args []string) error {
 		return tw.Flush()
 	case "add":
 		if *status == 0 && *latency == 0 {
-			return errors.New("give --status and/or --latency")
+			return usagef("chaos add: give --status and/or --latency")
 		}
 		b, _ := json.Marshal(core.Rule{Service: *service, Op: *op, Probability: *rate, LatencyMs: int(latency.Milliseconds()), Status: *status, Code: *code, Message: *msg})
 		var r core.Rule
@@ -818,22 +1149,31 @@ func chaos(args []string) error {
 		}
 		fmt.Println("added rule", r.ID)
 	case "rm", "remove":
-		if fs.NArg() == 0 {
-			return errors.New("usage: pogi chaos rm ID")
+		if len(pos) == 0 {
+			return usagef("usage: pogi chaos rm ID")
 		}
-		return api(*ep, "DELETE", "/_pogi/api/chaos/"+url.PathEscape(fs.Arg(0)), nil, nil)
+		if err := api(*ep, "DELETE", "/_pogi/api/chaos/"+url.PathEscape(pos[0]), nil, nil); err != nil {
+			return err
+		}
+		fmt.Println("removed rule", pos[0])
 	case "clear":
-		return api(*ep, "DELETE", "/_pogi/api/chaos", nil, nil)
+		if err := api(*ep, "DELETE", "/_pogi/api/chaos", nil, nil); err != nil {
+			return err
+		}
+		fmt.Println("removed all chaos rules")
 	default:
-		return fmt.Errorf("unknown chaos command %q (add | ls | rm | clear)", sub)
+		return usagef("unknown chaos command %q (add | ls | rm | clear)", sub)
 	}
 	return nil
 }
 
 func attach(args []string) error {
-	fs := flag.NewFlagSet("tui", flag.ExitOnError)
+	fs := flag.NewFlagSet("tui", flag.ContinueOnError)
+	setUsage(fs, "Attach the terminal screen to a pogi that is already running.", "pogi tui [flags]", "pogi tui --endpoint http://localhost:7644")
 	ep := endpointFlag(fs)
-	fs.Parse(args)
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
 	if err := api(*ep, "GET", "/_pogi/api/info", nil, nil); err != nil {
 		return err
 	}
@@ -864,13 +1204,14 @@ var nodeSDKs = []string{"client-s3", "lib-storage", "client-dynamodb", "lib-dyna
 // for JavaScript v3, boto3) where pogi's native runtimes look for them, and the
 // Python Functions Framework for Cloud Functions.
 func lambdaSDKs(args []string) error {
-	fs := flag.NewFlagSet("lambda-sdks", flag.ExitOnError)
+	fs := flag.NewFlagSet("lambda-sdks", flag.ContinueOnError)
 	dataDir := fs.String("data-dir", "", "pogi's data dir (default ~/.pogi)")
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: pogi lambda-sdks [--data-dir dir] [extra npm or pip packages…]")
-		fs.PrintDefaults()
+	setUsage(fs, "Install the AWS SDKs that Lambda runtimes include (and the Functions Framework), for native functions.\nExtra packages starting with @ go to npm, others to pip.",
+		"pogi lambda-sdks [package…] [flags]", "pogi lambda-sdks @aws-sdk/client-bedrock-runtime requests")
+	pkgs, err := parseArgs(fs, args) // any number of extra packages
+	if err != nil {
+		return err
 	}
-	fs.Parse(args)
 	if *dataDir == "" {
 		home, _ := os.UserHomeDir()
 		*dataDir = filepath.Join(home, ".pogi")
@@ -886,7 +1227,7 @@ func lambdaSDKs(args []string) error {
 		return c.Run()
 	}
 	var extraNode, extraPy []string
-	for _, p := range fs.Args() {
+	for _, p := range pkgs {
 		if strings.HasPrefix(p, "@") {
 			extraNode = append(extraNode, p)
 		} else {
@@ -931,9 +1272,12 @@ func defaultDataDir(dir string) string {
 
 // cert makes sure pogi's local CA exists and says how to trust it.
 func cert(args []string) error {
-	fs := flag.NewFlagSet("cert", flag.ExitOnError)
+	fs := flag.NewFlagSet("cert", flag.ContinueOnError)
+	setUsage(fs, "Print (and create) pogi's local certificate authority, and how to trust it.", "pogi cert [flags]", "pogi cert")
 	dataDir := fs.String("data-dir", "", "pogi's data dir (default ~/.pogi)")
-	fs.Parse(args)
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
 	h := core.NewHub(core.Config{DataDir: defaultDataDir(*dataDir)}, nil)
 	if _, err := h.TLS(); err != nil {
 		return err
@@ -954,10 +1298,13 @@ func cert(args []string) error {
 
 // doctor checks what pogi depends on and says how to fix what is missing.
 func doctor(args []string) error {
-	fs := flag.NewFlagSet("doctor", flag.ExitOnError)
+	fs := flag.NewFlagSet("doctor", flag.ContinueOnError)
+	setUsage(fs, "Check the server, Lambda runtimes, SDKs, Docker and the local CA, and say how to fix what fails.", "pogi doctor [flags]", "pogi doctor")
 	ep := endpointFlag(fs)
 	dataDir := fs.String("data-dir", "", "pogi's data dir (default ~/.pogi)")
-	fs.Parse(args)
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
 	dir := defaultDataDir(*dataDir)
 	bad := 0
 	check := func(ok bool, what, fix string) {

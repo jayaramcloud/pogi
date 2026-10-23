@@ -91,6 +91,16 @@ func engineOf(databaseVersion string) (engine, bool) {
 	return engine{}, false
 }
 
+// Image is the image a databaseVersion (MYSQL_8_0, POSTGRES_16…) runs, from the same spec the service uses;
+// ok is false for a version pogi does not run.
+func Image(databaseVersion string) (image string, ok bool) {
+	e, ok := engineOf(databaseVersion)
+	if !ok {
+		return "", false
+	}
+	return rds.DBSpec(e.name, e.version, e.admin, "p", "", 0).Image, true
+}
+
 func (i *instance) engine() engine { e, _ := engineOf(i.Spec.DatabaseVersion); return e }
 
 // New creates the Cloud SQL service.
@@ -186,7 +196,7 @@ func (s *Service) Resources() []core.Table {
 		if len(v.IpAddresses) > 0 {
 			addr = v.IpAddresses[0].IpAddress
 		}
-		t.Rows = append(t.Rows, []string{v.Name, v.Project, v.DatabaseVersion, v.State, addr, v.Settings.Tier, v.Region})
+		t.Rows = append(t.Rows, []string{v.Name, v.Project, v.DatabaseVersion, rds.StatusCell(v.State, &s.st.Instances[k].Pogi), addr, v.Settings.Tier, v.Region})
 	}
 	return []core.Table{t}
 }

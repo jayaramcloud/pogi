@@ -415,7 +415,7 @@ func (s *Service) Deploy(name string, zipData []byte) error {
 	s.stopHost(name)
 	dir := filepath.Join(s.h.Cfg.DataDir, "azfunctions", strings.ToLower(a.Name))
 	os.RemoveAll(dir)
-	if err := extract(zr, dir); err != nil {
+	if err := Extract(zr, dir); err != nil {
 		os.RemoveAll(dir)
 		return core.Errorf(http.StatusBadRequest, "BadRequest", "%v", err)
 	}
@@ -431,15 +431,16 @@ func (s *Service) Deploy(name string, zipData []byte) error {
 // maxUnzipped caps the total unpacked size of one app zip (1 GiB).
 const maxUnzipped = 1 << 30
 
-func extract(zr *zip.Reader, dir string) error {
+// Extract unpacks a zip into dir, refusing entries outside it and more than 1 GiB in all.
+func Extract(zr *zip.Reader, dir string) error {
+	if err := core.CheckZipReader(zr); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 	left := int64(maxUnzipped) // bytes still allowed, across all entries
 	for _, f := range zr.File {
-		if !filepath.IsLocal(filepath.FromSlash(f.Name)) {
-			return fmt.Errorf("zip entry %q is outside the app", f.Name)
-		}
 		dst := filepath.Join(dir, filepath.FromSlash(f.Name))
 		if f.FileInfo().IsDir() {
 			if err := os.MkdirAll(dst, 0o755); err != nil {
@@ -498,7 +499,7 @@ func (s *Service) deliver(id string, m *core.Message) error {
 	if t := core.Traceparent(m.Trace); t != "" {
 		req.Header.Set("traceparent", t)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := hostClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -631,3 +632,6 @@ func (s *Service) Inspect(tbl, id string) any {
 }
 
 func portOf(u string) string { return u[strings.LastIndexByte(u, ':')+1:] }
+
+// hostClient calls the user's function host; a host that never answers must not hold pogi forever.
+var hostClient = &http.Client{Timeout: 2 * time.Minute}

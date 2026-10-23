@@ -206,6 +206,9 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) call(c *core.Ctx, body []byte) (any, error) {
+	if err := c.BodyErr(); err != nil {
+		return nil, err
+	}
 	h := s.ops[c.Op]
 	if h == nil {
 		return nil, core.Errorf(400, "UnknownOperationException", "pogi does not implement %s.%s yet", c.Service, c.Op)

@@ -109,12 +109,41 @@ func (a s3Store) MakeBucket(n string) error {
 }
 func (a s3Store) DropBucket(n string) error { return a.s.DeleteBucket(n) }
 
+// write runs a write the console makes straight on a service and logs it in Activity, marked "console".
+// Writes that go through the hub are logged there; the rest come through here.
+func (ui *UI) write(svc, op, target string, f func() error) error {
+	start := time.Now()
+	err := f()
+	ui.hub.LogConsole(svc, op, target, time.Since(start), err)
+	return err
+}
+
+// loggedStore logs the writes made on an object store (buckets, containers, objects).
+type loggedStore struct {
+	objectStore
+	ui  *UI
+	svc string
+}
+
+func (l loggedStore) Upload(b, k, ct string, d []byte) error {
+	return l.ui.write(l.svc, "PutObject", b+"/"+k, func() error { return l.objectStore.Upload(b, k, ct, d) })
+}
+func (l loggedStore) Remove(b, k string) error {
+	return l.ui.write(l.svc, "DeleteObject", b+"/"+k, func() error { return l.objectStore.Remove(b, k) })
+}
+func (l loggedStore) MakeBucket(n string) error {
+	return l.ui.write(l.svc, "CreateBucket", n, func() error { return l.objectStore.MakeBucket(n) })
+}
+func (l loggedStore) DropBucket(n string) error {
+	return l.ui.write(l.svc, "DeleteBucket", n, func() error { return l.objectStore.DropBucket(n) })
+}
+
 func (ui *UI) store(svc string) objectStore {
 	switch s := ui.hub.Service(svc).(type) {
 	case *s3.Service:
-		return s3Store{s, ui.hub.Cfg.Region}
+		return loggedStore{s3Store{s, ui.hub.Cfg.Region}, ui, svc}
 	case objectStore:
-		return s
+		return loggedStore{s, ui, svc}
 	}
 	return nil
 }
@@ -204,11 +233,11 @@ func (ui *UI) objectAction(w http.ResponseWriter, r *http.Request) {
 			err = fmt.Errorf("give the folder a name")
 			break
 		}
-		err, msg = st.Upload(bucket, prefix+name+"/", "application/x-directory", nil), "Folder created"
+		err, msg = st.Upload(bucket, prefix+name+"/", "application/x-directory", nil), "Folder "+name+" created"
 	case "delete":
-		err, msg = st.Remove(bucket, r.FormValue("key")), "Deleted"
+		err, msg = st.Remove(bucket, r.FormValue("key")), r.FormValue("key")+" deleted"
 	case "drop":
-		err, to, msg = st.DropBucket(bucket), "/_pogi/resources/"+svc, "Bucket deleted"
+		err, to, msg = st.DropBucket(bucket), "/_pogi/resources/"+svc, "Bucket "+bucket+" deleted"
 		if err == nil {
 			done(w, r, to, msg, nil) // the drawer's subject is gone: close it
 			return
@@ -227,11 +256,15 @@ func (ui *UI) parseUpload(w http.ResponseWriter, r *http.Request, code bool) err
 	if code {
 		limit = ui.hub.CodeLimit(false)
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, limit+1<<20)
-	err := r.ParseMultipartForm(64 << 20) // also parses a plain form
+	err := r.ParseMultipartForm(64 << 20) // also parses a plain form; the body is already limited (bodyLimit)
 	var tooBig *http.MaxBytesError
 	if errors.As(err, &tooBig) {
-		return errors.New(ui.tooBig(r.URL.Path, max(r.ContentLength, tooBig.Limit+1), limit, code))
+		size := max(r.ContentLength, tooBig.Limit+1)
+		if raw, ok := r.Context().Value(rawBodyKey{}).(io.Reader); ok {
+			n, _ := io.Copy(io.Discard, raw) // the rest of the body, so the size shown is the real one
+			size = max(size, tooBig.Limit+1+n)
+		}
+		return errors.New(ui.tooBig(r.URL.Path, size, limit, code))
 	}
 	if errors.Is(err, http.ErrNotMultipart) {
 		return nil
@@ -254,7 +287,7 @@ func (ui *UI) makeBucket(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	done(w, r, "/_pogi/resources/"+svc, "Created", st.MakeBucket(strings.TrimSpace(r.FormValue("name"))))
+	done(w, r, "/_pogi/resources/"+svc, storeNouns[svc]+" "+strings.TrimSpace(r.FormValue("name"))+" created", st.MakeBucket(strings.TrimSpace(r.FormValue("name"))))
 }
 
 // ---- SQS ----
@@ -280,8 +313,9 @@ func (ui *UI) sqsQueue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ui *UI) sqsCreate(w http.ResponseWriter, r *http.Request) {
-	err := ui.sqs().Create(core.DefaultAccount, ui.hub.Cfg.Region, strings.TrimSpace(r.FormValue("name")))
-	done(w, r, "/_pogi/resources/sqs", "Queue created", err)
+	name := strings.TrimSpace(r.FormValue("name"))
+	err := ui.write("sqs", "CreateQueue", name, func() error { return ui.sqs().Create(core.DefaultAccount, ui.hub.Cfg.Region, name) })
+	done(w, r, "/_pogi/resources/sqs", "Queue "+name+" created", err)
 }
 
 // sqsSendIn is the SendMessage input a queue drawer's form stands for: up to five String attributes,
@@ -315,7 +349,7 @@ func (ui *UI) sqsSend(w http.ResponseWriter, r *http.Request) {
 	acct, region, name := r.PathValue("account"), r.PathValue("region"), r.PathValue("name")
 	in, err := sqsSendIn(r, name)
 	if err == nil {
-		err = ui.hub.Call(acct, region, "AmazonSQS", "SendMessage", in, nil)
+		err = ui.hub.ConsoleCall(acct, region, "AmazonSQS", "SendMessage", in, nil)
 	}
 	stay(w, r, "/_pogi/sqs/"+acct+"/"+region+"/"+url.PathEscape(name), "Message sent", err)
 }
@@ -345,7 +379,7 @@ func (ui *UI) sqsCLI(w http.ResponseWriter, r *http.Request) {
 
 func (ui *UI) sqsPurge(w http.ResponseWriter, r *http.Request) {
 	acct, region, name := r.PathValue("account"), r.PathValue("region"), r.PathValue("name")
-	err := ui.sqs().Purge(acct, region, name)
+	err := ui.write("sqs", "PurgeQueue", name, func() error { return ui.sqs().Purge(acct, region, name) })
 	stay(w, r, "/_pogi/sqs/"+acct+"/"+region+"/"+url.PathEscape(name), "Queue purged", err)
 }
 
@@ -392,7 +426,10 @@ func (ui *UI) snsPublish(w http.ResponseWriter, r *http.Request) {
 	s, _ := ui.hub.Service("sns").(*sns.Service)
 	topic := r.FormValue("topic")
 	_, region, account, _, _ := core.ParseARN(topic)
-	_, err := s.PublishConsole(account, region, topic, r.FormValue("subject"), r.FormValue("message"))
+	err := ui.write("sns", "Publish", topic, func() error {
+		_, err := s.PublishConsole(account, region, topic, r.FormValue("subject"), r.FormValue("message"))
+		return err
+	})
 	done(w, r, "/_pogi/resources/sns", "Message published", err)
 }
 
@@ -402,7 +439,10 @@ func (ui *UI) eventsPut(w http.ResponseWriter, r *http.Request) {
 	if detail == "" {
 		detail = "{}"
 	}
-	_, err := e.PutEvent(core.DefaultAccount, ui.hub.Cfg.Region, r.FormValue("bus"), r.FormValue("source"), r.FormValue("detailType"), detail)
+	err := ui.write("events", "PutEvents", r.FormValue("bus"), func() error {
+		_, err := e.PutEvent(core.DefaultAccount, ui.hub.Cfg.Region, r.FormValue("bus"), r.FormValue("source"), r.FormValue("detailType"), detail)
+		return err
+	})
 	done(w, r, "/_pogi/resources/events", "Event sent", err)
 }
 

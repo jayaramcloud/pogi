@@ -290,9 +290,24 @@ type runInput struct {
 	TagSpecifications                                                                 []tagSpec     `query:"TagSpecification"`
 }
 
+// runToken remembers a RunInstances ClientToken: a hash of the other parameters, and the reservation it made.
+type runToken struct {
+	Hash          string `json:"hash"`
+	ReservationId string `json:"reservationId"`
+}
+
 func (s *Service) runInstances(c *core.Ctx, in *runInput) (any, error) {
 	if err := s.fromTemplate(c, in); err != nil {
 		return nil, err
+	}
+	hash := ""
+	if in.ClientToken != "" { // the same token and the same parameters mean the same call
+		tok := in.ClientToken
+		in.ClientToken = ""
+		b, _ := json.Marshal(in)
+		in.ClientToken = tok
+		sum := sha256.Sum256(b)
+		hash = hex.EncodeToString(sum[:])
 	}
 	switch {
 	case in.MinCount < 1 || in.MaxCount < in.MinCount:
@@ -327,6 +342,27 @@ func (s *Service) runInstances(c *core.Ctx, in *runInput) (any, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	r := s.reg(c)
+	if in.ClientToken != "" { // checked under the lock, so concurrent calls with one token make one reservation
+		if t, ok := r.Tokens[in.ClientToken]; ok {
+			var made []Instance
+			for _, i := range r.Instances {
+				if i.ReservationId == t.ReservationId {
+					made = append(made, withTags(r, i, (*Instance).view))
+				}
+			}
+			if len(made) > 0 {
+				if t.Hash != hash {
+					return nil, core.Errorf(400, "IdempotentParameterMismatch", "Arguments on this idempotent request are inconsistent with arguments used in previous request(s).")
+				}
+				slices.SortFunc(made, func(a, b Instance) int { return a.AmiLaunchIndex - b.AmiLaunchIndex })
+				return &struct {
+					Header
+					reservation
+				}{reservation: reservation{ReservationId: t.ReservationId, OwnerId: c.Account, Instances: made}}, nil
+			}
+			delete(r.Tokens, in.ClientToken) // its instances are gone: the token is free again
+		}
+	}
 	if made := r.x().Images[in.ImageId]; made != nil { // an image CreateImage made
 		img = made
 	} else if images[in.ImageId] == nil {
@@ -413,6 +449,12 @@ func (s *Service) runInstances(c *core.Ctx, in *runInput) (any, error) {
 		v := withTags(r, i, (*Instance).view)
 		v.State = stateOf("pending")
 		resv.Instances = append(resv.Instances, v)
+	}
+	if in.ClientToken != "" {
+		if r.Tokens == nil {
+			r.Tokens = map[string]runToken{}
+		}
+		r.Tokens[in.ClientToken] = runToken{hash, resv.ReservationId}
 	}
 	return &struct {
 		Header

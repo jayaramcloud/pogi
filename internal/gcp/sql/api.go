@@ -34,7 +34,7 @@ func (q *req) into(v any) error {
 		return nil
 	}
 	if err := json.Unmarshal(q.body, v); err != nil {
-		return fail(400, "invalidRequest", "Invalid JSON payload received. %v", err)
+		return fail(400, "invalidRequest", "Invalid JSON payload received. %s", core.PlainJSON(err))
 	}
 	return nil
 }

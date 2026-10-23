@@ -2,11 +2,14 @@ package arm
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"slices"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/nrndev/pogi/internal/core"
 )
@@ -101,7 +104,12 @@ func (k *call) check() error {
 	}
 	var v any
 	if err := json.Unmarshal(b, &v); err != nil {
-		return core.Errorf(http.StatusBadRequest, "InvalidRequestContent", "The request content was invalid and could not be deserialized: '%v'.", err)
+		// A body declared as something other than JSON is text (a runbook's script): the resource gets it as "content".
+		if ct := k.r.Header.Get("Content-Type"); ct != "" && !strings.Contains(ct, "json") {
+			k.body = map[string]any{"content": string(b)}
+			return nil
+		}
+		return core.Errorf(http.StatusBadRequest, "InvalidRequestContent", "The request content was invalid and could not be deserialized: '%s'.", core.PlainJSON(err))
 	}
 	body, ok := v.(map[string]any)
 	if !ok {
@@ -153,10 +161,19 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
 		return
 	}
+	if t, ok := out.(Text); ok {
+		h.Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(status)
+		io.WriteString(w, string(t))
+		return
+	}
 	h.Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(out)
 }
+
+// Text is a response body that is sent as it is, as text (a Provider's Doc returns it).
+type Text string
 
 // opType names what a request is about, for the request log and chaos rules:
 // the resource type of a provider path, else the first segments.
@@ -314,6 +331,19 @@ func groupKey(sub, name string) string {
 	return strings.ToLower("/subscriptions/" + sub + "/resourceGroups/" + name)
 }
 
+// validGroupName is Azure's rule: 1 to 90 letters, digits and _ - . ( ), not ending in a period.
+func validGroupName(name string) bool {
+	if n := utf8.RuneCountInString(name); n < 1 || n > 90 || strings.HasSuffix(name, ".") {
+		return false
+	}
+	for _, r := range name {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && !strings.ContainsRune("_-.()", r) {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Service) groups(k *call, sub string, rest []string) (int, any, error) {
 	m := k.r.Method
 	if len(rest) == 0 {
@@ -337,6 +367,10 @@ func (s *Service) groups(k *call, sub string, rest []string) (int, any, error) {
 	case http.MethodPut, http.MethodPatch:
 		in := k.payload()
 		loc, _ := in["location"].(string)
+		if !ok && !validGroupName(name) {
+			return 0, nil, core.Errorf(http.StatusBadRequest, "InvalidResourceGroupName",
+				"Resource group name '%s' is invalid: use 1 to 90 letters, digits and _ - . ( ), not ending in a period.", name)
+		}
 		if !ok && m == http.MethodPut && loc == "" {
 			return 0, nil, core.Errorf(http.StatusBadRequest, "LocationRequired", "The location property is required for this definition.")
 		}

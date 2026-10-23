@@ -5,9 +5,9 @@ description: Change pogi between off, soft and strict IAM, attach a recorded pol
 
 # Switch IAM modes
 
-## The modes
+pogi can check every call against IAM (the rules for who may call what), or only record calls so it can write the policy for you. Pick the mode that fits.
 
-IAM (identity and access management) decides who may do what in a cloud.
+## The modes
 
 | Mode | What happens |
 |---|---|
@@ -15,7 +15,7 @@ IAM (identity and access management) decides who may do what in a cloud.
 | `soft` | Every call is allowed. Calls that strict mode would deny are flagged in the IAM page and in Activity. |
 | `strict` | Calls without an allowing policy fail with `AccessDenied`, with AWS's own error message. |
 
-Root and the default `test` credentials are always allowed and never recorded. Only calls signed with an IAM user's access key, or by an assumed role, are checked. Lambda functions act as their execution role, so a missing permission shows up locally. `iam:SimulatePrincipalPolicy` uses the same checker.
+pogi always allows calls made as root or with the default `test` credentials, and never records them. It checks only calls signed with an IAM user's access key, or by an assumed role. A Lambda function acts as its execution role, so a missing permission shows up locally. `iam:SimulatePrincipalPolicy` uses the same checker.
 
 ## Set the mode when pogi starts
 
@@ -44,16 +44,16 @@ Use the **Enforcement** switch on the console's IAM page, or post to the console
 curl -X POST -d mode=strict http://localhost:7644/_pogi/iam/mode
 ```
 
-The values are `off`, `soft` and `strict`. The answer is a redirect (`303`) with no body. Any other value gets a redirect back to the IAM page with an error message, and the mode stays as it was.
+The values are `off`, `soft` and `strict`. The response is a `303` redirect to the IAM page, with no body. Any other value, such as `bogus`, also redirects there, with the error `unknown mode "bogus"`, and the mode stays as it was.
 
-To read the current mode, run `pogi status`. The mode is at the end of its first line:
+To read the current mode, run `pogi status`. The mode ends its first line:
 
 ```bash
 pogi status | head -1
 ```
 
 ```text title="Output"
-pogi 0.1.0 at http://localhost:7644 · up 2m37s · region us-east-1 · persistence false · iam soft
+pogi 0.2.0 at http://localhost:7644 · up 2m37s · region us-east-1 · persistence false · iam soft
 ```
 
 The mode applies to all three clouds.
@@ -66,9 +66,9 @@ The mode applies to all three clouds.
 curl "http://localhost:7644/_pogi/iam/policy?principal=arn:aws:iam::000000000000:user/dev"
 ```
 
-Add `&fmt=tf` for Terraform. If nothing is recorded for that principal, the answer is `404` with `nothing recorded for <principal>`.
+Add `&fmt=tf` for Terraform. If nothing is recorded for that principal, the response is `404` with `nothing recorded for <principal>`.
 
-**Google Cloud:** `principal` is a member such as `serviceAccount:<service-account-email>`. The answer is a `gcloud` command that adds the role bindings:
+**Google Cloud:** `principal` is a member such as `serviceAccount:<service-account-email>`. The response is a `gcloud` command that adds the role bindings:
 
 ```bash
 curl "http://localhost:7644/_pogi/iam/gcp/snippet?principal=serviceAccount:<service-account-email>"
@@ -97,7 +97,7 @@ curl -X POST --data-urlencode "principal=serviceAccount:<service-account-email>"
   http://localhost:7644/_pogi/iam/gcp/attach
 ```
 
-All of these answer with a redirect and no body.
+All of these respond with a redirect and no body.
 
 ## Undo an attach, or start recording again
 
@@ -108,7 +108,7 @@ All of these answer with a redirect and no body.
 
 ## Check signatures too
 
-`--validate-signatures` also checks SigV4 request signatures (SigV4 is how AWS signs requests): headers, presigned URLs and S3 POST policies. It checks them against the default `test` secret, IAM access keys, STS sessions and the identities in `pogi.yaml`. A wrong secret gets `SignatureDoesNotMatch`, as on AWS.
+`--validate-signatures` also checks SigV4 request signatures (the way AWS signs requests): headers, presigned URLs and S3 POST policies. It checks them against the default `test` secret, IAM access keys, STS sessions and the identities in `pogi.yaml`. A wrong secret gets `SignatureDoesNotMatch`, as on AWS.
 
 ```bash
 pogi start --validate-signatures
@@ -116,7 +116,7 @@ pogi start --validate-signatures
 
 ## Define users in pogi.yaml
 
-Users with policies can live in `pogi.yaml`, so they exist at every start and after every `pogi reset`. `pogi config init` writes an annotated file to start from.
+Users with policies can live in `pogi.yaml`. They then exist at every start and after every `pogi reset`. `pogi config init` writes an annotated file to start from.
 
 ```yaml title="pogi.yaml"
 identities:
@@ -130,8 +130,8 @@ identities:
 
 ## Limits
 
-- Enforcement covers identity policies, permissions boundaries and (in an organization) service control policies. Resource-based policies are not part of it yet.
-- The check after an attach has no condition keys, so a policy that allows a call only under a condition can still read as "would deny".
+- Enforcement covers identity policies, permissions boundaries, service control policies (in an organization), S3 bucket policies and API Gateway resource policies (their `Deny` statements only). Other resource-based policies, such as SQS, SNS and KMS key policies, are not checked yet.
+- The check after an attach uses no condition keys. A policy that allows a call only under a condition can still read as "would deny".
 - Google Cloud checks calls made with the access token of a service account you created in IAM. Azure checks calls made with the token of a service principal or managed identity you created. Other callers are never checked.
 
 ## See also

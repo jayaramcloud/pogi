@@ -51,7 +51,6 @@ kinesisanalyticsv2
 connect
 appintegrations
 cloudcontrol
-codeguru-reviewer
 # phase 15: AI
 bedrock
 bedrock-runtime
@@ -76,3 +75,56 @@ bcm-pricing-calculator
 marketplace-catalog
 meteringmarketplace
 marketplace-entitlement
+# v0.2.0: widely used services pogi lacked (DocumentDB and Neptune already run through rds)
+xray
+dax
+amplify
+polly
+shield
+codecommit
+location
+keyspaces
+fsx
+resource-groups
+codestar-connections
+appflow
+mediaconvert
+ivs
+securitylake
+quicksight
+grafana
+vpc-lattice
+# v0.2.0 round 2, group aws-b
+medialive
+mediapackagev2
+gamelift
+kinesisvideo
+datazone
+dataexchange
+cleanrooms
+resiliencehub
+route53-recovery-control-config
+payment-cryptography
+acm-pca
+# round 2, group K
+fms
+notifications
+compute-optimizer
+cost-optimization-hub
+imagebuilder
+storagegateway
+pinpoint-sms-voice-v2
+serverlessrepo
+odb
+dsql
+# v0.2.0 round 2, group aws-a
+directconnect
+workspaces
+workspaces-web
+appstream
+ds
+signer
+drs
+networkmanager
+devicefarm
+license-manager

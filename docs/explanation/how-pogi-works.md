@@ -16,7 +16,7 @@ Because everything is in one process, services call each other directly. An S3 b
 
 ## One port
 
-AWS, Google Cloud, Azure, the web console, the REST API and the MCP server all answer on the main port, `7644`. The same port speaks HTTPS (with a certificate from pogi's own certificate authority) and gRPC, which the Google Cloud client libraries use.
+AWS, Google Cloud, Azure, the web console (at `http://localhost:7644/_pogi/`), the REST API and the MCP server all answer on the main port, 7644. The same port speaks HTTPS (with a certificate from pogi's own certificate authority, or CA) and gRPC, which the Google Cloud client libraries use.
 
 ![A call from AWS, Google Cloud and Azure each goes to localhost:7644. pogi sends them to S3, Pub/Sub and Key Vault.](../images/one-port.svg)
 
@@ -41,17 +41,17 @@ You send every request to the same address. pogi looks at the request and picks 
 | 2. gRPC | An HTTP/2 request with a gRPC content type is a Google Cloud call. |
 | 3. `X-Amz-Target` header | AWS JSON services name themselves in it, such as `DynamoDB_20120810`. Newer AWS services that use CBOR name the service in the path. |
 | 4. Each service's own matcher | Services that can be told apart by path, host name or header say so. Cloud Storage lives under `/storage/v1/`. Key Vault is found by paths such as `/secrets/...` with an `api-version` query. Host names matter for S3 virtual-host style (`<bucket>.aws.localhost`), `<api>.execute-api.localhost` and `<url-id>.lambda-url.localhost`. |
-| 5. SigV4 signing name | AWS signs each request (the method is called SigV4) for a service name such as `sns` or `lambda`. pogi reads it from the `Authorization` header, or from a presigned URL. |
+| 5. SigV4 signing name | AWS signs each request with SigV4, its signing method, for a service name such as `sns` or `lambda`. pogi reads it from the `Authorization` header, or from a presigned URL. |
 | 6. A browser at `/` | A request for the home page that asks for HTML shows the console. |
 | 7. S3 | Anything left over, such as unsigned or presigned requests, goes to S3, as on AWS. |
 
-The credentials in the request say who is calling. The default `test` credentials are root. An access key that belongs to an IAM user maps to that user. (IAM is AWS's system for who may do what.) See [IAM: record, then enforce](iam.md).
+The credentials in the request say who is calling. The default `test` credentials are root. An access key that belongs to an IAM user maps to that user. (IAM is the set of rules for who may call what.) See [IAM: record, then enforce](iam.md).
 
 ## What does pogi record?
 
-Every request that reaches a service goes into the request log: the service, the operation, the status, the time it took, and the headers and bodies. The log keeps the last 1000 calls. The console's Activity page, `pogi logs` and `GET /_pogi/api/requests` all read it.
+Every request that reaches a service goes into the request log: the service, the operation, the status, the time it took, and the headers and bodies. The log keeps the last 1000 calls. The console's Activity page (its Requests view), `pogi logs` and `GET /_pogi/api/requests` all read it.
 
-Each request also gets a trace ID, a label that ties the steps of one chain together. pogi's own bookkeeping, such as the trace ID, travels beside each message, never inside the attributes or properties of your message. Your code sees the same message it would see on the real cloud. [Flows and the Map](flows-and-the-map.md) explains how trace IDs become flows.
+Each request also gets a trace ID, a label that ties the steps of one chain together. A flow is one chain of calls and deliveries that share a trace ID. pogi's own bookkeeping, such as the trace ID, travels beside each message, never inside the attributes or properties of your message. Your code sees the same message it would see on the real cloud. [Flows and the Map](flows-and-the-map.md) explains how trace IDs become flows.
 
 ## Where does state live?
 
@@ -63,7 +63,7 @@ pogi replaces several tools with one program that needs nothing else to run. The
 
 | Choice | What it means |
 |---|---|
-| Three clouds | Google Cloud and Azure run in the same process and port, free. The Google client libraries read `STORAGE_EMULATOR_HOST`, `PUBSUB_EMULATOR_HOST` and the like. The Azure ones use Azurite's connection string. `pogi env` sets all of them. |
+| Three clouds | Google Cloud and Azure run in the same process and port, free. The Google Cloud client libraries read `STORAGE_EMULATOR_HOST`, `PUBSUB_EMULATOR_HOST` and the like. The Azure ones use Azurite's connection string. `pogi env` sets all of them. |
 | Every service is always on | There is no lazy per-service start to wait for. Services are built when pogi starts. Heavy parts (Docker containers, models, the MCP tool schemas) start on first use. |
 | Docker is optional | Without it, RDS, ECS, EKS, ElastiCache and the like still create and describe, as metadata, and Lambda runs Python and Node.js natively. With it, they run real engines in containers. |
 | Depth differs by service | Some behave like the real thing in ways LocalStack's community edition does not (IAM enforcement, a real SFTP server, a real container registry). Others are bookkeeping only. [Coverage](../reference/coverage.md) and [AWS long tail](../reference/aws-long-tail.md) list which. |
@@ -71,24 +71,6 @@ pogi replaces several tools with one program that needs nothing else to run. The
 | Bind address | pogi listens on `127.0.0.1` (and `::1`) by default. A `--host` that other machines can reach needs `--allow-external`, except inside Docker, where it is implied. |
 
 For what carries over from LocalStack, see [LocalStack mapping](../reference/localstack-mapping.md). For the feature table, see [pogi compared](../reference/compared.md).
-
-## Coming from floci
-
-floci is another local AWS emulator.
-
-floci's settings are in floci's documentation. This table covers only its structure, which decides what changes:
-
-| Area | floci | pogi |
-|---|---|---|
-| Processes and ports | Separate emulators for AWS, Azure and Google Cloud, on separate ports, with a separate UI container and CLI. | One binary and one port, 7644, for all three. The console is at `/_pogi/`. Azure Storage stays on Azurite's ports 10000 to 10002. |
-| Lambda | Needs Docker. | Runs Python and Node.js natively. Docker is for other runtimes and container images. |
-| Interfaces | A separate UI container and CLI. | The CLI, TUI and web console are in the binary. |
-| Tools | Not covered here. | `pogi env`, `pogi tf` and `pogi aws` configure SDKs, Terraform and the AWS CLI for all three clouds. `pogi mcp` serves MCP tools for coding agents. |
-| Coverage | Self-reported counts. | pogi covers the services floci lists, except Oracle Cloud's, which is out of scope. |
-
-To use pogi in place of a floci endpoint, point it at `http://localhost:7644` and keep the Azure Storage ports. Neither list says how deep a service goes, so check the [coverage reference](../reference/coverage.md) for the services you use.
-
-To move a floci setup, follow [Migrate from LocalStack](../how-to/migrate-from-localstack.md#if-you-come-from-floci).
 
 ## What pogi does not do
 

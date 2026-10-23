@@ -5,7 +5,7 @@ description: Start pogi, make one call on each cloud and see the calls in the co
 
 # First run
 
-By the end, pogi runs and you've made one call on each cloud. About five minutes. You need pogi installed: see [Install pogi](../how-to/install.md).
+In about five minutes, you'll have pogi running and one call made on each cloud. You need pogi installed: see [Install pogi](../how-to/install.md).
 
 ## 1. Start pogi
 
@@ -13,17 +13,17 @@ By the end, pogi runs and you've made one call on each cloud. About five minutes
 pogi start
 ```
 
-In a terminal this opens a live screen (the TUI) with requests, resources, chaos rules and snapshots. Without a terminal, or with `--headless`, pogi prints plain logs instead. It is ready when the last line says `Ready.`:
+In a terminal, this opens the terminal screen (the TUI). It shows calls, resources, chaos rules and snapshots. Without a terminal, or with `--headless`, pogi prints plain logs instead. It is ready when the last line says `Ready.`:
 
 ```text title="Output"
-pogi 0.1.0  ·  181 services  ·  data ~/.pogi
+pogi 0.2.0  ·  355 services  ·  data ~/.pogi
   endpoint  http://127.0.0.1:7644
   console   http://127.0.0.1:7644/_pogi/
   env       eval "$(pogi env)"
 Ready.
 ```
 
-Scripts and CI can run `pogi wait`. It returns when pogi is ready:
+Scripts and CI can run `pogi wait`, which returns when pogi is ready:
 
 ```bash
 pogi wait
@@ -33,17 +33,17 @@ pogi wait
 ready: http://localhost:7644
 ```
 
-If something goes wrong, see [Troubleshoot](../how-to/troubleshoot.md).
+If pogi doesn't start, see [Troubleshoot](../how-to/troubleshoot.md).
 
 ## 2. Point your tools at pogi
 
-Open a second terminal. `pogi env` prints the settings that point AWS, Google Cloud and Azure tools at pogi. Load them into your shell:
+Open a second terminal. `pogi env` prints the settings that point the AWS, Google Cloud and Azure tools at pogi. Load them into your shell:
 
 ```bash
 eval "$(pogi env)"
 ```
 
-For fish or PowerShell, add `--shell fish` or `--shell pwsh`. Run the printed lines in your session. The other values are `sh` (the default) and `dotenv`.
+In fish, run `pogi env --shell fish | source`. In PowerShell, run `pogi env --shell pwsh | Invoke-Expression`. [Connect your tools](../how-to/connect-your-tools.md#sdks-and-clis) covers the other shells.
 
 What `pogi env` sets:
 
@@ -53,7 +53,7 @@ What `pogi env` sets:
 | Google Cloud | `STORAGE_EMULATOR_HOST`, `PUBSUB_EMULATOR_HOST`, `FIRESTORE_EMULATOR_HOST`, `DATASTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`, and `gcloud` settings. |
 | Azure | The Storage connection string, and the Cosmos DB and Key Vault settings. |
 
-Every current SDK and CLI reads these.
+Current AWS SDKs, the AWS CLI, `gcloud` and the Google Cloud client libraries read these settings.
 
 ## 3. Make a call on each cloud
 
@@ -68,10 +68,10 @@ aws s3 ls
 
 ```text title="Output"
 make_bucket: demo
-2026-10-14 00:59:16 demo
+2026-10-23 12:09:49 demo
 ```
 
-`pogi aws s3 ls` runs the AWS CLI with the right settings, so it works before you load `pogi env`. It needs the AWS CLI installed.
+If you haven't loaded `pogi env`, run `pogi aws s3 ls` instead. It runs the AWS CLI with the right settings. You need the AWS CLI installed.
 
 ### Google Cloud
 
@@ -91,7 +91,7 @@ The default Google Cloud project is `pogi`.
 
 ### Azure
 
-This stores a secret in Key Vault. pogi serves Key Vault over HTTPS on the main port. `--cacert` tells curl to trust pogi's local certificate authority (CA).
+This stores a secret in Key Vault. pogi serves Key Vault over HTTPS on the main port. `--cacert` tells curl to trust pogi's own certificate authority (CA).
 
 ```bash
 curl --cacert ~/.pogi/certs/ca.pem -X PUT \
@@ -101,7 +101,7 @@ curl --cacert ~/.pogi/certs/ca.pem -X PUT \
 ```
 
 ```json title="Response"
-{"attributes":{"enabled":true,"created":1791919758,"updated":1791919758,"recoveryLevel":"Recoverable+Purgeable","recoverableDays":90},"id":"https://localhost:7644/secrets/db-password/db2daaa5f08c7c402622cb3b75dcd7a8","value":"hunter2"}
+{"attributes":{"enabled":true,"created":1792737603,"updated":1792737603,"recoveryLevel":"Recoverable+Purgeable","recoverableDays":90},"id":"https://localhost:7644/secrets/db-password/e0c0bceeee12d1f5a50761d397693937","value":"hunter2"}
 ```
 
 Run `pogi cert` to see where the CA file is and how to trust it for your whole system.
@@ -134,7 +134,7 @@ s3 · Buckets (1)
   demo  us-east-1  000000000000  0        0 B               2026-10-13 19:29:16
 ```
 
-`pogi ls` shows times in UTC. The AWS CLI and `pogi logs` use your local time.
+`pogi ls` shows times in UTC. The AWS CLI and `pogi logs` show your local time.
 
 ## 5. Open the console
 
@@ -150,9 +150,9 @@ xdg-open http://localhost:7644/_pogi/
 start http://localhost:7644/_pogi/
 ```
 
-Your calls are under **Activity**.
+The web console lists your calls under **Activity**, in the Requests view.
 
-![The pogi console's Activity page, Requests view, with the five calls from this tutorial: CreateBucket, ListBuckets, CreateTopic, ListTopics and SetSecret](../images/first-run-activity.jpg)
+![The pogi console's Activity page, Requests view, with the five calls above: CreateBucket, ListBuckets, CreateTopic, ListTopics and SetSecret](../images/first-run-activity.jpg)
 
 ## Next steps
 

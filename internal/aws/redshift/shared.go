@@ -26,7 +26,7 @@ const Port = 5439
 // Spec is the container of a cluster or workgroup: PostgreSQL on Redshift's
 // port, where PUBLIC may create tables in schema public as on Redshift.
 func Spec(user, password, db string, host int) rds.Spec {
-	return rds.Spec{Image: "postgres:16-alpine", Port: Port, Host: host, Hello: "\x00\x00\x00\x08\x04\xd2\x16\x2f", // SSLRequest
+	return rds.Spec{Image: "postgres:16-alpine", Port: Port, Host: host, Data: "/var/lib/postgresql/data", Hello: "\x00\x00\x00\x08\x04\xd2\x16\x2f", // SSLRequest
 		Env:  []string{"PGPORT=" + strconv.Itoa(Port), "POSTGRES_USER=" + user, "POSTGRES_PASSWORD=" + password, "POSTGRES_DB=" + db},
 		Init: []string{"psql", "-U", user, "-d", db, "-c", "GRANT ALL ON SCHEMA public TO PUBLIC"}}
 }

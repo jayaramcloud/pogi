@@ -76,11 +76,13 @@ func (ui *UI) submit(svc, op string, sc scope, in map[string]any) error {
 		b, _ := json.Marshal(in) // as a request carries it: numbers are float64
 		var j map[string]any
 		json.Unmarshal(b, &j)
-		_, err := g.Do(acct, region, op, j) // the engine's in-process call: not every generic service speaks JSON
-		return err
+		return ui.write(svc, op, "", func() error {
+			_, err := g.Do(acct, region, op, j) // the engine's in-process call: not every generic service speaks JSON
+			return err
+		})
 	}
 	if c := curatedOp(svc, op); c != nil {
-		return ui.hub.Call(acct, region, c.Target, op, in, nil)
+		return ui.hub.ConsoleCall(acct, region, c.Target, op, in, nil)
 	}
 	return ui.gcpSubmit(svc, op, in)
 }

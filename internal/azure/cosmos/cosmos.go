@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nrndev/pogi/internal/aws/rds"
 	"github.com/nrndev/pogi/internal/azure/armres"
 	"github.com/nrndev/pogi/internal/core"
 )
@@ -30,6 +31,7 @@ import (
 // Service is the Cosmos DB emulator.
 type Service struct {
 	hub  *core.Hub
+	box  *rds.Box // the MongoDB containers of MongoDB-API accounts
 	mu   sync.Mutex
 	st   state
 	stop func()
@@ -38,8 +40,9 @@ type Service struct {
 type state struct {
 	LSN    int64                     `json:"lsn"` // global log sequence number: session tokens, change feed
 	DBs    map[string]*Database      `json:"dbs"`
-	Offers map[string]map[string]any `json:"offers"`        // throughput by offer id
-	ARM    armres.Store              `json:"arm,omitempty"` // database accounts as the resource manager has them
+	Offers map[string]map[string]any `json:"offers"`          // throughput by offer id
+	ARM    armres.Store              `json:"arm,omitempty"`   // database accounts as the resource manager has them
+	Mongo  map[string]*mongoServer   `json:"mongo,omitempty"` // MongoDB servers of MongoDB-API accounts, by lower-cased account ID
 }
 
 // Database holds containers.
@@ -71,6 +74,7 @@ type Item struct {
 // New creates the Cosmos DB service and starts its TTL sweeper.
 func New(hub *core.Hub) *Service {
 	s := &Service{hub: hub}
+	s.box = rds.NewBox(hub, "cosmos", "failed", &s.mu, s.owns)
 	s.Reset()
 	s.registerARM()
 	s.stop = core.Every(time.Second, s.Tick)
@@ -78,7 +82,14 @@ func New(hub *core.Hub) *Service {
 }
 
 // Close stops the TTL sweeper.
-func (s *Service) Close() error { s.stop(); return nil }
+func (s *Service) Close() error {
+	s.stop()
+	s.mu.Lock()
+	keep := s.containers()
+	s.mu.Unlock()
+	s.box.Close(keep)
+	return nil
+}
 
 func (s *Service) Info() core.Info {
 	return core.Info{Name: "cosmos", Cloud: core.Azure, Title: "Cosmos DB", Protocol: "cosmos-json", Match: match}
@@ -96,11 +107,7 @@ func match(r *http.Request) bool {
 		p == "/dbs" || strings.HasPrefix(p, "/dbs/") || p == "/offers" || strings.HasPrefix(p, "/offers/"))
 }
 
-func (s *Service) Reset() {
-	s.mu.Lock()
-	s.st = state{DBs: map[string]*Database{}, Offers: map[string]map[string]any{}}
-	s.mu.Unlock()
-}
+func (s *Service) Reset() { s.Load([]byte("{}")) }
 
 func (s *Service) Save() ([]byte, error) {
 	s.mu.Lock()
@@ -120,8 +127,19 @@ func (s *Service) Load(b []byte) error {
 		st.Offers = map[string]map[string]any{}
 	}
 	s.mu.Lock()
+	old := s.containers()
 	s.st = st
+	keep := s.containers()
+	docker := len(keep) > 0 && s.box.Available()
+	for _, m := range s.st.Mongo {
+		s.box.Resume(&m.Pogi, m.spec(), docker)
+	}
 	s.mu.Unlock()
+	for n := range old { // containers of accounts the new state lacks
+		if !keep[n] {
+			s.box.Remove(n)
+		}
+	}
 	return nil
 }
 

@@ -1050,7 +1050,7 @@ func (s *Service) Resources() []core.Table {
 	for _, arn := range core.SortedKeys(s.st.Stores) {
 		stores.Rows = append(stores.Rows, []string{s.st.Stores[arn].Name, s.st.Stores[arn].Status, arn})
 	}
-	events := core.Table{Name: "Events", Columns: []string{"Event ID", "Event", "Time", "Source", "Region", "User"}}
+	events := core.Table{Name: "Events", Log: true, Columns: []string{"Event ID", "Event", "Time", "Source", "Region", "User"}}
 	evs := s.recent()
 	for i := len(evs) - 1; i >= max(0, len(evs)-100); i-- {
 		e := evs[i].out

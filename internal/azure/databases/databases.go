@@ -1,5 +1,5 @@
 // Package databases is the Azure Resource Manager management plane of
-// Azure SQL, PostgreSQL, MySQL and MariaDB servers and Cache for Redis. The
+// Azure SQL, PostgreSQL and MySQL servers and Cache for Redis. The
 // servers are real: each runs as a container next to pogi (the same
 // containers RDS and ElastiCache start, through rds.Box), with the admin
 // login and password from the PUT body. Databases are created in the engine.
@@ -65,12 +65,6 @@ var kinds = []*kind{
 			return map[string]any{"version": "8.0.21", "availabilityZone": "1", "storage": map[string]any{"storageSizeGB": 20, "iops": 360, "autoGrow": "Enabled"},
 				"backup":           map[string]any{"backupRetentionDays": 7, "geoRedundantBackup": "Disabled"},
 				"highAvailability": map[string]any{"mode": "Disabled"}, "network": map[string]any{"publicNetworkAccess": "Enabled"}, "replicationRole": "None"}
-		}},
-	{key: "mariadb", typ: "Microsoft.DBforMariaDB/servers", engine: "mariadb", port: 3306, state: "userVisibleState", version: "10.3", login: true, dbs: true,
-		sku: map[string]any{"name": "B_Gen5_1", "tier": "Basic", "capacity": 1, "family": "Gen5"},
-		props: func() map[string]any {
-			return map[string]any{"version": "10.3", "sslEnforcement": "Enabled", "minimalTlsVersion": "TLSEnforcementDisabled", "publicNetworkAccess": "Enabled",
-				"storageProfile": map[string]any{"storageMB": 5120, "backupRetentionDays": 7, "geoRedundantBackup": "Disabled", "storageAutogrow": "Enabled"}}
 		}},
 	{key: "redis", typ: "Microsoft.Cache/redis", port: 6379, state: "provisioningState",
 		props: func() map[string]any {
@@ -148,7 +142,7 @@ func New(hub *core.Hub) *Service {
 
 func (s *Service) Info() core.Info {
 	// The ARM service routes to the providers; this one has no HTTP routes.
-	return core.Info{Name: "azdatabases", Cloud: core.Azure, Title: "Azure SQL, PostgreSQL, MySQL, MariaDB and Redis", Protocol: "azure-json",
+	return core.Info{Name: "azdatabases", Cloud: core.Azure, Title: "Azure SQL, PostgreSQL, MySQL and Redis", Protocol: "azure-json",
 		Match: func(*http.Request) bool { return false }}
 }
 
@@ -236,14 +230,12 @@ func (r *res) spec() rds.Spec {
 	k := kindOf(r.Kind)
 	if k.key == "redis" {
 		// Both access keys are passwords of the default user: the first through requirepass, the second as an ACL password.
-		return rds.Spec{Image: "redis:7-alpine", Port: 6379, Host: r.Pogi.HostPort, Hello: "PING\r\n", Args: []string{"--requirepass", r.Keys[0]},
+		return rds.Spec{Image: "redis:7-alpine", Port: 6379, Host: r.Pogi.HostPort, Data: "/data", Hello: "PING\r\n", Args: []string{"--requirepass", r.Keys[0]},
 			Init: []string{"redis-cli", "-a", r.Keys[0], "--no-auth-warning", "ACL", "SETUSER", "default", ">" + r.Keys[1]}}
 	}
 	v := str(r.Props["version"])
 	if k.key == "sql" {
 		v = ""
-	} else if k.key == "mariadb" {
-		v = "10.11" // ponytail: Azure MariaDB runs 10.2 and 10.3, which have no current images; every server gets 10.11
 	}
 	return rds.DBSpec(k.engine, v, str(r.Props["administratorLogin"]), r.Pogi.Password, "", r.Pogi.HostPort)
 }
@@ -497,9 +489,8 @@ func randUUID() string {
 }
 
 var dbDefaults = map[string]map[string]any{
-	"pg":      {"charset": "UTF8", "collation": "en_US.utf8"},
-	"mysql":   {"charset": "utf8mb4", "collation": "utf8mb4_0900_ai_ci"},
-	"mariadb": {"charset": "utf8", "collation": "utf8_general_ci"},
+	"pg":    {"charset": "UTF8", "collation": "en_US.utf8"},
+	"mysql": {"charset": "utf8mb4", "collation": "utf8mb4_0900_ai_ci"},
 }
 
 func (s *Service) putChild(k *kind, child string) func(*core.Ctx, arm.ID, map[string]any) (map[string]any, error) {
@@ -611,9 +602,6 @@ func dbCmd(srv *res, op, db string) []string {
 		return rds.TSQL(rds.SAPassword(pw), sql)
 	}
 	cli, sql := "mysql", "DROP DATABASE IF EXISTS `"+db+"`"
-	if srv.Kind == "mariadb" {
-		cli = "mariadb"
-	}
 	if create {
 		sql = "CREATE DATABASE IF NOT EXISTS `" + db + "`"
 	}
@@ -696,7 +684,7 @@ func (s *Service) Resources() []core.Table {
 		id, _ := arm.ParseID(r.ID)
 		switch {
 		case r.Pogi.State != "":
-			srv.Rows = append(srv.Rows, []string{id.Name(), r.Type, s.stateOf(kindOf(r.Kind), r), fmt.Sprintf("localhost:%d", r.Pogi.HostPort), id.ResourceGroup})
+			srv.Rows = append(srv.Rows, []string{id.Name(), r.Type, rds.StatusCell(s.stateOf(kindOf(r.Kind), r), &r.Pogi), fmt.Sprintf("localhost:%d", r.Pogi.HostPort), id.ResourceGroup})
 		case strings.HasSuffix(strings.ToLower(r.Type), "/databases"):
 			db.Rows = append(db.Rows, []string{id.Name(), id.Parent().Name(), r.Type})
 		}

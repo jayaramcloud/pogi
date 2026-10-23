@@ -2,6 +2,7 @@ package rds_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -165,15 +166,33 @@ func TestOtherEnginesInDocker(t *testing.T) {
 	if testing.Short() || !d.Available() {
 		t.Skip("needs a running container engine")
 	}
-	_, base := core.ServeTest(t, func(h *core.Hub) core.Service { return rds.New(h) })
+	var svc *rds.Service
+	_, base := core.ServeTest(t, func(h *core.Hub) core.Service { svc = rds.New(h); return svc })
 	ctx := context.Background()
 	id := func(kind string) string { return fmt.Sprintf("it-%s-%d", kind, os.Getpid()) }
+	// why says what pogi and the engine know of a resource that failed: its note, and its container's state and
+	// last log lines (the docdb cluster of a gate run on 2026-10-21 failed within 3 seconds, saying nothing)
+	why := func(table, id string) string {
+		b, _ := json.Marshal(svc.Inspect(table, id))
+		name := "pogi-rds-" + id
+		var lines []string
+		if in, err := d.Inspect(ctx, name); err != nil {
+			lines = append(lines, fmt.Sprintf("inspect %s: %v", name, err))
+		} else {
+			lines = append(lines, fmt.Sprintf("container %s: %s, exit=%d, out of memory=%v, mounts=%+v", name, in.State.Status, in.State.ExitCode, in.State.OOMKilled, in.Mounts))
+		}
+		d.Logs(ctx, name, false, func(l string) { lines = append(lines, l) })
+		if len(lines) > 40 {
+			lines = append(lines[:1], lines[len(lines)-39:]...)
+		}
+		return string(b) + "\n" + strings.Join(lines, "\n")
+	}
 	cluster := func(t *testing.T, id string) int {
 		var r res
 		eventually5m(t, id+" to start (the first run pulls the image)", func() bool {
 			ok(t, base, &r, "Action", "DescribeDBClusters", "DBClusterIdentifier", id)
 			if r.R.Clusters[0].Status == "failed" {
-				t.Fatalf("container failed: %+v", r.R.Clusters[0])
+				t.Fatalf("container failed: %+v\n%s", r.R.Clusters[0], why("DB clusters", id))
 			}
 			return r.R.Clusters[0].Status == "available"
 		})
@@ -219,7 +238,7 @@ func TestOtherEnginesInDocker(t *testing.T) {
 		eventually5m(t, "sql server to start", func() bool {
 			i := describe(t, base, id("mssql"))
 			if i.DBInstanceStatus == "failed" {
-				t.Fatalf("container failed: %+v", i)
+				t.Fatalf("container failed: %+v\n%s", i, why("DB instances", id("mssql")))
 			}
 			return i.DBInstanceStatus == "available"
 		})

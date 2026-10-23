@@ -249,7 +249,7 @@
       else if (e.key === 'Escape') { e.preventDefault(); dismiss(); }
       return;
     }
-    if (e.key === 'Escape') return dismiss();
+    if (e.key === 'Escape') return document.querySelector('dialog[open]') ? undefined : dismiss(); // an open dialog (the confirm) closes alone: one Esc, one layer
     if (mod || e.altKey || typing()) return;
     if (Date.now() - gAt < 1200) { gAt = 0; if (goto[e.key]) { location.assign(goto[e.key]); return; } }
     switch (e.key) {
@@ -418,4 +418,347 @@
         ' (this one is ' + big + ' MB' + z + '). Raise the limit with --max-upload-mb or server.maxUploadMB in pogi.yaml.';
     }
   }, true);
+})();
+
+// ---------- builder tf-web: the Terraform page (/_pogi/terraform) and the Cost page's Terraform tab ----------
+// The browser posts the picked files once. pogi holds that stack, so every change after it (var file,
+// size pick, module expanded, grouping) posts only the view state, which the server sends back with each
+// fragment (data-state). The diagram is drawn by the server: this code only pans, zooms and highlights it.
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const root = () => document.getElementById('tf');
+  const toast = (m, k) => window.pogi.toast(m, k);
+  const tf = { el: null, st: null, files: new Map(), sel: '', k: 1, x: 0, y: 0, own: false, ctl: null };
+  const view = () => root().dataset.view; // "diagram" on the Terraform page, "table" on the Cost page
+  // the view state the server rendered: vars, sizes, expanded, group, layout
+  function adopt() {
+    const s = $('#tf-result [data-state]');
+    try { tf.st = s ? JSON.parse(s.dataset.state) : null; } catch { tf.st = null; }
+    if (tf.st) tf.st.sizes = tf.st.sizes || {};
+  }
+  // a new page (the console swaps pages without reloading) starts from what the server rendered
+  const fresh = () => { const r = root(); if (r && tf.el !== r) { Object.assign(tf, { el: r, files: new Map(), sel: '', own: false }); adopt(); } return !!r; };
+  const lim = () => ({ files: +root().dataset.maxFiles, bytes: +root().dataset.maxBytes });
+
+  // ---- which files to send ----
+  const KEEP = /\.(tf|tf\.json|tfvars|tfvars\.json)$/i;
+  const isPlanName = n => /\.json$/i.test(n) && !/\.(tf|tfvars)\.json$/i.test(n);
+  function keep(p) {
+    const parts = p.split('/');
+    if (parts.includes('node_modules')) return false;
+    if (parts[0] === '.terraform') return parts[1] === 'modules' && (p === '.terraform/modules/modules.json' || /\.tf$/i.test(p));
+    return !parts.some(s => s.startsWith('.')) && KEEP.test(p);
+  }
+  function dirOk(rel) { // rel ends with "/"
+    const parts = rel.split('/').filter(Boolean);
+    if (parts.includes('node_modules')) return false;
+    if (parts[0] === '.terraform') return parts.length === 1 || parts[1] === 'modules';
+    return !parts.some(s => s.startsWith('.'));
+  }
+  const fromInput = list => { // a picked folder: strip the folder's own name
+    const out = new Map();
+    for (const f of list) { const rel = (f.webkitRelativePath || f.name).split('/').slice(1).join('/'); if (rel && keep(rel)) out.set(rel, f); }
+    return out;
+  };
+  const readAll = r => new Promise((ok, no) => r.readEntries(ok, no));
+  async function walk(dir, prefix, out, max) {
+    const rd = dir.createReader();
+    for (;;) {
+      const batch = await readAll(rd);
+      if (!batch.length || out.size > max) return;
+      for (const e of batch) {
+        if (e.isFile) { const rel = prefix + e.name; if (keep(rel)) out.set(rel, await new Promise((ok, no) => e.file(ok, no))); }
+        else if (dirOk(prefix + e.name + '/')) await walk(e, prefix + e.name + '/', out, max);
+        if (out.size > max) return;
+      }
+    }
+  }
+  async function fromDrop(dt) {
+    const es = [...dt.items].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean); // read now: entries die after the event
+    const out = new Map();
+    if (es.length === 1 && es[0].isFile && isPlanName(es[0].name)) { out.set(es[0].name, await new Promise((ok, no) => es[0].file(ok, no))); return out; }
+    for (const e of es) {
+      if (e.isDirectory) await walk(e, '', out, lim().files);
+      else if (keep(e.name)) out.set(e.name, await new Promise((ok, no) => e.file(ok, no)));
+    }
+    return out;
+  }
+
+  // ---- sending ----
+  const mb = n => (n / 1048576).toFixed(n < 1048576 ? 2 : 1);
+  function fail(html, text) {
+    const e = $('#tf-err'); if (!e) return;
+    if (text) { const d = document.createElement('div'); d.className = 'flash'; d.setAttribute('role', 'alert'); d.textContent = text; e.replaceChildren(d); } else e.innerHTML = html;
+    $('#tf-load').hidden = true;
+  }
+  async function load(map) {
+    if (!fresh()) return;
+    const l = lim();
+    let bytes = 0; map.forEach(f => { bytes += f.size; });
+    if (!map.size) return fail('', 'No Terraform files were found there. pogi looks for *.tf, *.tfvars and .terraform/modules. Pick the folder that holds your Terraform files, or a plan.json.');
+    if (map.size > l.files) return fail('', `That folder has more than ${l.files} Terraform files, and pogi reads at most ${l.files}. Pick the folder that holds the Terraform files, not a parent folder.`);
+    if (bytes > l.bytes) return fail('', `Those files are ${mb(bytes)} MB, and pogi reads at most ${mb(l.bytes)} MB.`);
+    Object.assign(tf, { files: map, sel: '', own: false });
+    send(post('', map));
+  }
+  // post sends files (a new stack: its vars, sizes and expanded start empty), or without files the view
+  // state st, or only a format (an export of the held stack)
+  function post(format, files, st) {
+    const fd = new FormData(), s = st || tf.st;
+    if (files) for (const [p, f] of files) fd.append(p, f, p);
+    if (s && !files) {
+      fd.append('state', '1');
+      s.vars.forEach(v => fd.append('vars', v));
+      s.expanded.forEach(m => fd.append('expanded', m));
+      fd.append('sizes', JSON.stringify(s.sizes));
+    }
+    if (s) { fd.append('group', s.group); fd.append('layout', s.layout); }
+    fd.append('view', view());
+    if (format) fd.append('format', format);
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 120000);
+    return fetch('/_pogi/terraform', { method: 'POST', body: fd, signal: ctl.signal }).finally(() => clearTimeout(timer));
+  }
+  // change posts the held view state with one change
+  const change = fn => { if (!tf.st) return; const st = structuredClone(tf.st); fn(st); return send(post('', null, st)); };
+  async function send(req) {
+    const busy = $('#tf-load'); busy.hidden = false; $('#tf-err').replaceChildren();
+    const mine = tf.ctl = {};
+    try {
+      const r = await req, html = await r.text();
+      if (tf.ctl !== mine) return;
+      busy.hidden = true;
+      if (!r.ok) return fail(html);
+      const prev = tf.sel;
+      $('#tf-empty').hidden = true; $('#tf-result').innerHTML = html; adopt();
+      const t = $('#tf-result .bigcost, #tf-result .tftotal strong'); $('#tf-live').textContent = t ? 'Monthly cost: ' + t.textContent : '';
+      tf.sel = ''; show(); if (prev) select(prev); // pan, zoom and the selected box stay
+    } catch (err) {
+      if (tf.ctl === mine) fail('', err.name === 'AbortError' ? 'That took too long, so pogi stopped. Try a smaller folder.' : 'Could not reach pogi: ' + err.message);
+    }
+  }
+  const save = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+  async function exportAs(kind) {
+    try {
+      const r = await post(kind === 'png' ? 'svg' : kind);
+      if (!r.ok) return toast('Export failed', 'bad');
+      if (kind !== 'png') return save(await r.blob(), 'pogi-terraform-' + (kind === 'markdown' ? 'cost.md' : kind === 'svg' ? 'diagram.svg' : 'cost.json'));
+      const svg = await r.text(), m = svg.match(/viewBox="0 0 (\d+) (\d+)"/), w = +m[1], h = +m[2], s = Math.min(2, 8000 / Math.max(w, h));
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s);
+        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(b => b ? save(b, 'pogi-terraform-diagram.png') : toast('Could not draw the PNG', 'bad'));
+      };
+      img.onerror = () => toast('Could not draw the PNG', 'bad');
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    } catch (err) { toast('Export failed: ' + err.message, 'bad'); }
+  }
+  async function sample() {
+    try {
+      const r = await fetch('/_pogi/terraform/sample'); if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json(); load(new Map(Object.entries(j).map(([p, t]) => [p, new File([t], p)])));
+    } catch (err) { fail('', 'Could not load the sample: ' + err.message); }
+  }
+
+  // ---- the diagram: pan, zoom, highlight ----
+  const vw = () => document.getElementById('tfview'), svg = () => $('#tfpan svg');
+  // every pan and zoom is the user's own view, which pogi then keeps; only fit() sets own = false
+  const apply = (own = true) => { tf.own = own; const p = document.getElementById('tfpan'); if (p) p.style.transform = `translate(${tf.x}px,${tf.y}px) scale(${tf.k})`; };
+  const READ = .6; // below this scale the 11-12px box names shrink under 7px and can't be read
+  function fit(first) {
+    const v = vw(), s = svg(); if (!v || !s || !v.clientWidth) return; // hidden: the Diagram tab calls show() again
+    const W = s.viewBox.baseVal.width, H = s.viewBox.baseVal.height, k = Math.min(1, (v.clientWidth - 24) / W, (v.clientHeight - 24) / H);
+    if (first && k < READ) { tf.k = READ; tf.x = Math.max(12, (v.clientWidth - W * READ) / 2); tf.y = 12; } // too big to read when fitted: start readable, at the top
+    else { tf.k = Math.max(.1, k); tf.x = (v.clientWidth - W * tf.k) / 2; tf.y = Math.max(12, (v.clientHeight - H * tf.k) / 2); }
+    apply(false);
+  }
+  // Show the diagram: fitted until the user pans or zooms it, then where they left it. This runs
+  // right away, not in requestAnimationFrame, which a page in a background tab may never call.
+  const show = () => tf.own ? apply() : fit(true);
+  function zoomAt(f, cx, cy) {
+    const k = Math.min(3, Math.max(.1, tf.k * f)), r = k / tf.k;
+    tf.x = cx - (cx - tf.x) * r; tf.y = cy - (cy - tf.y) * r; tf.k = k; apply();
+  }
+  const zoomMid = f => { const v = vw(); if (v) zoomAt(f, v.clientWidth / 2, v.clientHeight / 2); };
+  document.addEventListener('wheel', e => {
+    const v = e.target.closest && e.target.closest('#tfview'); if (!v) return;
+    e.preventDefault();
+    const b = v.getBoundingClientRect(); zoomAt(Math.exp(-Math.max(-100, Math.min(100, e.deltaY)) * .0015), e.clientX - b.left, e.clientY - b.top);
+  }, { passive: false });
+  let drag = null, moved = false;
+  document.addEventListener('pointerdown', e => {
+    const v = e.target.closest && e.target.closest('#tfview'); if (!v || e.button) return;
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, ox: tf.x, oy: tf.y, v }; moved = false;
+  });
+  document.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!moved && Math.hypot(dx, dy) < 5) return;
+    if (!moved) { moved = true; drag.v.classList.add('drag'); try { drag.v.setPointerCapture(e.pointerId); } catch {} }
+    tf.x = drag.ox + dx; tf.y = drag.oy + dy; apply();
+  });
+  const endDrag = () => { if (drag) drag.v.classList.remove('drag'); drag = null; setTimeout(() => { moved = false; }); };
+  document.addEventListener('pointerup', endDrag); document.addEventListener('pointercancel', endDrag);
+  document.addEventListener('focusin', e => { // a box focused with Tab is brought into view
+    const n = e.target.closest && e.target.closest('#tfview .tfn, #tfview .tff'), v = vw(); if (!n) return;
+    v.scrollLeft = v.scrollTop = 0;
+    const r = n.getBoundingClientRect(), b = v.getBoundingClientRect();
+    if (r.left < b.left || r.right > b.right || r.top < b.top || r.bottom > b.bottom) {
+      tf.x += b.left + b.width / 2 - (r.left + r.width / 2); tf.y += b.top + b.height / 2 - (r.top + r.height / 2); apply();
+    }
+  });
+  function clearSel() {
+    const s = svg(); tf.sel = '';
+    if (s) { s.classList.remove('has-sel'); s.querySelectorAll('.sel, .dep, .hot').forEach(x => x.classList.remove('sel', 'dep', 'hot')); }
+    const bar = document.getElementById('tfsel'); if (bar) bar.replaceChildren();
+    const side = document.getElementById('tfside'); if (side) { side.hidden = true; side.replaceChildren(); }
+  }
+  // select a box: it and everything that depends on it, directly or not, stays lit
+  function select(id) {
+    clearSel(); const s = svg(); if (!id || !s) return;
+    if (id.startsWith('flow:')) return selectFlow(id, s);
+    const nodes = [...s.querySelectorAll('.tfn')], by = new Map(nodes.map(n => [n.dataset.id, n])), users = new Map();
+    if (!by.has(id)) return;
+    nodes.forEach(n => (n.dataset.deps || '').split(' ').filter(Boolean).forEach(d => { if (!users.has(d)) users.set(d, []); users.get(d).push(n.dataset.id); }));
+    const seen = new Set(), q = [id];
+    while (q.length) for (const u of users.get(q.shift()) || []) if (!seen.has(u)) { seen.add(u); q.push(u); }
+    tf.sel = id; s.classList.add('has-sel'); by.get(id).classList.add('sel');
+    let count = 0; seen.forEach(u => { by.get(u).classList.add('dep'); count += +by.get(u).dataset.n; });
+    s.querySelectorAll('.edge').forEach(e => { if ((e.dataset.f === id || seen.has(e.dataset.f)) && seen.has(e.dataset.t)) e.classList.add('hot'); });
+    const bar = document.getElementById('tfsel'), name = document.createElement('b'), btn = (t, a) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sm'; b.dataset.tf = a; b.textContent = t; return b; };
+    name.textContent = by.get(id).dataset.name;
+    bar.replaceChildren(name, document.createTextNode(count ? `— ${count} ${count === 1 ? 'resource depends' : 'resources depend'} on this` : '— nothing depends on this'), btn('Clear', 'clear'));
+    const n = by.get(id); openRows(n.dataset.rows.split(' '), n.dataset.name, $('.ty', n).textContent);
+  }
+
+  // select a data-flow line: it and the two boxes it joins stay lit, and its resource shows in the side panel
+  function selectFlow(id, s) {
+    const l = [...s.querySelectorAll('.tff')].find(x => x.dataset.id === id); if (!l) return;
+    tf.sel = id; s.classList.add('has-sel'); l.classList.add('sel');
+    s.querySelectorAll('.tfn').forEach(n => { if (n.dataset.id === l.dataset.f || n.dataset.id === l.dataset.t) n.classList.add('dep'); });
+    const bar = document.getElementById('tfsel'), name = document.createElement('b'), b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn sm'; b.dataset.tf = 'clear'; b.textContent = 'Clear'; name.textContent = l.dataset.name;
+    const end = i => { const n = [...s.querySelectorAll('.tfn')].find(x => x.dataset.id === i); return n ? n.dataset.name : i; };
+    bar.replaceChildren(name, document.createTextNode(`— data flows from ${end(l.dataset.f)} to ${end(l.dataset.t)}`), b);
+    openRows(l.dataset.rows.split(' ').filter(Boolean), l.dataset.name, 'Data flow');
+  }
+  // live traffic on the data-flow lines: ask pogi every few seconds, and move only the dots. The
+  // diagram is not drawn again, so pan, zoom and the selection stay.
+  let liveBusy = false;
+  async function pollLive() {
+    const s = svg(); if (document.hidden || liveBusy || !s || !s.querySelector('.flow')) return;
+    liveBusy = true;
+    try {
+      const r = await fetch('/_pogi/terraform/live', { cache: 'no-store' }); if (!r.ok) return;
+      const j = await r.json(), ns = 'http://www.w3.org/2000/svg';
+      s.querySelectorAll('.flow').forEach(p => {
+        const id = p.dataset.line, want = j[id] || '', cur = s.querySelector(`circle.pulse[data-line="${id}"]`);
+        if ((cur ? (cur.classList.contains('bad') ? 'bad' : 'live') : '') === want) return;
+        if (cur) cur.remove();
+        if (!want) return;
+        const c = document.createElementNS(ns, 'circle'), a = document.createElementNS(ns, 'animateMotion');
+        c.setAttribute('class', 'pulse' + (want === 'bad' ? ' bad' : '')); c.setAttribute('data-line', id); c.setAttribute('r', '3.5');
+        a.setAttribute('dur', (want === 'bad' ? 3.4 : 1.6 + (id % 4) * .35).toFixed(2) + 's'); a.setAttribute('repeatCount', 'indefinite'); a.setAttribute('path', p.getAttribute('d'));
+        c.append(a); p.parentNode.append(c);
+      });
+    } catch { /* offline: keep the dots as they are */ } finally { liveBusy = false; }
+  }
+  setInterval(pollLive, 3000);
+
+  // ---- the drawer: filled from the <template>s the server sent, so no second request ----
+  function openRows(ids, title, eyebrow) {
+    const side = document.getElementById('tfside');
+    if (side) { // the Terraform page: the details sit beside the canvas
+      const h = document.createElement('div'), b = document.createElement('b'), x = document.createElement('button');
+      h.className = 'sidehead'; b.textContent = eyebrow + ' · ' + title; x.type = 'button'; x.className = 'btn sm'; x.dataset.tf = 'clear'; x.textContent = 'Close';
+      h.append(b, x); side.replaceChildren(h);
+      ids.forEach(i => { const t = document.getElementById('tfr-' + i); if (t) side.append(t.content.cloneNode(true)); });
+      side.hidden = false; return;
+    }
+    const d = document.getElementById('drawer'), head = $('#tfr-head'); if (!d || !head) return;
+    d.replaceChildren(head.content.cloneNode(true));
+    $('.eyebrow', d).textContent = eyebrow; $('#dtitle', d).textContent = title;
+    ids.forEach(i => { const t = document.getElementById('tfr-' + i); if (t) $('.dbody', d).append(t.content.cloneNode(true)); });
+    document.dispatchEvent(new CustomEvent('htmx:afterSwap', { detail: { target: d } })); // the shell shows the drawer
+  }
+  function sizeFilter() {
+    const d = document.getElementById('drawer'), v = k => $('[data-tf-f=' + k + ']', d); if (!v('c')) return;
+    const c = +v('c').value || 0, m = +v('m').value || 0, q = v('q').value.toLowerCase().trim(), old = v('old').checked, rows = d.querySelectorAll('.tfsizes tbody tr');
+    let n = 0;
+    rows.forEach(r => { const ok = +r.dataset.c >= c && +r.dataset.m >= m && (!q || r.dataset.n.toLowerCase().includes(q)) && (old || r.dataset.old !== 'true' || r.classList.contains('sel')); r.hidden = !ok; if (ok) n++; });
+    $('#tf-fcount', d).textContent = `${n} of ${rows.length} sizes`;
+  }
+  ['input', 'change'].forEach(ev => document.addEventListener(ev, e => { if (e.target.closest && e.target.closest('[data-tf-sizes]')) sizeFilter(); }));
+  document.addEventListener('htmx:afterSwap', e => { if (e.detail.target.id === 'drawer') sizeFilter(); });
+
+  // ---- events ----
+  document.addEventListener('click', e => {
+    const t = e.target; if (!t.closest) return;
+    const pick = t.closest('[data-tf-pick]');
+    if (pick && fresh()) { // a size from the picker: price it again, for this view only
+      const c = $('#drawer [data-close]'); if (c) c.click();
+      return change(st => { st.sizes[pick.dataset.tfPick] = pick.dataset.size; });
+    }
+    if (!root()) return;
+    const rows = t.closest('[data-tfrows]');
+    if (rows && !(t.closest('a[data-drawer], button, input, select') && !t.closest('a[data-tfrows]'))) {
+      e.preventDefault(); const ids = rows.dataset.tfrows.split(' ');
+      const tpl = document.getElementById('tfr-' + ids[0]), a = tpl && $('.tfaddr', tpl.content);
+      return openRows(ids, a ? a.textContent : 'Resource', 'Resource');
+    }
+    const v = t.closest('#tfview');
+    if (v && fresh()) {
+      const n = t.closest('.tfn, .tff');
+      if (moved) return;
+      if (n && n.dataset.expand) return change(st => { st.expanded.push(n.dataset.expand); });
+      if (n) return select(tf.sel === n.dataset.id ? '' : n.dataset.id);
+      return clearSel();
+    }
+    const dp = t.closest('#tf-drop');
+    if (dp && !t.closest('button, label, input')) { $('#tf-folder').click(); return; }
+    const exp = t.closest('[data-tf-export]'); if (exp) return exportAs(exp.dataset.tfExport);
+    const vf = t.closest('[data-tf-var]');
+    if (vf && fresh()) { const p = vf.dataset.tfVar; return change(st => { const i = st.vars.indexOf(p); if (i < 0) st.vars.push(p); else st.vars.splice(i, 1); }); }
+    const a = t.closest('[data-tf]'); if (!a) return;
+    switch (a.dataset.tf) {
+      case 'folder': return $('#tf-folder').click();
+      case 'plan': return $('#tf-planfile').click();
+      case 'sample': return sample();
+      case 'reset-sizes': return change(st => { st.sizes = {}; });
+      case 'zoom-in': return zoomMid(1.25);
+      case 'zoom-out': return zoomMid(.8);
+      case 'fit': return fit();
+      case 'clear': return clearSel();
+    }
+  });
+  document.addEventListener('change', e => {
+    const t = e.target; if (!t.matches || !root()) return;
+    if (t.id === 'tf-folder') { load(fromInput(t.files)); t.value = ''; }
+    else if (t.id === 'tf-planfile') { const f = t.files[0]; t.value = ''; if (f) load(new Map([[f.name, f]])); }
+    else if (t.matches('[data-tf=group]') && fresh()) change(st => { st.group = t.value; });
+    else if (t.matches('[data-tf=layout]') && fresh()) change(st => { st.layout = t.value; });
+  });
+  document.addEventListener('keydown', e => {
+    const v = e.target.closest && e.target.closest('#tfview'); if (!v) return;
+    const n = e.target.closest('.tfn, .tff'), k = e.key;
+    if (n && (k === 'Enter' || k === ' ')) { e.preventDefault(); e.stopPropagation(); return n.dispatchEvent(new MouseEvent('click', { bubbles: true })); } // capture phase: the shell's role=button handler calls click(), which SVG boxes lack
+    const pan = { ArrowLeft: [60, 0], ArrowRight: [-60, 0], ArrowUp: [0, 60], ArrowDown: [0, -60] }[k];
+    if (pan) { e.preventDefault(); tf.x += pan[0]; tf.y += pan[1]; return apply(); }
+    if (k === '+' || k === '=') return zoomMid(1.25);
+    if (k === '-' || k === '_') return zoomMid(.8);
+    if (k === '0') return fit();
+    if (k === 'Escape') clearSel();
+  }, true);
+  // dropping a folder or a plan.json anywhere on the tab
+  const files = e => root() && view() === 'diagram' && e.dataTransfer && [...e.dataTransfer.types].includes('Files'); // only the Terraform page takes files
+  document.addEventListener('dragover', e => { if (files(e) && e.target.closest && e.target.closest('#tf')) { e.preventDefault(); const z = $('#tf-drop'); if (z) z.classList.add('over'); } });
+  document.addEventListener('dragleave', e => { const z = $('#tf-drop'); if (z && !(e.relatedTarget && z.contains(e.relatedTarget))) z.classList.remove('over'); });
+  document.addEventListener('drop', async e => {
+    if (!files(e) || !e.target.closest || !e.target.closest('#tf')) return;
+    e.preventDefault(); const z = $('#tf-drop'); if (z) z.classList.remove('over');
+    try { load(await fromDrop(e.dataTransfer)); } catch (err) { fail('', 'Could not read what you dropped: ' + err.message); }
+  });
+  addEventListener('resize', () => { if (vw()) show(); });
+  const boot = () => { if (fresh() && vw()) show(); };
+  document.addEventListener('DOMContentLoaded', boot); document.addEventListener('htmx:afterSettle', boot);
 })();

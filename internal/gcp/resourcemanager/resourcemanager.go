@@ -510,7 +510,7 @@ func decodeV1(r *http.Request) (*v1Project, error) {
 	in := &v1Project{}
 	if b := core.Body(r); len(b) > 0 {
 		if err := json.Unmarshal(b, in); err != nil {
-			return nil, gapi.Invalid("Invalid JSON payload received. %v", err)
+			return nil, gapi.Invalid("Invalid JSON payload received. %s", core.PlainJSON(err))
 		}
 	}
 	return in, nil

@@ -232,3 +232,27 @@ func TestAMP(t *testing.T) {
 		t.Fatalf("remote write to a deleted workspace: %d", st)
 	}
 }
+
+// An alert manager definition has no ARN of its own, and the engine names it with its
+// workspace's. ListTagsForResource on the workspace ARN must still always find the workspace,
+// not the definition: map order used to pick either, and Terraform then saw the workspace's
+// tags vanish (a drift in the long-tail conformance block).
+func TestAMPWorkspaceTagsWithAlertManager(t *testing.T) {
+	_, base := start(t, "amp")
+	ctx := context.Background()
+	c := amp.NewFromConfig(awstest.Config(t, base))
+	w, err := c.CreateWorkspace(ctx, &amp.CreateWorkspaceInput{Alias: aws.String("ops"), Tags: map[string]string{"env": "dev"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.CreateAlertManagerDefinition(ctx, &amp.CreateAlertManagerDefinitionInput{WorkspaceId: w.WorkspaceId,
+		Data: []byte("alertmanager_config: |\n  route:\n    receiver: default\n  receivers:\n    - name: default\n")}); err != nil {
+		t.Fatal(err)
+	}
+	for i := range 40 { // map order changes between calls; one wrong pick fails
+		tg, err := c.ListTagsForResource(ctx, &amp.ListTagsForResourceInput{ResourceArn: w.Arn})
+		if err != nil || tg.Tags["env"] != "dev" {
+			t.Fatalf("call %d: workspace tags %v, %v", i, tg.Tags, err)
+		}
+	}
+}

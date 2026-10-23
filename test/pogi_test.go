@@ -30,6 +30,28 @@ func call(t *testing.T, method, url string) (int, string) {
 	return res.StatusCode, string(b)
 }
 
+func TestSpansAPI(t *testing.T) {
+	srv := pogi.Start(t)
+	if code, b := call(t, "GET", srv.URL+"/_pogi/api/spans"); code != 200 || strings.TrimSpace(b) != "[]" {
+		t.Fatalf("empty: %d %q", code, b)
+	}
+	// one delivery step, as an SNS message handed to a queue would leave
+	from, to := "arn:aws:sns:us-east-1:000000000000:alerts", "arn:aws:sqs:us-east-1:000000000000:orders"
+	srv.Hub.OnDeliver("sqs", func(string, *core.Message) error { return nil })
+	srv.Hub.Deliver(to, &core.Message{Body: "x", Trace: "1-a-b", From: from})
+	srv.Hub.Deliver(to, &core.Message{Body: "y", Trace: "1-c-d", From: from})
+	code, b := call(t, "GET", srv.URL+"/_pogi/api/spans?limit=1")
+	var spans []core.Span
+	if err := json.Unmarshal([]byte(b), &spans); err != nil || code != 200 || len(spans) != 1 || spans[0].Trace != "1-c-d" || spans[0].From != from || spans[0].To != to {
+		t.Fatalf("limit=1: %d %s", code, b)
+	}
+	for _, q := range []string{"0", "5001", "-1", "abc", "1.5"} {
+		if code, b := call(t, "GET", srv.URL+"/_pogi/api/spans?limit="+q); code != 400 || !strings.Contains(b, "limit must be a whole number from 1 to 5000") {
+			t.Errorf("limit=%s: %d %s", q, code, b)
+		}
+	}
+}
+
 func TestLibraryModeAdminAndConsole(t *testing.T) {
 	ctx := context.Background()
 	srv := pogi.Start(t)

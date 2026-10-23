@@ -10,8 +10,9 @@ concurrency:
   group: preflight-${{ github.ref }}
   cancel-in-progress: true
 # Every job calls scripts/ci.sh, so the same checks run on a laptop: scripts/ci.sh [step ...].
-# At most 20 jobs run side by side (the free plan's limit): 10 test groups, 6 conformance blocks, and build,
-# lint, security and config. The short "plan" job finishes before the test groups start.
+# At most 20 jobs run side by side (the free plan's limit). The 10 test groups, 9 conformance blocks, and build,
+# lint, security and config make 23, so the last few wait for a free slot. The short "plan" job finishes
+# before the test groups start.
 #
 # Each Go job has its own build cache (actions/cache, keyed by the job and go.sum), so a job restores the cache
 # that the same job saved. setup-go's single shared cache is off.
@@ -179,7 +180,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        block: [aws, compute, google, azurerm, longtail, cdk]
+        block: [aws, compute, google, azurerm, longtail, google-thin, azurerm-thin, aws-thin, cdk]
     env:
       TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.tf-plugins
     steps:

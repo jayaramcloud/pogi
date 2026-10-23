@@ -1,7 +1,6 @@
 package generic
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"regexp"
@@ -16,7 +15,7 @@ import (
 
 // modelJSON asks the model for a JSON value; ok is false when there is no model or no usable answer.
 func modelJSON(c *Call, id, system, prompt string) (v any, ok bool) {
-	text, used, err := aiGateway(c).Complete(context.Background(), id, system, prompt)
+	text, used, err := aiGateway(c).Complete(aiCtx(c), id, system, prompt)
 	if !used || err != nil {
 		return nil, false
 	}

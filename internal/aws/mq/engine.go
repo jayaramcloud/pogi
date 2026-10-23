@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -120,26 +121,45 @@ func (s *Service) boot(k string, b *Broker, verb string) {
 	}
 	d := s.hub.Docker()
 	core.Go("mq.boot", func() {
-		defer cancel()
 		ports, err := run(ctx, d, ct, files, verb)
 		if err == nil {
-			err = answer(ctx, d, ports, e.hello)
+			// a container that stops while pogi waits for its ports fails the boot at once, saying why,
+			// instead of after the 5-minute wait (as databases and k3s do, see docker.Client.Watch)
+			wait, stop := context.WithCancelCause(ctx)
+			d.Watch(wait, ct.Name, func(note string) { stop(errors.New(note)) })
+			err = answer(wait, d, ports, e.hello)
+			if c := context.Cause(wait); err != nil && ctx.Err() == nil && c != nil {
+				err = c
+			}
+			stop(nil)
 		}
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		switch {
 		case s.st.Brokers[k] != b: // deleted meanwhile
 			s.drop(b)
+			cancel()
 		case ctx.Err() != nil: // pogi closes, or a newer boot took over
 		case err != nil:
 			failed := "CRITICAL_ACTION_REQUIRED"
 			if b.State == "CREATION_IN_PROGRESS" {
 				failed = "CREATION_FAILED"
 			}
-			b.State, b.Note = failed, err.Error()
+			b.State, b.Note = failed, docker.Plain(err)
 			s.hub.Log.Warn("mq broker failed", "broker", k, "err", err)
+			cancel()
 		default:
 			b.State, b.Ports, b.Note = "RUNNING", ports, ""
+			// while it runs: a container that stops on its own (out of memory, a crash) makes the broker
+			// CRITICAL_ACTION_REQUIRED with why. ctx ends at the next boot (a reboot) or the broker's deletion.
+			d.Watch(ctx, ct.Name, func(note string) {
+				s.mu.Lock()
+				defer s.mu.Unlock()
+				if s.st.Brokers[k] == b && ctx.Err() == nil {
+					b.State, b.Note = "CRITICAL_ACTION_REQUIRED", note
+					s.hub.Log.Warn("mq broker stopped", "broker", k, "note", note)
+				}
+			})
 		}
 	})
 }

@@ -7,9 +7,11 @@
 #   scripts/conformance.sh [block ...]     no arguments runs every block
 #
 # Blocks: aws, compute (ECR, ECS behind an ALB, Auto Scaling), google, azurerm (needs Docker), longtail, cdk.
+# Each examples/terraform-<google|azure|aws>-thin-<group>/ folder is a block too, <google|azurerm|aws>-<group>,
+# so a failure names its group; google-thin, azurerm-thin and aws-thin run every group of that cloud.
 # CI runs each block in its own job, side by side.
 set -eu
-blocks=${*:-aws compute google azurerm longtail cdk}
+blocks=${*:-aws compute google azurerm longtail google-thin azurerm-thin aws-thin cdk}
 want() { case " $blocks " in *" $1 "*) return 0 ;; esac; return 1; }
 root=$(cd "$(dirname "$0")/.." && pwd)
 work=$(mktemp -d)
@@ -49,26 +51,35 @@ cp -R "$root/examples/terraform-compute" "$work/tfc"
 echo "terraform compute ($region): apply, ALB → ECS, no-drift plan and destroy passed"
 fi
 
-if want google; then
+# google_tf <example folder> <work folder> <label>: apply, a plan with no changes, and destroy, with the google
+# provider on the host.
+google_tf() {
+  echo "== terraform: $3"
+  cp -R "$root/examples/$1" "$work/$2"
+  # docker-*.tf hold the resources that run a container (Spanner and Bigtable emulators, Redis): left out without Docker
+  docker info >/dev/null 2>&1 || { rm -f "$work/$2"/docker-*.tf; echo "(Docker is not running: docker-*.tf left out)"; }
+  "$work/pogi" tf --cloud gcp --endpoint "$ep" > "$work/$2/pogi_override.tf"
+  export BIGTABLE_EMULATOR_HOST=localhost:$port # the provider's Bigtable client takes the address from here, not from the custom endpoint
+  (cd "$work/$2" && terraform init -input=false >/dev/null && terraform apply -auto-approve -input=false >/dev/null \
+    && nodrift terraform && terraform destroy -auto-approve -input=false >/dev/null) \
+    || { echo "terraform $3: FAILED" >&2; exit 1; }
+  echo "terraform $3: apply, no-drift plan and destroy passed"
+}
+if want google; then google_tf terraform-google tfg "google provider"; fi
 
-echo "== terraform: google provider"
-cp -R "$root/examples/terraform-google" "$work/tfg"
-"$work/pogi" tf --cloud gcp --endpoint "$ep" > "$work/tfg/pogi_override.tf"
-(cd "$work/tfg" && terraform init -input=false >/dev/null && terraform apply -auto-approve -input=false >/dev/null \
-  && nodrift terraform && terraform destroy -auto-approve -input=false >/dev/null)
-echo "terraform google: apply, no-drift plan and destroy passed"
-fi
-
-if ! want azurerm; then
-  :
-elif docker info >/dev/null 2>&1; then
-  # azurerm reads every URL from pogi's metadata endpoint, over TLS. Terraform on the host would need pogi's CA
-  # in the system's trust store (the macOS keychain: not something to change), so it runs in a container
-  # that trusts the CA through SSL_CERT_FILE and reaches pogi at host.docker.internal. The *.localhost names
-  # the example's Key Vault and storage account have are mapped to the host as well.
-  echo "== terraform: azurerm provider (in a container)"
-  cp -R "$root/examples/terraform-azure" "$work/tfa"
-  "$work/pogi" tf --cloud azure --endpoint "$ep" > "$work/tfa/pogi_override.tf"
+# azurerm_tf <example folder> <work folder> <label>: the same with the azurerm provider, in a container.
+# azurerm reads every URL from pogi's metadata endpoint, over TLS. Terraform on the host would need pogi's CA
+# in the system's trust store (the macOS keychain: not something to change), so it runs in a container
+# that trusts the CA through SSL_CERT_FILE and reaches pogi at host.docker.internal. The *.localhost names
+# the example's Key Vault and storage account have are mapped to the host as well.
+azurerm_tf() {
+  if ! docker info >/dev/null 2>&1; then
+    echo "== terraform: $3 skipped (Docker is not running)"
+    return 0
+  fi
+  echo "== terraform: $3 (in a container)"
+  cp -R "$root/examples/$1" "$work/$2"
+  "$work/pogi" tf --cloud azure --endpoint "$ep" > "$work/$2/pogi_override.tf"
   cache=${TF_PLUGIN_CACHE_DIR:-$HOME/.terraform.d/plugin-cache}
   mkdir -p "$cache"
   # Docker Desktop and other VM engines forward host.docker.internal to this machine's loopback. A Linux
@@ -76,27 +87,48 @@ elif docker info >/dev/null 2>&1; then
   # It also runs as this user there, so the files it writes can be cleaned up afterwards.
   gw=host-gateway net=
   [ "$(uname -s)" = Linux ] && gw=127.0.0.1 net="--network=host --user $(id -u):$(id -g) -e HOME=/tmp"
+  tfdir=$work/$2
   tfd() {
-    docker run --rm $net -v "$work/tfa":/work -w /work --add-host host.docker.internal:$gw \
+    docker run --rm $net -v "$tfdir":/work -w /work --add-host host.docker.internal:$gw \
       --add-host pogi-tf-kv.vault.localhost:$gw --add-host pogitfstore.blob.localhost:$gw \
       --add-host pogitfstore.queue.localhost:$gw --add-host pogitfstore.table.localhost:$gw \
+      --add-host pogitflake.file.localhost:$gw --add-host pogitflake.dfs.localhost:$gw --add-host pogitflake.blob.localhost:$gw \
+      --add-host a2dhdistore.blob.localhost:$gw --add-host a2dhdistore.queue.localhost:$gw --add-host a2dhdistore.table.localhost:$gw --add-host a2dhdistore.file.localhost:$gw \
       -v "$work/data/certs/ca.pem":/pogi-ca.pem -e SSL_CERT_FILE=/pogi-ca.pem \
       -v "$cache":/cache -e TF_PLUGIN_CACHE_DIR=/cache -e TF_IN_AUTOMATION=1 hashicorp/terraform "$@" -input=false
   }
-  tfd init >/dev/null && tfd apply -auto-approve >/dev/null && nodrift tfd && tfd destroy -auto-approve >/dev/null
-  echo "terraform azurerm: apply, no-drift plan and destroy passed"
-else
-  echo "== terraform: azurerm provider skipped (Docker is not running)"
-fi
+  # A failing command inside an && list doesn't stop the script under set -e, so say so and stop here.
+  (tfd init >/dev/null && tfd apply -auto-approve >/dev/null && nodrift tfd && tfd destroy -auto-approve >/dev/null) \
+    || { echo "terraform $3: FAILED" >&2; exit 1; }
+  echo "terraform $3: apply, no-drift plan and destroy passed"
+}
+if want azurerm; then azurerm_tf terraform-azure tfa "azurerm provider"; fi
 
-if want longtail; then
-echo "== terraform: long-tail services (generated engine)"
-cp -R "$root/examples/terraform-longtail" "$work/tfl"
-"$work/pogi" tf --endpoint "$ep" --region "$region" > "$work/tfl/pogi_override.tf"
-(cd "$work/tfl" && terraform init -input=false >/dev/null && terraform apply -auto-approve -input=false >/dev/null \
-  && nodrift terraform && terraform destroy -auto-approve -input=false >/dev/null)
-echo "terraform long tail ($region): apply, no-drift plan and destroy passed"
-fi
+# aws_tf <example folder> <work folder> <label>: the same with the aws provider, on the host.
+aws_tf() {
+  echo "== terraform: $3"
+  cp -R "$root/examples/$1" "$work/$2"
+  "$work/pogi" tf --endpoint "$ep" --region "$region" > "$work/$2/pogi_override.tf"
+  (cd "$work/$2" && terraform init -input=false >/dev/null && terraform apply -auto-approve -input=false >/dev/null \
+    && nodrift terraform && terraform destroy -auto-approve -input=false >/dev/null) \
+    || { echo "terraform $3: FAILED" >&2; exit 1; }
+  echo "terraform $3 ($region): apply, no-drift plan and destroy passed"
+}
+if want longtail; then aws_tf terraform-longtail tfl "long-tail services (generated engine)"; fi
+
+# The Thin groups, one block per examples/terraform-<cloud>-thin-<group>/ folder.
+for cloud in google azure aws; do
+  block=$cloud
+  [ $cloud = azure ] && block=azurerm
+  for dir in "$root"/examples/terraform-$cloud-thin-*/; do
+    [ -d "$dir" ] || continue
+    name=$(basename "$dir")
+    group=${name#terraform-$cloud-thin-}
+    if want "$block-$group" || want "$block-thin"; then
+      "${block}_tf" "$name" "t-$block-$group" "$block Thin, $group"
+    fi
+  done
+done
 
 if want cdk; then
 

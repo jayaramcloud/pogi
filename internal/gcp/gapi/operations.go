@@ -29,6 +29,8 @@ type Ops struct {
 	top  *Mux // operations/<id> without a project: Resource Manager and Service Usage
 	mu   sync.Mutex
 	ops  map[string]*op
+	js   map[string]map[string]any               // operations whose result is a JSON resource (DoneJSON), by name
+	back []func() longrunningpb.OperationsClient // vendor emulators that keep operations of their own
 }
 
 type op struct {
@@ -38,7 +40,7 @@ type op struct {
 
 // NewOps creates the operations service.
 func NewOps(*core.Hub) *Ops {
-	o := &Ops{ops: map[string]*op{}}
+	o := &Ops{ops: map[string]*op{}, js: map[string]map[string]any{}}
 	o.rest = &REST{Versions: []string{"v1", "v1beta1", "v1alpha1", "v2", "v2beta", "v3"}, Collections: []string{"operations"},
 		Desc: &longrunningpb.Operations_ServiceDesc, Impl: o, Routes: map[string]Route{
 			"GET operations":                       {Method: "ListOperations", Field: "name"},
@@ -51,6 +53,11 @@ func NewOps(*core.Hub) *Ops {
 			"DELETE locations/*/operations/*":      {Method: "DeleteOperation", Field: "name"},
 			"POST locations/*/operations/*:cancel": {Method: "CancelOperation", Field: "name"},
 			"POST locations/*/operations/*:wait":   {Method: "WaitOperation", Field: "name"},
+			"GET regions/*/operations":             {Method: "ListOperations", Field: "name"}, // Dataproc
+			"GET regions/*/operations/*":           {Method: "GetOperation", Field: "name"},
+			"DELETE regions/*/operations/*":        {Method: "DeleteOperation", Field: "name"},
+			"POST regions/*/operations/*:cancel":   {Method: "CancelOperation", Field: "name"},
+			"POST regions/*/operations/*:wait":     {Method: "WaitOperation", Field: "name"},
 		}}
 	var top []Rule
 	for _, v := range o.rest.Versions {
@@ -65,6 +72,27 @@ func NewOps(*core.Hub) *Ops {
 	return o
 }
 
+// Delegate adds a backend for the operations that are not stored here: the
+// emulator behind a service (Spanner's) keeps its own. client returns nil
+// while the backend is not running, and then it knows no operation.
+func (o *Ops) Delegate(client func() longrunningpb.OperationsClient) {
+	o.mu.Lock()
+	o.back = append(o.back, client)
+	o.mu.Unlock()
+}
+
+// backends are the running delegates.
+func (o *Ops) backends() (out []longrunningpb.OperationsClient) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	for _, f := range o.back {
+		if c := f(); c != nil {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // Operations returns the hub's operations service, or a detached one when
 // "operations" is disabled (clients then can't poll, but done ops still work).
 func Operations(h *core.Hub) *Ops {
@@ -75,13 +103,24 @@ func Operations(h *core.Hub) *Ops {
 }
 
 func (o *Ops) Info() core.Info {
-	return core.Info{Name: "operations", Cloud: core.GCP, Title: "Operations", Match: func(r *http.Request) bool { return o.rest.Match(r) || o.top.Match(r) },
+	return core.Info{Name: "operations", Cloud: core.GCP, Title: "Operations", Match: func(r *http.Request) bool { return o.rest.Match(r) || o.top.Match(r) || o.jsonOp(r) != nil }, // the last: a DoneJSON operation under any parent, apps/a/operations/o of App Engine
 		Targets: []string{"google.longrunning.Operations"}}
 }
 
 func (o *Ops) RegisterGRPC(g *grpc.Server) { longrunningpb.RegisterOperationsServer(g, o) }
 
 func (o *Ops) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if js := o.jsonOp(r); js != nil {
+		c := core.C(r)
+		c.Op = "GetOperation"
+		if err := c.Intercept(); err != nil {
+			e := core.AsError(err)
+			JSONErr(w, c, e.Status, e.Code, e.Msg)
+			return
+		}
+		JSON(w, js)
+		return
+	}
 	if o.top.Match(r) {
 		o.top.ServeHTTP(w, r)
 		return
@@ -92,6 +131,7 @@ func (o *Ops) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (o *Ops) Reset() {
 	o.mu.Lock()
 	o.ops = map[string]*op{}
+	o.js = map[string]map[string]any{}
 	o.mu.Unlock()
 }
 
@@ -101,6 +141,36 @@ func (o *Ops) Done(parent string, meta, resp proto.Message) *longrunningpb.Opera
 	p := o.add(parent, meta)
 	o.finish(p.Name, resp, nil)
 	return o.get(p.Name)
+}
+
+// DoneJSON records a finished operation under parent whose metadata and response are JSON objects
+// (a generic REST engine's resources, which no proto message describes). A GET or :wait of it answers
+// {"name", "metadata", "done": true, "response"}; list, cancel and delete treat it like any other.
+func (o *Ops) DoneJSON(parent string, meta, resp map[string]any) map[string]any {
+	p := o.add(parent, nil)
+	o.finish(p.Name, nil, nil)
+	js := map[string]any{"name": p.Name, "done": true, "response": resp}
+	if meta != nil {
+		js["metadata"] = meta
+	}
+	o.mu.Lock()
+	o.js[p.Name] = js
+	o.mu.Unlock()
+	return js
+}
+
+// jsonOp returns the DoneJSON operation a GET or :wait request names, or nil.
+func (o *Ops) jsonOp(r *http.Request) map[string]any {
+	p := strings.TrimPrefix(r.URL.Path, "/")
+	if wait := strings.TrimSuffix(p, ":wait"); r.Method == http.MethodPost && wait != p {
+		p = wait
+	} else if r.Method != http.MethodGet {
+		return nil
+	}
+	_, name, _ := strings.Cut(p, "/") // the path without its version
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return o.js[name]
 }
 
 // Start records a running operation and finishes it with run's result in
@@ -154,17 +224,27 @@ func (o *Ops) get(name string) *longrunningpb.Operation {
 	return nil
 }
 
-func (o *Ops) GetOperation(_ context.Context, r *longrunningpb.GetOperationRequest) (*longrunningpb.Operation, error) {
+func (o *Ops) GetOperation(ctx context.Context, r *longrunningpb.GetOperationRequest) (*longrunningpb.Operation, error) {
 	if p := o.get(r.Name); p != nil {
 		return p, nil
+	}
+	for _, c := range o.backends() {
+		if p, err := c.GetOperation(ctx, r); err == nil {
+			return p, nil
+		}
 	}
 	return nil, NotFound("Operation %s not found.", r.Name)
 }
 
-func (o *Ops) ListOperations(_ context.Context, r *longrunningpb.ListOperationsRequest) (*longrunningpb.ListOperationsResponse, error) {
+func (o *Ops) ListOperations(ctx context.Context, r *longrunningpb.ListOperationsRequest) (*longrunningpb.ListOperationsResponse, error) {
+	out := &longrunningpb.ListOperationsResponse{}
+	for _, c := range o.backends() {
+		if l, err := c.ListOperations(ctx, r); err == nil {
+			out.Operations = append(out.Operations, l.Operations...)
+		}
+	}
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	out := &longrunningpb.ListOperationsResponse{}
 	parent := strings.TrimSuffix(r.Name, "/operations")
 	if parent == "operations" {
 		parent = ""
@@ -178,19 +258,31 @@ func (o *Ops) ListOperations(_ context.Context, r *longrunningpb.ListOperationsR
 	return out, nil
 }
 
-func (o *Ops) DeleteOperation(_ context.Context, r *longrunningpb.DeleteOperationRequest) (*emptypb.Empty, error) {
+func (o *Ops) DeleteOperation(ctx context.Context, r *longrunningpb.DeleteOperationRequest) (*emptypb.Empty, error) {
 	o.mu.Lock()
-	defer o.mu.Unlock()
-	if o.ops[r.Name] == nil {
-		return nil, NotFound("Operation %s not found.", r.Name)
-	}
+	_, ok := o.ops[r.Name]
 	delete(o.ops, r.Name)
-	return &emptypb.Empty{}, nil
+	delete(o.js, r.Name)
+	o.mu.Unlock()
+	if ok {
+		return &emptypb.Empty{}, nil
+	}
+	for _, c := range o.backends() {
+		if _, err := c.DeleteOperation(ctx, r); err == nil {
+			return &emptypb.Empty{}, nil
+		}
+	}
+	return nil, NotFound("Operation %s not found.", r.Name)
 }
 
 // CancelOperation marks a running operation CANCELLED; the work itself runs on.
-func (o *Ops) CancelOperation(_ context.Context, r *longrunningpb.CancelOperationRequest) (*emptypb.Empty, error) {
+func (o *Ops) CancelOperation(ctx context.Context, r *longrunningpb.CancelOperationRequest) (*emptypb.Empty, error) {
 	if o.get(r.Name) == nil {
+		for _, c := range o.backends() {
+			if _, err := c.CancelOperation(ctx, r); err == nil {
+				return &emptypb.Empty{}, nil
+			}
+		}
 		return nil, NotFound("Operation %s not found.", r.Name)
 	}
 	o.mu.Lock()
@@ -209,6 +301,11 @@ func (o *Ops) WaitOperation(ctx context.Context, r *longrunningpb.WaitOperationR
 	x := o.ops[r.Name]
 	o.mu.Unlock()
 	if x == nil {
+		for _, c := range o.backends() {
+			if p, err := c.WaitOperation(ctx, r); err == nil {
+				return p, nil
+			}
+		}
 		return nil, NotFound("Operation %s not found.", r.Name)
 	}
 	wait := time.Minute

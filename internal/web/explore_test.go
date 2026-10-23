@@ -96,7 +96,7 @@ func call(t *testing.T, srv *pogi.Running, target, op string, in any) map[string
 
 func TestIndexAndNav(t *testing.T) {
 	srv := pogi.Start(t, pogi.Config{Services: []string{"s3"}})
-	has(t, page(t, srv, "/_pogi/explore"), "Services", "emulated services") // the index redirects to the catalog
+	has(t, page(t, srv, "/_pogi/explore"), "Services", "services running") // the index redirects to the catalog
 	has(t, page(t, srv, "/_pogi/"), "/_pogi/sql", "/_pogi/logs", "/_pogi/secrets")
 	for _, path := range []string{"/_pogi/query/dynamodb", "/_pogi/query/cosmos", "/_pogi/query/firestore", "/_pogi/sql", "/_pogi/sfn", "/_pogi/logs?kind=kql",
 		"/_pogi/logs?kind=gcp", "/_pogi/logs", "/_pogi/crypto", "/_pogi/secrets", "/_pogi/network"} {

@@ -60,14 +60,26 @@ func (s *Service) listLocked(account, region, typ string) []*Resource {
 	return out
 }
 
+// byARNLocked finds the resource an ARN names. A child with no ARN of its own can carry its
+// parent's (an AMP alert manager definition has its workspace's), so several may match. The one
+// the ARN belongs to wins: the one whose type the ARN names ("workspace/..."), then the oldest
+// (a parent exists before its children), then the lowest key. Map order used to decide, so
+// tags read through the workspace's ARN sometimes came from the definition.
 func (s *Service) byARNLocked(account, arn string) *Resource {
-	for _, r := range s.st.Res {
+	var best *Resource
+	var bestKey string
+	owns := func(r *Resource) bool { return strings.Contains(arn, ":"+kebab(r.Type)+"/") }
+	for k, r := range s.st.Res {
 		// a client that does not know its account (Terraform with skip_requesting_account_id) leaves it out of the ARN
-		if r.Account == account && (r.ARN == arn || strings.Replace(r.ARN, ":"+account+":", "::", 1) == arn) {
-			return r
+		if r.Account != account || r.ARN != arn && strings.Replace(r.ARN, ":"+account+":", "::", 1) != arn {
+			continue
+		}
+		if best == nil || owns(r) && !owns(best) ||
+			owns(r) == owns(best) && (r.Created.Before(best.Created) || r.Created.Equal(best.Created) && k < bestKey) {
+			best, bestKey = r, k
 		}
 	}
-	return nil
+	return best
 }
 
 func (s *Service) Save() ([]byte, error) {

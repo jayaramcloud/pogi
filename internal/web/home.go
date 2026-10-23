@@ -47,7 +47,9 @@ type homeData struct {
 	FirstRun                     bool
 	Endpoint, Region             string
 	Env                          []string
-	Services, InUse, Resources   int
+	InUse, Resources             int
+	Count                        int    // services, counted as products
+	CountFull                    string // the count with its depth split
 	Total, Errors, PerMin, Chaos int
 	ErrPct                       string
 	ReqSpark, ErrSpark           template.HTML
@@ -85,12 +87,12 @@ func (ui *UI) overview(w http.ResponseWriter, r *http.Request) {
 		if cloud != "" && s.Cloud != cloud {
 			continue
 		}
-		d.Services++
 		d.Total += s.Requests
-		if s.Requests > 0 { // built-in defaults (the default resource group, project, users) don't count
+		if ui.inUse(s) { // built-in defaults (the default resource group, project, users) don't count
 			d.Resources += s.Resources
 		}
 	}
+	d.Count, d.CountFull = serviceCount(cloud, st.Services)
 	d.FirstRun = traffic == 0
 	if r.URL.Query().Get("wait") != "" { // the first-run page polls: reload once traffic shows up
 		if d.FirstRun {
@@ -129,7 +131,7 @@ func (ui *UI) overview(w http.ResponseWriter, r *http.Request) {
 	var reqs, errs [12]int
 	bySvc := map[string]*homeSvc{}
 	for _, s := range st.Services {
-		if s.Resources > 0 && s.Requests > 0 && (cloud == "" || s.Cloud == cloud) {
+		if ui.inUse(s) && (cloud == "" || s.Cloud == cloud) {
 			bySvc[s.Name] = &homeSvc{Name: s.Name, Title: s.Title, Cloud: s.Cloud, Resources: s.Resources, Requests: s.Requests}
 		}
 	}

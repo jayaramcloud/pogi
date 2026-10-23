@@ -4,6 +4,7 @@
 package core
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -75,6 +76,9 @@ type Table struct {
 	Name    string     `json:"name"`
 	Columns []string   `json:"columns"`
 	Rows    [][]string `json:"rows"`
+	// Log marks a record of activity, such as CloudTrail events or log entries, not resources the user made.
+	// Status does not count its rows, so a service is not "in use" just because other calls were logged.
+	Log bool `json:"log,omitempty"`
 }
 
 // ObjectInfo is one row of the console's object browser (S3, GCS, Blob).
@@ -108,6 +112,7 @@ type Ctx struct {
 	Trace     string          // the flow this request belongs to, shown in the request log
 	Chaos     bool            // the response was injected by a chaos rule
 	Internal  bool            // an in-process call from another service (Hub.Call)
+	ctx       context.Context // the request's context: it ends when the client leaves
 	body      []byte
 	read      bool
 	req       *http.Request // the request as received, for signature checks
@@ -136,6 +141,15 @@ func Body(r *http.Request) []byte {
 		c.read = true
 	}
 	return c.body
+}
+
+// BodyErr is the answer for a request body that was too large or stalled, or nil. A service that looks up
+// the operation before Intercept must answer it first, so the caller sees 413 and not "not implemented".
+func (c *Ctx) BodyErr() error {
+	if c.bodyErr == nil {
+		return nil // not c.bodyErr: that would be a non-nil error holding a nil pointer
+	}
+	return c.bodyErr
 }
 
 // Intercept checks the signature (Config.ValidateSigs), then runs chaos rules
@@ -299,3 +313,11 @@ func Unix(t time.Time) float64 {
 
 // ISO is the timestamp layout used by XML protocols.
 const ISO = "2006-01-02T15:04:05.000Z"
+
+// Context is the request's context; it ends when the client leaves. Calls made in-process have none, so it is then Background.
+func (c *Ctx) Context() context.Context {
+	if c.ctx == nil {
+		return context.Background()
+	}
+	return c.ctx
+}

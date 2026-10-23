@@ -30,17 +30,18 @@ const prelogin = "\x12\x01\x00\x1a\x00\x00\x01\x00" + // PRELOGIN, last packet, 
 func otherSpec(engine, user, pw string, host int) (Spec, bool) {
 	switch {
 	case engine == "docdb":
-		return Spec{Image: "mongo:7", Port: 27017, Host: host, Hello: isMaster,
+		return Spec{Image: "mongo:7", Port: 27017, Host: host, Data: "/data/db", Hello: isMaster,
 			Env: []string{"MONGO_INITDB_ROOT_USERNAME=" + user, "MONGO_INITDB_ROOT_PASSWORD=" + pw}}, true
 	case engine == "neptune":
 		// Gremlin over WebSocket and HTTP POST /gremlin, like Neptune's port; no auth.
+		// Neptune keeps no data: Gremlin Server's graph is in memory.
 		// ponytail: no openCypher or SPARQL endpoints, and IAM auth is not enforced.
 		return Spec{Image: "tinkerpop/gremlin-server:3.7", Port: 8182, Host: host, Hello: "GET / HTTP/1.0\r\n\r\n",
 			Entry: []string{"/bin/sh", "-c", "sed -i s/WebSocketChannelizer/WsAndHttpChannelizer/ conf/gremlin-server.yaml && " +
 				"exec /docker-entrypoint.sh conf/gremlin-server.yaml"}}, true
 	case strings.HasPrefix(engine, "sqlserver"):
 		// The image is amd64 only; Docker Desktop runs it under emulation on Apple Silicon.
-		return Spec{Image: "mcr.microsoft.com/mssql/server:2022-latest", Port: 1433, Host: host, Hello: prelogin,
+		return Spec{Image: "mcr.microsoft.com/mssql/server:2022-latest", Port: 1433, Host: host, Data: "/var/opt/mssql", Hello: prelogin,
 			Env: []string{"ACCEPT_EULA=Y", "MSSQL_SA_PASSWORD=" + saPassword(pw)},
 			Init: tsql(saPassword(pw), fmt.Sprintf("IF SUSER_ID(N'%[1]s') IS NULL CREATE LOGIN [%[1]s] WITH PASSWORD = N'%[2]s', CHECK_POLICY = OFF; "+
 				"ALTER SERVER ROLE sysadmin ADD MEMBER [%[1]s]", user, sqlQuote(pw)))}, true

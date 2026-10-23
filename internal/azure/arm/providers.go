@@ -25,7 +25,6 @@ var builtin = map[string][]string{
 	"Microsoft.Sql":                 nil,
 	"Microsoft.DBforPostgreSQL":     nil,
 	"Microsoft.DBforMySQL":          nil,
-	"Microsoft.DBforMariaDB":        nil,
 	"Microsoft.Cache":               nil,
 	"Microsoft.OperationalInsights": nil,
 	"Microsoft.Insights":            nil,
@@ -54,7 +53,7 @@ func (s *Service) providers(sub string) []map[string]any {
 	}
 	var out []map[string]any
 	for _, ns := range core.SortedKeys(types) {
-		out = append(out, providerObj(sub, ns, types[ns]))
+		out = append(out, s.providerObj(sub, ns, types[ns]))
 	}
 	return out
 }
@@ -66,7 +65,7 @@ func (s *Service) provider(sub, ns string) map[string]any {
 			rts = append(rts, rt)
 		}
 	}
-	return providerObj(sub, ns, rts)
+	return s.providerObj(sub, ns, rts)
 }
 
 func builtinTypes(ns string) (out []string) {
@@ -89,14 +88,18 @@ func contains(l []string, s string) bool {
 	return false
 }
 
-func providerObj(sub, ns string, types []string) map[string]any {
+func (s *Service) providerObj(sub, ns string, types []string) map[string]any {
 	var locs []string
 	for _, r := range regions {
 		locs = append(locs, r[1])
 	}
 	rts := []map[string]any{}
 	for _, t := range types {
-		rts = append(rts, map[string]any{"resourceType": t, "locations": locs, "apiVersions": []string{"2022-09-01"}, "capabilities": "None"})
+		versions := []string{"2022-09-01"}
+		if p := Lookup(s.h, ns+"/"+t); p != nil && len(p.APIVersions) > 0 {
+			versions = p.APIVersions
+		}
+		rts = append(rts, map[string]any{"resourceType": t, "locations": locs, "apiVersions": versions, "capabilities": "None"})
 	}
 	id := "/providers/" + ns
 	if sub != "" {

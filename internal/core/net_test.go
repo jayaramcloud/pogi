@@ -301,3 +301,75 @@ func TestCustomTLS(t *testing.T) {
 		t.Fatal("a missing key must fail, not fall back to pogi's CA")
 	}
 }
+
+// A reset that names services must name enabled ones. An empty or unknown name is refused, so it is
+// neither read as "every service" nor reported as done.
+func TestResetNames(t *testing.T) {
+	h := NewHub(Config{DataDir: t.TempDir()}, nil)
+	h.Register(echo{})
+	for path, want := range map[string]int{
+		"/_pogi/api/reset":                200,
+		"/_pogi/api/reset?service=echo":   200,
+		"/_pogi/api/reset?service=":       400,
+		"/_pogi/api/reset?service=nosuch": 400,
+		"/_pogi/api/reset?service=echo,":  400,
+	} {
+		if w := serve(h, "POST", path, nil); w.Code != want {
+			t.Errorf("%s = %d %s, want %d", path, w.Code, w.Body, want)
+		}
+	}
+}
+
+// A ?service= filter must name a running service: an unknown one, or one that is off, is a 404 and
+// not an empty answer that looks like "nothing there".
+func TestServiceFilterNamesARunningService(t *testing.T) {
+	h := NewHub(Config{DataDir: t.TempDir()}, nil)
+	h.Register(echo{})
+	for path, want := range map[string]int{
+		"/_pogi/api/resources":                200,
+		"/_pogi/api/resources?service=echo":   200,
+		"/_pogi/api/resources?service=nosuch": 404,
+		"/_pogi/api/requests?service=":        200,
+		"/_pogi/api/requests?service=echo":    200,
+		"/_pogi/api/requests?service=nosuch":  404,
+	} {
+		if w := serve(h, "GET", path, nil); w.Code != want {
+			t.Errorf("%s = %d %s, want %d", path, w.Code, w.Body, want)
+		}
+	}
+}
+
+// An unknown snapshot name is a 404 that names the snapshot, not the server's file path, for load,
+// rm and export alike.
+func TestUnknownSnapshot(t *testing.T) {
+	h := NewHub(Config{DataDir: t.TempDir()}, nil)
+	for _, c := range [][2]string{{"POST", "/_pogi/api/snapshots/nope/load"}, {"DELETE", "/_pogi/api/snapshots/nope"}, {"GET", "/_pogi/api/snapshots/nope"}} {
+		w := serve(h, c[0], c[1], nil)
+		if want := `no snapshot named \"nope\" (pogi snapshot ls lists them)`; w.Code != 404 || !strings.Contains(w.Body.String(), want) {
+			t.Errorf("%s %s = %d %s, want 404 %s", c[0], c[1], w.Code, w.Body, want)
+		}
+	}
+}
+
+// A chaos rule from the API must inject something, with an error status, a latency that is not
+// negative and a rate between 0 and 1. The console and MCP use the same Rule.Check.
+func TestChaosRuleChecked(t *testing.T) {
+	h := NewHub(Config{DataDir: t.TempDir()}, nil)
+	for body, want := range map[string]int{
+		`{"status":503}`:                      200,
+		`{"latencyMs":300,"probability":0.5}`: 200,
+		`{}`:                                  400,
+		`{"status":999}`:                      400,
+		`{"status":200}`:                      400,
+		`{"latencyMs":-3000}`:                 400,
+		`{"status":500,"probability":5}`:      400,
+		`{"status":500,"probability":-0.1}`:   400,
+	} {
+		if w := serve(h, "POST", "/_pogi/api/chaos", strings.NewReader(body)); w.Code != want {
+			t.Errorf("%s = %d %s, want %d", body, w.Code, w.Body, want)
+		}
+	}
+	if n := len(h.Chaos.List()); n != 2 {
+		t.Errorf("%d rules stored, want the 2 good ones", n)
+	}
+}

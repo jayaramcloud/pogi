@@ -67,14 +67,20 @@ svg.i { width: 15px; height: 15px; flex: none; stroke: currentColor; fill: none;
 .nav a em { margin-left: auto; font-style: normal; font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
 .nav a.on em { color: var(--accent); }
 .nav a em.bad { color: var(--bad); }
-.ab { display: none; position: relative; }
-.ab::before { content: ""; position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--c); } /* the cloud, on the rail */
+/* a service icon: the provider's own file (or a glyph) on a chip, with the cloud as a small marker */
+.si { position: relative; flex: none; width: 20px; height: 20px; border-radius: 5px; background: var(--sunken); display: inline-grid; place-items: center; vertical-align: middle; }
+.si img, .si svg { width: 16px; height: 16px; display: block; }
+.si svg.gl { fill: none; stroke: var(--dim); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.si::after { content: ""; position: absolute; top: -2px; right: -2px; width: 6px; height: 6px; border-radius: 50%; background: var(--line2); box-shadow: 0 0 0 1.5px var(--panel); }
+.si.aws::after { background: var(--aws); } .si.gcp::after { background: var(--gcp); } .si.azure::after { background: var(--azure); }
+.ph h1 .si { width: 28px; height: 28px; } .ph h1 .si img, .ph h1 .si svg { width: 22px; height: 22px; }
+.palette .it .ico .si { background: none; width: 24px; height: 24px; }
 .app.mini { --sidew: 60px; }
 .app.mini .logo .txt, .app.mini .logo small { display: none; }
 .app.mini .nav a { justify-content: center; padding: 0; position: relative; }
-.app.mini .nav a > span:not(.dot), .app.mini .nav a em, .app.mini .nav .hint, .app.mini .side .foot > span { display: none; }
+.app.mini .nav a > span:not(.dot):not(.si), .app.mini .nav a em, .app.mini .nav .hint, .app.mini .side .foot > span { display: none; }
 .app.mini .nav a .dot { display: none; }
-.app.mini .nav a .ab { display: grid; place-items: center; width: 40px; height: 22px; border-radius: 5px; font: 600 11px var(--mono); background: var(--sunken); } /* the cloud is the dot in .ab::before */
+.app.mini .nav a .si { width: 32px; height: 26px; } .app.mini .nav a .si img, .app.mini .nav a .si svg { width: 20px; height: 20px; }
 .app.mini .nav h6 { margin: 10px 8px; height: 1px; background: var(--line); font-size: 0; }
 .app.mini .nav a[data-badge]::after { content: ""; position: absolute; top: 6px; right: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--bad); }
 .app.mini .nav a.warnb[data-badge]::after { background: var(--warn); }
@@ -184,10 +190,10 @@ pre.code { margin: 0; padding: 12px 14px; background: var(--sunken); border: 1px
 .cat { margin-bottom: 22px; }
 .cat h2 { font-size: 12px; font-weight: 600; color: var(--dim); margin: 0 0 8px; display: flex; gap: 8px; align-items: baseline; }
 .cat h2 span { color: var(--faint); font-weight: 400; }
-.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; } /* room for the icon, the name and the depth tag */
 .tile { display: flex; align-items: center; gap: 9px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); cursor: pointer; }
 .tile:hover { border-color: var(--line2); background: var(--hover); }
-.tile .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.tile .nm { flex: 1; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow-wrap: anywhere; font-weight: 500; line-height: 1.3; } /* up to three lines; the link carries the full name as its title */
 .tile .cnt { width: 16px; text-align: right; font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
 .tile .cnt.use { color: var(--accent); font-weight: 600; }
 .tile .pin { color: var(--faint); opacity: 0; } .tile:hover .pin, .tile .pin.on { opacity: 1; } .tile .pin.on { color: var(--warn); }
@@ -288,7 +294,7 @@ details.more summary { cursor: pointer; color: var(--dim); font-weight: 550; mar
 .note-it:hover { background: var(--hover); }
 .note-it.unread b::after { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-left: 6px; vertical-align: middle; }
 .note-it .ico { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; flex: none; }
-.ico.bad { background: var(--bad-bg); color: var(--bad); } .ico.warn { background: var(--warn-bg); color: var(--warn); } .ico.acc { background: var(--accent-soft); color: var(--accent); }
+.ico.bad { background: var(--bad-bg); color: var(--bad); } .ico.warn { background: var(--warn-bg); color: var(--warn); } .ico.acc { background: var(--accent-soft); color: var(--accent); } .ico.ok { background: var(--ok-bg); color: var(--ok); }
 .note-it b { font-weight: 550; display: block; } .note-it small { display: block; color: var(--dim); } .note-it .ago { margin-left: auto; color: var(--faint); font-size: 11.5px; white-space: nowrap; }
 .bellpop footer { padding: 10px 14px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; color: var(--faint); font-size: 12px; }
 .toast a { color: var(--accent-inv); cursor: pointer; margin-left: 8px; font-weight: 600; }
@@ -349,13 +355,14 @@ body { min-width: 768px; }
 @media (max-width: 1180px) { .search { width: 260px; } }
 @media (max-width: 1100px) { .app:not(.wide) { --sidew: 60px; } .app:not(.wide) .logo .txt, .app:not(.wide) .logo small { display: none; }
   .app:not(.wide) .nav a { justify-content: center; padding: 0; position: relative; }
-  .app:not(.wide) .nav a > span:not(.dot), .app:not(.wide) .nav a em, .app:not(.wide) .nav .hint, .app:not(.wide) .side .foot > span { display: none; }
+  .app:not(.wide) .nav a > span:not(.dot):not(.si), .app:not(.wide) .nav a em, .app:not(.wide) .nav .hint, .app:not(.wide) .side .foot > span { display: none; }
   .app:not(.wide) .nav a .dot { display: none; }
-  .app:not(.wide) .nav a .ab { display: grid; place-items: center; width: 40px; height: 22px; border-radius: 5px; font: 600 11px var(--mono); background: var(--sunken); } /* the cloud is the dot in .ab::before */
+  .app:not(.wide) .nav a .si { width: 32px; height: 26px; } .app:not(.wide) .nav a .si img, .app:not(.wide) .nav a .si svg { width: 20px; height: 20px; }
   .app:not(.wide) .nav h6 { margin: 10px 8px; height: 1px; background: var(--line); font-size: 0; }
-  .grid2 { grid-template-columns: 1fr !important; } .metrics, .presets { grid-template-columns: 1fr 1fr; } .tiles { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .grid2 { grid-template-columns: 1fr !important; } .metrics, .presets { grid-template-columns: 1fr 1fr; }
   .page { padding: 18px 20px 28px; } #endpointPill .mono { display: none; } }
 .htmx-indicator { display: none; } .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline-flex; }
+.flash.ok { background: var(--ok-bg); color: var(--ok); }
 .flash { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
 .drawer .flash { margin: 0 0 14px; }
 
@@ -405,6 +412,7 @@ form.seg button { font: inherit; }
 .tile { position: relative; }
 .tile .nm a::after { content: ""; position: absolute; inset: 0; border-radius: 8px; }
 .tile .pin { position: relative; z-index: 1; cursor: pointer; }
+.tile .tag { position: relative; z-index: 1; }
 .tile[hidden], .cat[hidden] { display: none; }
 .seg a { height: 24px; padding: 0 10px; border-radius: 5px; cursor: pointer; color: var(--dim); display: inline-flex; align-items: center; gap: 6px; }
 .seg a.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); font-weight: 550; }
@@ -512,3 +520,139 @@ main:focus { outline: none; }
 /* ---------- credit ---------- */
 .credit { max-width: 1360px; padding: 4px 28px 64px; text-align: center; font-size: 12px; color: var(--faint); } /* the bottom padding keeps it clear of the bulk bar */
 .credit a { color: var(--dim); text-decoration: none; } .credit a:hover { color: var(--accent); text-decoration: underline; }
+
+/* ---------- builder tf-web: the Terraform tab and the diagram ---------- */
+.tfdrop { border: 2px dashed var(--line2); border-radius: 14px; padding: 48px 20px 40px; text-align: center; background: var(--panel); cursor: pointer; transition: border-color .15s, background .15s; }
+.tfdrop:hover, .tfdrop.over { border-color: var(--accent); background: var(--accent-soft); }
+.tfdrop .ico { width: 48px; height: 48px; margin: 0 auto 12px; border-radius: 12px; background: var(--sunken); display: grid; place-items: center; color: var(--dim); }
+.tfdrop .ico svg { width: 22px; height: 22px; }
+.tfdrop h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: -.2px; }
+.tfdrop p { margin: 0 0 20px; color: var(--dim); }
+.tfpick { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+#tf-empty code, .tfd code, .tfsizes code { font: 12px var(--mono); background: var(--sunken); padding: 1px 6px; border-radius: 5px; }
+#tf-empty .banner code { overflow-wrap: anywhere; }
+#tf-load { margin-top: 14px; }
+.tfres .metric { cursor: default; }
+.tfmetrics { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.tfmetrics .bigcost { font-size: 28px; }
+.tfup { color: var(--bad); } .tfdown { color: var(--ok); }
+.tfbar { margin-top: 4px; }
+.tfbar .chip { font: inherit; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; line-height: 24px; }
+.tfwarn summary { cursor: pointer; font-weight: 550; } .tfwarn ul { margin: 8px 0 0; padding-left: 18px; }
+.tfwarn { display: block; }
+.tfcard { margin-bottom: 14px; overflow-x: auto; }
+.tfsub { font-weight: 650; font-variant-numeric: tabular-nums; }
+.tfdrv { max-width: 360px; overflow: hidden; text-overflow: ellipsis; }
+.tfmore summary { cursor: pointer; padding: 11px 14px; font-weight: 550; }
+.tfmore ul { margin: 0; padding: 0 14px 12px 32px; display: grid; gap: 4px; }
+.tfmore a { color: var(--text); }
+.tfd h4 { margin: 18px 0 6px; font-size: 12.5px; color: var(--dim); font-weight: 600; } .tfd h4.tfaddr { margin: 0 0 10px; font-size: 13px; color: var(--text); word-break: break-all; }
+.tfd + .tfd { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
+.tfd .dt tbody tr { cursor: default; } .tfd .dt tbody tr:hover td { background: none; }
+.tfd .dt td { white-space: normal; height: auto; padding-top: 7px; padding-bottom: 7px; }
+.tfnotes { margin: 0; padding-left: 18px; color: var(--dim); }
+.tfsizefilter { align-items: flex-end; }
+.tfsizes tr.sel td { background: var(--accent-soft); }
+.tfsizes td { white-space: nowrap; } .tfacts { text-align: right; }
+.tfsizes tbody tr { cursor: default; }
+
+/* the diagram: a pannable, zoomable box around the server-drawn SVG */
+.tfview { position: relative; height: clamp(420px, 66vh, 760px); overflow: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; cursor: grab; touch-action: none; }
+.tfview.drag { cursor: grabbing; }
+.tfpan { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+svg.tfmap { min-width: 0; max-width: none; display: block; }
+.tfmap .node { cursor: pointer; }
+.tfmap .band { fill: none; stroke: var(--faint); stroke-width: 1.2; stroke-dasharray: 5 4; opacity: .7; }
+.tfmap .bandl { fill: var(--dim); font: 600 11px ui-monospace, Menlo, monospace; }
+.tfmap .node .stack { fill: var(--sunken); stroke: var(--line2); stroke-width: 1.2; }
+.tfmap .node .cnt { fill: var(--dim); font: 600 11px ui-monospace, Menlo, monospace; }
+.tfmap .node .tag { fill: var(--dim); font: 10.5px system-ui; }
+.tfmap .node .ct.c1 { fill: var(--text); font-weight: 700; } .tfmap .node .ct.c2 { fill: var(--text); }
+.tfmap .node:focus, .tfmap .node:focus-visible { outline: none; } /* focus shows as the box's stroke, below */ .tfmap .node:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.tfmap .node.a-create rect, .legend .lg.create { fill: var(--ok-bg); stroke: var(--ok); background: var(--ok-bg); border-color: var(--ok); }
+.tfmap .node.a-update rect, .legend .lg.update { fill: var(--warn-bg); stroke: var(--warn); background: var(--warn-bg); border-color: var(--warn); }
+.tfmap .node.a-replace rect, .tfmap .node.a-delete rect, .legend .lg.replace, .legend .lg.delete { fill: var(--bad-bg); stroke: var(--bad); background: var(--bad-bg); border-color: var(--bad); }
+.tfmap .node.a-replace rect { stroke-dasharray: 5 3; } .legend .lg.replace { border-style: dashed; }
+.tfmap .node.affected rect, .legend .lg.affected { stroke: var(--warn); stroke-dasharray: 2 3; border-color: var(--warn); border-style: dashed; }
+.tfmap .node.dim { opacity: .55; }
+.tfmap .node.a-create .tag { fill: var(--ok); } .tfmap .node.a-update .tag, .tfmap .node.affected .tag { fill: var(--warn); } .tfmap .node.a-replace .tag, .tfmap .node.a-delete .tag { fill: var(--bad); }
+.legend i.lg { width: 14px; height: 10px; border: 1.5px solid var(--line2); border-radius: 3px; vertical-align: -1px; margin-right: 5px; background: var(--panel); }
+.legend i.lg.none { opacity: .4; }
+/* selection: the chosen box and what depends on it stay lit */
+.tfmap.has-sel .node:not(.sel):not(.dep) { opacity: .22; }
+.tfmap.has-sel .edge:not(.hot) { opacity: .08; }
+.tfmap .node.sel rect { stroke: var(--accent); stroke-width: 2.5; }
+.tfmap .node.dep rect { stroke: var(--accent); stroke-dasharray: 4 3; }
+.tfmap .edge.hot { stroke: var(--accent); opacity: 1; }
+/* data flows: a dotted line whose dashes move from the source to the target; dots are live traffic */
+.tfmap .flow { fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-dasharray: 2 5; stroke-linecap: round; animation: tfflow 1s linear infinite; }
+@keyframes tfflow { to { stroke-dashoffset: -7; } }
+.tfmap .flowhit { fill: none; stroke: transparent; stroke-width: 14px; pointer-events: stroke; cursor: pointer; }
+.tfmap .flowg .elabel { pointer-events: none; }
+.tfmap .flowg:focus, .tfmap .flowg:focus-visible { outline: none; } .tfmap .flowg:focus-visible .flow { stroke-width: 3; }
+.tfmap .flowg.a-create .flow { stroke: var(--ok); } .tfmap .flowg.a-update .flow { stroke: var(--warn); }
+.tfmap .flowg.a-replace .flow, .tfmap .flowg.a-delete .flow { stroke: var(--bad); }
+.tfmap .flowg.dim { opacity: .4; }
+.tfmap.has-sel .flowg:not(.sel) { opacity: .12; }
+.tfmap .flowg.sel .flow { stroke-width: 3; }
+.tflegend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 8px; color: var(--dim); font-size: 12.5px; align-items: center; }
+.tflegend svg { vertical-align: middle; margin-right: 6px; }
+.tflegend .lgs { stroke: var(--faint); stroke-width: 1.5; fill: none; } .tflegend .lgf { stroke: var(--accent); stroke-width: 1.8; stroke-dasharray: 2 5; stroke-linecap: round; fill: none; } .tflegend .lgp { fill: var(--accent); }
+.tfstage { display: flex; gap: 12px; align-items: stretch; }
+.tfstage .tfview { flex: 1; min-width: 0; }
+.tfside { width: 340px; flex: none; max-height: clamp(420px, 66vh, 760px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.tfside .sidehead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; } .tfside .sidehead b { flex: 1; font-size: 12.5px; color: var(--dim); }
+@media (max-width: 900px) { .tfstage { flex-direction: column; } .tfstage .tfview { flex: none; } .tfside { width: auto; max-height: none; } } /* stacked, flex: 1 would shrink the canvas to its border */
+.tftotal { margin: 0 0 10px; font-size: 15px; }
+/* network mode: a network or subnet is a frame around its boxes, with a label tab you can select */
+.tfmap .band.frame { stroke-dasharray: none; opacity: 1; }
+.tfmap .band.net { stroke-width: 1.5; fill: var(--sunken); fill-opacity: .35; }
+.tfmap .band.sub { stroke-width: 1; }
+.tfmap .node.frame rect { fill: var(--panel); stroke: var(--line2); stroke-width: 1.2; }
+.tfmap .node.frame .ty { font-weight: 600; }
+.tfselbar { min-height: 38px; display: flex; align-items: center; gap: 10px; padding: 8px 2px; color: var(--dim); }
+.tfselbar b { color: var(--text); }
+@media (max-width: 1100px) { .tfdrv { max-width: 220px; } }
+#tf [hidden] { display: none !important; }
+.tfmetrics .metric .k { justify-content: flex-start; gap: 6px; }
+.tfnote { margin: -4px 0 16px; font-size: 12px; line-height: 1.5; }
+.tfgpu { font-size: 11px; }
+.tfsizes th:not(:first-child):not(:last-child), .tfcard th:nth-last-child(3) { text-align: right; }
+.tfsizes td { padding: 0 8px; }
+.tfsizes td:first-child { padding-left: 12px; white-space: normal; }
+.tfsizes tbody tr { height: 40px; }
+.tfcard .dt .num, .tfsizes .num { font-variant-numeric: tabular-nums; }
+.tft { table-layout: fixed; min-width: 680px; }
+.tft .c-res { width: 28%; } .tft .c-chg { width: 96px; } .tft .c-svc { width: 160px; } .tft .c-reg { width: 118px; } .tft .c-mo { width: 110px; } .tft.plan .c-mo { width: 176px; } .tft .c-st { width: 128px; }
+.tft td { overflow: hidden; text-overflow: ellipsis; }
+.tft td:first-child { padding-right: 8px; }
+/* A narrow card drops the columns the drawer also shows, What drives it and then Region,
+   so the rest keep their labels whole and the table doesn't scroll sideways. The widths are
+   where What drives it would get under 150px and Resource under 180px. */
+.tfcard { container-type: inline-size; }
+@container (max-width: 1150px) { .tft.plan .c-drv { display: none; } }
+@container (max-width: 920px) { .tft .c-drv { display: none; } }
+@container (max-width: 860px) { .tft.plan .c-reg { display: none; } .tft.plan .c-svc { width: 130px; } }
+
+/* busy buttons, pogi's confirm dialog, and the background-task indicator (feedback.js) */
+button[aria-busy=true], input[aria-busy=true] { opacity: .65; cursor: progress; }
+#confirm { border: 1px solid var(--line2); border-radius: 12px; background: var(--panel); color: var(--text); box-shadow: var(--shadow); padding: 20px; width: min(420px, calc(100vw - 32px)); }
+#confirm::backdrop { background: rgba(9,9,11,.45); }
+#confirm h2 { margin: 0 0 8px; font-size: 15px; }
+#confirm p { margin: 0 0 18px; color: var(--dim); overflow-wrap: anywhere; }
+#confirm .actions { display: flex; gap: 8px; justify-content: flex-end; }
+#taskBtn { position: relative; gap: 6px; }
+#taskBtn[hidden] { display: none; }
+#taskBtn .tdot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+#taskBtn .tn { font-size: 11px; font-weight: 600; }
+@media (prefers-reduced-motion: no-preference) { #taskBtn .tdot { animation: tpulse 1.2s ease-in-out infinite; } }
+@keyframes tpulse { 50% { opacity: .3; } }
+#taskpop { width: 360px; padding: 0; }
+#taskpop header { padding: 10px 14px; border-bottom: 1px solid var(--line); font-weight: 600; }
+#taskpop ul { list-style: none; margin: 0; padding: 4px 0; max-height: 320px; overflow: auto; }
+#taskpop li { padding: 8px 14px; display: grid; gap: 4px; }
+#taskpop li .what { font-size: 12px; color: var(--dim); overflow-wrap: anywhere; }
+#taskpop li.failed .what { color: var(--bad); }
+#taskpop progress { width: 100%; height: 6px; accent-color: var(--accent); }
+td.tasktext { color: var(--accent); }
+td.taskfail { color: var(--bad); }

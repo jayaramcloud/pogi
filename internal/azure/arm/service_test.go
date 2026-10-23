@@ -484,6 +484,7 @@ func TestBadRequests(t *testing.T) {
 		"location a number": {"PUT", g + "Microsoft.Widgets/widgets/a?api-version=1", `{"location":5}`, 400, "InvalidRequestContent"},
 		"unknown namespace": {"PUT", g + "Microsoft.Made/ups/a?api-version=1", `{}`, 400, "NoRegisteredProviderFound"},
 		"unknown type":      {"PUT", g + "Microsoft.Storage/madeUpThings/a?api-version=1", `{}`, 400, "InvalidResourceType"},
+		"retired MariaDB":   {"PUT", g + "Microsoft.DBforMariaDB/servers/a?api-version=2018-06-01", `{}`, 400, "NoRegisteredProviderFound"},
 		"no api-version":    {"GET", "/subscriptions/" + sub + "/resourceGroups/pogi", ``, 400, "MissingApiVersionParameter"},
 		"empty segment":     {"PUT", g + "Microsoft.Storage//a?api-version=1", `null`, 400, "InvalidRequestUri"},
 	} {

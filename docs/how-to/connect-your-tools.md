@@ -5,13 +5,15 @@ description: Point SDKs, the cloud CLIs, Terraform and the CDK at pogi.
 
 # Connect your tools
 
-Before you start: pogi is running (`pogi start`). The commands below find it at `http://localhost:7644`. If it runs on another port, pass `--endpoint` to client commands, or set `POGI_ENDPOINT`.
+pogi works with the AWS, Google Cloud and Azure tools you already use. Point them at it with the steps below.
+
+Before you start, run `pogi start`. The commands below find pogi at `http://localhost:7644`. If it runs on another port, pass `--endpoint` to client commands or set `POGI_ENDPOINT`.
 
 ## SDKs and CLIs
 
-`pogi env` prints the settings that point every cloud tool at pogi.
+`pogi env` prints the settings that point these tools at pogi: the AWS CLI and SDKs, `gcloud` and the Google Cloud client libraries, and the Azure Storage, Cosmos DB and Key Vault clients. Terraform has its own file, covered under [Terraform](#terraform).
 
-1. Load them into your shell. Pick the tab for your shell:
+Load the settings into your shell. Pick the tab for your shell:
 
 ```bash tab="sh (bash, zsh)"
 eval "$(pogi env)"
@@ -22,7 +24,7 @@ pogi env --shell fish | source
 ```
 
 ```powershell tab="PowerShell"
-pogi env --shell pwsh
+pogi env --shell pwsh | Invoke-Expression
 ```
 
 ```bash tab="dotenv file"
@@ -33,10 +35,10 @@ pogi env --shell dotenv > .env
 |---|---|
 | `sh` | `export NAME="value"` lines. |
 | `fish` | `set -gx NAME "value";` lines. |
-| `pwsh` | `$env:NAME="value"` lines. Run them in your session. |
+| `pwsh` | `$env:NAME="value"` lines. `Invoke-Expression` runs them in your session. |
 | `dotenv` | `NAME=value` lines, for tools that read a `.env` file. |
 
-2. Use your tools as usual. The sections below say what `pogi env` sets for each cloud.
+Then use your tools as usual. The sections below say what `pogi env` sets for each cloud.
 
 ### AWS
 
@@ -83,15 +85,23 @@ pogi aws s3 ls
 
 ### Google Cloud
 
-`pogi env` sets `STORAGE_EMULATOR_HOST`, `PUBSUB_EMULATOR_HOST`, `FIRESTORE_EMULATOR_HOST`, `DATASTORE_EMULATOR_HOST` and, for the Firebase Admin SDK, `FIREBASE_AUTH_EMULATOR_HOST`. The client libraries read them. It also sets the `gcloud` settings (`CLOUDSDK_API_ENDPOINT_OVERRIDES_*`, project `pogi`), so `gcloud` talks to pogi.
+`pogi env` sets `STORAGE_EMULATOR_HOST`, `PUBSUB_EMULATOR_HOST`, `FIRESTORE_EMULATOR_HOST`, `DATASTORE_EMULATOR_HOST`, `SPANNER_EMULATOR_HOST`, `BIGTABLE_EMULATOR_HOST` and, for the Firebase Admin SDK, `FIREBASE_AUTH_EMULATOR_HOST`. The client libraries read them. It also sets the `gcloud` settings (`CLOUDSDK_API_ENDPOINT_OVERRIDES_*`, project `pogi`), so `gcloud` talks to pogi.
+
+Some Google APIs have the same paths as others. Memorystore and Filestore both use `/v1/projects/<p>/locations/<l>/instances`, for example. pogi tells them apart by a path prefix: the API's name. For these APIs, include the prefix in the endpoint you give a client library:
+
+```go
+redis.NewService(ctx, option.WithEndpoint("http://localhost:7644/redis/"), option.WithoutAuthentication())
+```
+
+`pogi env` and `pogi tf --cloud gcp` already add the prefixes for gcloud and Terraform. A gRPC client needs no prefix: `localhost:7644` is enough. The [coverage page](../reference/coverage.md) shows each API's path.
 
 ### Azure
 
-`pogi env` sets `AZURE_STORAGE_CONNECTION_STRING` (Azurite ports 10000 to 10002), and `COSMOS_ENDPOINT`, `COSMOS_KEY` and `AZURE_KEYVAULT_URL` on the HTTPS port. HTTPS services use pogi's own certificate authority (CA). Run `pogi cert` to see where it is and how to trust it.
+`pogi env` sets `AZURE_STORAGE_CONNECTION_STRING` (Azurite ports 10000 to 10002). It also sets `COSMOS_ENDPOINT`, `COSMOS_KEY` and `AZURE_KEYVAULT_URL` for the HTTPS port, plus the managed identity and Microsoft Entra ID settings (`IDENTITY_ENDPOINT`, `AZURE_AUTHORITY_HOST` and `ARM_METADATA_HOSTNAME`). HTTPS services use pogi's own certificate authority (CA). Run `pogi cert` to see where it is and how to trust it.
 
 ### S3 with bucket names in the host
 
-Some code needs the bucket in the host name (`<bucket>.s3.aws.localhost`).
+Some code needs the bucket in the host name, as in `<bucket>.s3.aws.localhost`.
 
 1. Start pogi with a host name:
 
@@ -107,6 +117,7 @@ Some code needs the bucket in the host name (`<bucket>.s3.aws.localhost`).
 
    ```text title="Output"
    export AWS_ENDPOINT_URL="http://aws.localhost:7644"
+   …
    export AWS_ENDPOINT_URL_S3="http://s3.aws.localhost:7644"
    …
    ```
@@ -117,7 +128,7 @@ Some code needs the bucket in the host name (`<bucket>.s3.aws.localhost`).
 
 ## Terraform
 
-`pogi tf` prints a provider block with every endpoint pointed at pogi.
+`pogi tf` prints a Terraform provider block (the settings that tell Terraform which cloud to call) with every endpoint pointed at pogi.
 
 1. Write it next to your own files. Terraform loads `*_override.tf` files over your own settings, so your configuration stays as it is:
 
@@ -135,7 +146,7 @@ Some code needs the bucket in the host name (`<bucket>.s3.aws.localhost`).
      secret_key                  = "test"
      skip_credentials_validation = true
      skip_metadata_api_check     = true
-     skip_requesting_account_id  = false
+     skip_requesting_account_id  = true
      s3_use_path_style           = true
    ```
 
@@ -165,7 +176,7 @@ The `azurerm` provider needs HTTPS. The Azure output starts with comments that s
 
 ## CDK
 
-No wrapper is needed, and custom resources work, including the CDK provider framework.
+The AWS CDK works without a wrapper, and custom resources work, including the CDK provider framework.
 
 1. Set `AWS_ENDPOINT_URL` and the test credentials in your shell:
 

@@ -267,8 +267,10 @@ func (d *Domain) host() string {
 func (d *Domain) spec() rds.Spec {
 	sp := rds.Spec{Image: image(d.version()), Port: 9200, Host: d.Pogi.HostPort, Hello: health, Env: []string{"discovery.type=single-node"}}
 	if d.engine() == "Elasticsearch" {
+		sp.Data = "/usr/share/elasticsearch/data"
 		sp.Env = append(sp.Env, "ES_JAVA_OPTS=-Xms512m -Xmx512m", "xpack.security.enabled=false", "xpack.ml.enabled=false")
 	} else {
+		sp.Data = "/usr/share/opensearch/data"
 		sp.Env = append(sp.Env, "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m", "DISABLE_SECURITY_PLUGIN=true", "DISABLE_INSTALL_DEMO_CONFIG=true")
 	}
 	return sp
@@ -788,7 +790,7 @@ func (s *Service) Resources() []core.Table {
 	t := core.Table{Name: "Domains", Columns: []string{"Name", "Engine", "State", "Endpoint", "Region", "Account"}}
 	for _, k := range core.SortedKeys(s.st.Domains) {
 		d := s.st.Domains[k]
-		t.Rows = append(t.Rows, []string{d.Name, d.version(), d.Pogi.State, d.host(), d.Region, d.Account})
+		t.Rows = append(t.Rows, []string{d.Name, d.version(), rds.StatusCell(d.Pogi.State, &d.Pogi), d.host(), d.Region, d.Account})
 	}
 	return []core.Table{t}
 }

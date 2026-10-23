@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/nrndev/pogi"
 )
 
 // hx is a GET the way htmx makes one: with the target it swaps into.
@@ -43,7 +45,7 @@ func TestCatalog(t *testing.T) {
 	c := start(t, "s3", "sqs", "pubsub", "arm")
 	page := c.get("/_pogi/services")
 	// grouped by the coverage categories, with a pin star and a link per tile
-	want(t, page, `<h2>Storage`, `<h2>Messaging &amp; events`, `data-pin="s3"`, `href="/_pogi/resources/sqs"`, `class="dot gcp"`, `class="tag deep"`)
+	want(t, page, `<h2>Storage`, `<h2>Messaging &amp; events`, `data-pin="s3"`, `href="/_pogi/resources/sqs"`, `class="si gcp"`, `class="tag deep"`, `src="/_pogi/icons/aws/`) // every tile shows its service icon
 	if strings.Index(page, "<h2>Storage") > strings.Index(page, "<h2>Messaging") {
 		t.Fatal("categories are out of coverage order")
 	}
@@ -70,9 +72,9 @@ func TestServicePageTabs(t *testing.T) {
 	c.ok("/_pogi/new/sqs/CreateQueue", url.Values{"QueueName": {"jobs"}})
 	page = c.get("/_pogi/resources/sqs")
 	// rows open the detail in the drawer; checkboxes and the bulk bar; a filter
-	want(t, page, `<h1><span class="dot aws">`, `<em>1</em>`, `data-drawer="/_pogi/sqs/000000000000/us-east-1/jobs"`, `name="row"`, `id="bulk"`, `class="filter"`, "1 resource")
-	// activity and about
-	want(t, c.get("/_pogi/resources/sqs?tab=activity"), "No calls yet")
+	want(t, page, `<h1><span class="si aws"><img src="/_pogi/icons/aws/sqs.svg"`, `<em>1</em>`, `data-drawer="/_pogi/sqs/000000000000/us-east-1/jobs"`, `name="row"`, `id="bulk"`, `class="filter"`, "1 resource")
+	// activity (the console's own write shows, marked) and about
+	want(t, c.get("/_pogi/resources/sqs?tab=activity"), "CreateQueue", ">console</span>")
 	about := c.get("/_pogi/resources/sqs?tab=about")
 	want(t, about, "What works", "Not yet", "Reset SQS", `hx-post="/_pogi/reset"`)
 	// explorers are tabs that load their content
@@ -269,4 +271,56 @@ func TestConsoleLambdaCodeLimit(t *testing.T) {
 	}
 	want(t, create(60<<20), "Lambda code is limited to 50 MB zipped (this one is 6")
 	want(t, c.get("/_pogi/new/lambda/CreateFunction"), `name="ZipFile"`, "data-code")
+}
+
+// Icons show in the sidebar, the search and the page header; a service filled from the console is
+// "in use"; Flows has its own sidebar link.
+func TestServiceIconsAndInUse(t *testing.T) {
+	c := start(t, "sqs")
+	home := c.get("/_pogi/")
+	want(t, home, `href="/_pogi/flows"`)
+	if strings.Contains(home, `<a href="/_pogi/resources/sqs"`) {
+		t.Error("an empty service is not in use")
+	}
+	c.ok("/_pogi/new/sqs/CreateQueue", url.Values{"QueueName": {"jobs"}})
+	want(t, c.get("/_pogi/"), `<a href="/_pogi/resources/sqs" title="SQS · AWS"`, `<span class="si aws"><img src="/_pogi/icons/aws/sqs.svg" alt=""`)
+	want(t, c.get("/_pogi/search?q=sqs"), `<span class="si aws">`)
+	if got := c.get("/_pogi/icons/aws/sqs.svg"); !strings.Contains(got, "<svg") {
+		t.Error("the icon file is served")
+	}
+}
+
+// After a restart, a service whose resources came back from saved state is in use, and a fresh
+// start lists none of the built-in defaults (arm, graph, resourcemanager, eventhubs).
+func TestInUseAfterRestart(t *testing.T) {
+	dir := t.TempDir()
+	cfg := pogi.Config{Services: []string{"s3", "arm", "graph", "resourcemanager", "eventhubs"}, DataDir: dir, Storage: "persistent"}
+	inUse := func(c *console, svc string) bool {
+		return strings.Contains(c.get("/_pogi/"), `<a href="/_pogi/resources/`+svc+`"`)
+	}
+	first := pogi.Start(t, cfg)
+	c := &console{t, first.URL, &http.Client{}, first}
+	for _, s := range []string{"arm", "graph", "resourcemanager", "eventhubs"} {
+		if inUse(c, s) {
+			t.Errorf("%s is a built-in default, not in use", s)
+		}
+	}
+	req, _ := http.NewRequest("PUT", first.URL+"/photos", nil)
+	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=test/20260101/us-east-1/s3/aws4_request")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil || res.StatusCode != 200 {
+		t.Fatalf("create bucket: %v %v", res, err)
+	}
+	res.Body.Close()
+	first.Hub.Close()
+	second := pogi.Start(t, cfg)
+	c = &console{t, second.URL, &http.Client{}, second}
+	if !inUse(c, "s3") {
+		t.Error("s3 holds a saved bucket, so it is in use after a restart")
+	}
+	for _, s := range []string{"arm", "graph", "resourcemanager", "eventhubs"} {
+		if inUse(c, s) {
+			t.Errorf("%s is a built-in default, not in use", s)
+		}
+	}
 }

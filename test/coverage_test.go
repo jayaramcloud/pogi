@@ -5,11 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/nrndev/pogi"
+	"github.com/nrndev/pogi/internal/core"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -61,6 +63,9 @@ func TestCoverageDocs(t *testing.T) {
 		Intro      string              `yaml:"intro"`
 		Categories map[string][]string `yaml:"categories"`
 		Rows       []covRow            `yaml:"rows"`
+		Parts      map[string]string   `yaml:"parts"`     // id: the product's id; not counted on its own
+		Bundles    map[string][]string `yaml:"bundles"`   // id: the products it serves; each counts
+		Uncounted  []string            `yaml:"uncounted"` // ids that are not a product
 	}
 	if err := yaml.Unmarshal(raw, &doc); err != nil {
 		t.Fatal(err)
@@ -143,17 +148,97 @@ func TestCoverageDocs(t *testing.T) {
 			t.Errorf("service %q is in no category of docs/reference/coverage.yaml", n)
 		}
 	}
+	// The counting rule names registered ids: a part belongs to a product of its own cloud that is not a part.
+	for n, of := range doc.Parts {
+		switch {
+		case cloud[n] == "" || cloud[of] == "":
+			t.Errorf("parts: %q of %q: not registered", n, of)
+		case cloud[n] != cloud[of]:
+			t.Errorf("parts: %q is %s, %q is %s", n, cloud[n], of, cloud[of])
+		case doc.Parts[of] != "":
+			t.Errorf("parts: %q is part of %q, itself a part", n, of)
+		}
+	}
+	for n, ps := range doc.Bundles {
+		if cloud[n] == "" || len(ps) < 2 || doc.Parts[n] != "" {
+			t.Errorf("bundles: %q needs to be a registered id that serves two or more products", n)
+		}
+	}
+	for _, n := range doc.Uncounted {
+		if cloud[n] == "" {
+			t.Errorf("uncounted: %q is not registered", n)
+		}
+	}
+
+	// internal/web/coverage.json: the categories in order, and each service's row data.
+	entries := map[string]coverageEntry{}
+	for _, r := range doc.Rows {
+		for _, n := range r.Services {
+			if _, ok := entries[n]; !ok {
+				entries[n] = coverageEntry{Title: r.Title, Cloud: cloud[n], Category: inCat[n], Depth: r.Depth,
+					Docker: r.Docker, Covered: r.Covered, NotYet: r.NotYet}
+			}
+		}
+	}
+	if rest >= 0 {
+		r := doc.Rows[rest]
+		for _, n := range others {
+			entries[n] = coverageEntry{Title: title[n], Cloud: cloud[n], Category: inCat[n], Depth: r.Depth,
+				Docker: r.Docker, Covered: strings.ReplaceAll(r.Covered, "{n}", fmt.Sprint(len(others))), NotYet: r.NotYet}
+		}
+	}
+	// The depth split per cloud, from the same data as coverage.json: Deep and Core have real behavior.
+	splits := map[string]*split{}
+	for _, c := range clouds {
+		splits[c.key] = &split{}
+	}
+	for _, n := range names {
+		if doc.Parts[n] != "" || slices.Contains(doc.Uncounted, n) {
+			continue
+		}
+		w := max(len(doc.Bundles[n]), 1)
+		sp := splits[cloud[n]]
+		sp.Total += w
+		if entries[n].Depth == "Thin" {
+			sp.Thin += w
+		}
+	}
+	counts := countPhrases(splits)
+
+	for _, path := range []string{"../README.md", "../CHANGELOG.md", "../docs/explanation/faq.md", "../docs/reference/compared.md"} {
+		check(t, path, func(old string) string {
+			if !countMark.MatchString(old) {
+				t.Errorf("%s has no <!-- count:... --> mark", path)
+			}
+			return countMark.ReplaceAllStringFunc(old, func(m string) string {
+				kind := countMark.FindStringSubmatch(m)[1]
+				if counts[kind] == "" {
+					t.Errorf("%s: unknown count %q", path, kind)
+				}
+				return "<!-- count:" + kind + " -->" + counts[kind] + "<!-- /count -->"
+			})
+		})
+	}
+
+	// The start banner samples show the product count, as the banner does (web.ServiceCount).
+	total := 0
+	for _, sp := range splits {
+		total += sp.Total
+	}
+	for _, path := range []string{"../docs/tutorials/first-run.md", "../docs/reference/cli.md", "../docs/how-to/troubleshoot.md"} {
+		check(t, path, func(old string) string {
+			if !bannerCount.MatchString(old) {
+				t.Errorf("%s has no start banner sample", path)
+			}
+			return bannerCount.ReplaceAllString(old, fmt.Sprintf("${1}%d services", total))
+		})
+	}
 
 	var md, tbl strings.Builder
 	md.WriteString("---\ntitle: Coverage\ndescription: What each emulated service does today, and what it does not yet.\n---\n\n")
 	md.WriteString("<!-- Generated from docs/reference/coverage.yaml and the service registry by `go generate .`; edit the YAML. -->\n\n")
 	md.WriteString(strings.TrimRight(doc.Intro, "\n") + "\n\n")
-	count := map[string]int{}
-	for _, n := range names {
-		count[cloud[n]]++
-	}
-	fmt.Fprintf(&md, "pogi registers %d services: %d AWS, %d Google Cloud and %d Azure. Each service name is followed by its registry id, the name `pogi services` prints.\n",
-		len(names), count["aws"], count["gcp"], count["azure"])
+	fmt.Fprintf(&md, "pogi covers %s. Each service is followed by its service id, the name `pogi services` prints. A product counts once, however many service ids it has: see [How services are counted](#how-services-are-counted).\n", counts["total"])
 	tbl.WriteString("| Cloud | Services |\n|---|---|\n")
 	for _, c := range clouds {
 		fmt.Fprintf(&md, "\n## %s\n\n| Service | Depth | Covered | Not yet |\n|---|---|---|---|\n", c.title)
@@ -191,6 +276,28 @@ func TestCoverageDocs(t *testing.T) {
 		fmt.Fprintf(&tbl, "| **%s** | %s |\n", c.readme, line)
 	}
 
+	md.WriteString("\n## How services are counted\n\nThe totals count products, as each cloud lists them on its products page, each with its own API. A product counts once, however many service ids pogi has for it.\n\n")
+	for _, c := range clouds {
+		var lines []string
+		for _, n := range core.SortedKeys(doc.Parts) {
+			if cloud[n] == c.key {
+				lines = append(lines, fmt.Sprintf("`%s` is part of %s (`%s`)", n, title[doc.Parts[n]], doc.Parts[n]))
+			}
+		}
+		for _, n := range core.SortedKeys(doc.Bundles) {
+			if cloud[n] == c.key {
+				lines = append(lines, fmt.Sprintf("`%s` serves %d products: %s", n, len(doc.Bundles[n]), strings.Join(doc.Bundles[n], ", ")))
+			}
+		}
+		for _, n := range doc.Uncounted {
+			if cloud[n] == c.key {
+				lines = append(lines, fmt.Sprintf("`%s` is not a product", n))
+			}
+		}
+		if len(lines) > 0 {
+			fmt.Fprintf(&md, "- **%s:** %s.\n", c.title, strings.Join(lines, "; "))
+		}
+	}
 	check(t, "../docs/reference/coverage.md", func(string) string { return md.String() })
 	check(t, "../README.md", func(old string) string {
 		const start, end = "<!-- services:start", "<!-- services:end -->"
@@ -202,27 +309,11 @@ func TestCoverageDocs(t *testing.T) {
 		return old[:a] + tbl.String() + old[b:]
 	})
 
-	// internal/web/coverage.json: the categories in order, and each service's row data.
-	entries := map[string]coverageEntry{}
-	for _, r := range doc.Rows {
-		for _, n := range r.Services {
-			if _, ok := entries[n]; !ok {
-				entries[n] = coverageEntry{Title: r.Title, Cloud: cloud[n], Category: inCat[n], Depth: r.Depth,
-					Docker: r.Docker, Covered: r.Covered, NotYet: r.NotYet}
-			}
-		}
-	}
-	if rest >= 0 {
-		r := doc.Rows[rest]
-		for _, n := range others {
-			entries[n] = coverageEntry{Title: title[n], Cloud: cloud[n], Category: inCat[n], Depth: r.Depth,
-				Docker: r.Docker, Covered: strings.ReplaceAll(r.Covered, "{n}", fmt.Sprint(len(others))), NotYet: r.NotYet}
-		}
-	}
 	js, err := json.MarshalIndent(struct {
 		Categories []string                 `json:"categories"`
+		Counts     map[string]*split        `json:"counts"` // products per cloud, for the console and the website
 		Services   map[string]coverageEntry `json:"services"`
-	}{catNames, entries}, "", " ")
+	}{catNames, splits, entries}, "", " ")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,4 +340,30 @@ func check(t *testing.T, path string, gen func(old string) string) {
 	if err := os.WriteFile(path, []byte(want), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// A split is one cloud's products: all of them, and those that are Thin (the rest have real behavior).
+type split struct {
+	Total int `json:"total"`
+	Thin  int `json:"thin"`
+}
+
+// countMark is a count in the docs that the coverage data fills in: <!-- count:total -->…<!-- /count -->.
+var countMark = regexp.MustCompile(`<!-- count:(\w+) -->.*?<!-- /count -->`)
+
+// bannerCount is the count in a `pogi start` banner sample: "pogi 0.1.0  ·  355 services".
+var bannerCount = regexp.MustCompile(`(pogi \S+  ·  )\d+ services`)
+
+// countPhrases are the counts the docs show, always with the depth split (the owner's rule), by kind:
+// "total" for all three clouds, "aws" for AWS alone.
+func countPhrases(sp map[string]*split) map[string]string {
+	a, g, z := sp["aws"], sp["gcp"], sp["azure"]
+	one := func(s *split) string { return fmt.Sprintf("%d with real behavior, %d Thin", s.Total-s.Thin, s.Thin) }
+	total := fmt.Sprintf("%d services: %d AWS (%s), %d Google Cloud (%s) and %d Azure (%s)",
+		a.Total+g.Total+z.Total, a.Total, one(a), g.Total, one(g), z.Total, one(z))
+	if a.Total == g.Total && g.Total == z.Total {
+		total = fmt.Sprintf("%d services per cloud, %d in all: AWS has %s, Google Cloud %s, and Azure %s",
+			a.Total, 3*a.Total, one(a), one(g), one(z))
+	}
+	return map[string]string{"total": total, "aws": fmt.Sprintf("%d (%s)", a.Total, one(a))}
 }

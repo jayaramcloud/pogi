@@ -5,6 +5,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -18,12 +20,20 @@ import (
 // left in Docker, and, when asked, the saved state. It works without a
 // running pogi and talks to Docker directly.
 func clean(args []string) error {
-	fs := flag.NewFlagSet("clean", flag.ExitOnError)
-	dataDir := fs.String("data-dir", "", "pogi's data dir (default: what `pogi start` uses)")
+	fs := flag.NewFlagSet("clean", flag.ContinueOnError)
+	setUsage(fs, "Delete the containers and volumes a pogi that is no longer running left in Docker, and, if asked, its saved state.",
+		"pogi clean [flags]", "pogi clean --dry-run")
+	dataDir := fs.String("data-dir", "", "pogi's data dir (default: what pogi start uses)")
 	yes := fs.Bool("yes", false, "delete the containers and volumes without asking")
 	dry := fs.Bool("dry-run", false, "only list what would be deleted")
 	state := fs.Bool("state", false, "also delete the saved state, without asking")
-	fs.Parse(args)
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
+	term := isTerminal(os.Stdin)
+	if !term && !*yes && !*dry {
+		return usagef("clean: stdin is not a terminal, so pogi cannot ask: pass --yes to delete, or --dry-run to only list")
+	}
 
 	dir := *dataDir
 	if dir == "" {
@@ -39,6 +49,9 @@ func clean(args []string) error {
 	}
 	in := bufio.NewReader(os.Stdin)
 	ask := func(q string) bool {
+		if !term {
+			return false // no one to ask: --yes covers the containers, --state the saved state
+		}
 		fmt.Print(q + " [y/N] ")
 		line, _ := in.ReadString('\n')
 		return strings.HasPrefix(strings.ToLower(strings.TrimSpace(line)), "y")
@@ -46,6 +59,7 @@ func clean(args []string) error {
 
 	ctx := context.Background()
 	d := docker.New(docker.Options{})
+	failed := 0
 	switch {
 	case !d.Available():
 		fmt.Println("No container engine is running, so there are no containers to check.")
@@ -63,26 +77,22 @@ func clean(args []string) error {
 			fmt.Println("Nothing to clean: no containers or volumes were left by a pogi that is no longer running.")
 			break
 		}
-		fmt.Print("Left by a pogi that is no longer running:\n", describeLeft(cs, vs))
-		if *dry || !*yes && !ask("Delete these?") {
+		// Those kept for the saved state of another data dir are listed, but only `--data-dir <that dir>` deletes them.
+		cs, otherC := splitKept(cs, dir, func(c docker.Summary) map[string]string { return c.Labels })
+		vs, otherV := splitKept(vs, dir, func(v docker.Volume) map[string]string { return v.Labels })
+		if len(cs)+len(vs) > 0 {
+			fmt.Print("Left by a pogi that is no longer running:\n", describeLeft(cs, vs))
+		}
+		fmt.Print(describeKept(otherC, otherV))
+		if len(cs)+len(vs) == 0 || *dry || !*yes && !ask("Delete these?") {
 			break
 		}
-		failed := 0
-		for _, c := range cs {
-			if d.Remove(ctx, c.ID) != nil {
-				failed++
-			}
-		}
-		for _, v := range vs {
-			if d.RemoveVolume(ctx, v.Name) != nil {
-				failed++
-			}
-		}
-		fmt.Printf("Deleted %d %s and %d %s", len(cs), plural("container", len(cs)), len(vs), plural("volume", len(vs)))
-		if failed > 0 {
-			fmt.Printf(" (%d could not be deleted)", failed)
-		}
-		fmt.Println(".")
+		nc, fc := deleteEach(os.Stderr, cs, func(c docker.Summary) string { return "container " + containerName(c) },
+			func(c docker.Summary) error { return d.Remove(ctx, c.ID) })
+		nv, fv := deleteEach(os.Stderr, vs, func(v docker.Volume) string { return "volume " + v.Name },
+			func(v docker.Volume) error { return d.RemoveVolume(ctx, v.Name) })
+		failed = fc + fv
+		fmt.Printf("Deleted %d %s and %d %s.\n", nc, plural("container", nc), nv, plural("volume", nv))
 	}
 
 	files := stateFiles(dir)
@@ -104,7 +114,32 @@ func clean(args []string) error {
 		}
 		fmt.Println("Deleted the saved state in", dir+".")
 	}
+	if failed > 0 {
+		return fmt.Errorf("%d could not be deleted (see why above)", failed)
+	}
 	return nil
+}
+
+// deleteEach deletes each item with del, writes to w why any could not be deleted, and returns how
+// many were deleted and how many were not.
+func deleteEach[T any](w io.Writer, list []T, name func(T) string, del func(T) error) (deleted, failed int) {
+	for _, x := range list {
+		if err := del(x); err != nil {
+			fmt.Fprintf(w, "could not delete %s: %v\n", name(x), err)
+			failed++
+			continue
+		}
+		deleted++
+	}
+	return deleted, failed
+}
+
+// containerName is a container's name without Docker's leading slash, or its ID when it has none.
+func containerName(c docker.Summary) string {
+	if len(c.Names) > 0 {
+		return strings.TrimPrefix(c.Names[0], "/")
+	}
+	return c.ID
 }
 
 // stateFiles are what pogi saved in a data dir: its state folder (and the single file of older versions).
@@ -117,6 +152,37 @@ func stateFiles(dir string) []string {
 		}
 	}
 	return out
+}
+
+// splitKept takes out of list what is kept for the saved state of a data dir other than dir.
+func splitKept[T any](list []T, dir string, labels func(T) map[string]string) (mine []T, kept map[string][]T) {
+	kept = map[string][]T{}
+	for _, x := range list {
+		if d := labels(x)[docker.LabelData]; d != "" && d != dir {
+			kept[d] = append(kept[d], x)
+		} else {
+			mine = append(mine, x)
+		}
+	}
+	return mine, kept
+}
+
+// describeKept lists, by data dir, the containers and volumes kept for saved state that no pogi runs on, and
+// says how to delete them.
+func describeKept(cs map[string][]docker.Summary, vs map[string][]docker.Volume) string {
+	dirs := map[string]bool{}
+	for d := range cs {
+		dirs[d] = true
+	}
+	for d := range vs {
+		dirs[d] = true
+	}
+	var b strings.Builder
+	for _, d := range slices.Sorted(maps.Keys(dirs)) {
+		fmt.Fprintf(&b, "Kept for the saved state in %s (no pogi runs on it; it resumes them when it starts):\n%s  To delete them: pogi clean --data-dir %s\n",
+			d, describeLeft(cs[d], vs[d]), d)
+	}
+	return b.String()
 }
 
 // orphans keeps what a pogi that is gone left behind (see docker.Orphan).
@@ -137,11 +203,7 @@ func describeLeft(cs []docker.Summary, vs []docker.Volume) string {
 		names[k] = append(names[k], name)
 	}
 	for _, c := range cs {
-		name := c.ID
-		if len(c.Names) > 0 {
-			name = strings.TrimPrefix(c.Names[0], "/")
-		}
-		add(c.Labels[docker.LabelService], "container", name)
+		add(c.Labels[docker.LabelService], "container", containerName(c))
 	}
 	for _, v := range vs {
 		add(v.Labels[docker.LabelService], "volume", v.Name)

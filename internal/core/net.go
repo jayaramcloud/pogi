@@ -31,7 +31,7 @@ func SplitHost(host, hostname string) (label, base string) {
 	switch {
 	case host == hostname || net.ParseIP(host) != nil || !strings.Contains(host, "."):
 		return "", host
-	case hostname != "" && strings.HasSuffix(host, hostname) && !strings.HasSuffix(host, "."+hostname):
+	case hostname != "" && strings.HasSuffix(host, "-"+hostname):
 		return "", hostname
 	}
 	label, base, _ = strings.Cut(host, ".")

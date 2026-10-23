@@ -1,8 +1,8 @@
 {{define "head"}}{{with .Data}}<div class="ph"><div><h1>Cost estimate</h1><p class="sub">Roughly what this setup would cost per month on the real cloud, from your resources and the traffic they have served.</p></div>
   {{if or (not $.Cloud) (eq $.Cloud "aws")}}<form class="actions" method="get" action="/_pogi/cost">
-    <select class="input" name="region" style="width:150px" data-autosubmit>{{$r := .Region}}{{range .Regions}}<option value="{{.Code}}" {{if eq .Code $r}}selected{{end}}>{{.Label}}</option>{{end}}</select></form>{{end}}</div>{{end}}{{end}}
+    <select class="input" name="region" style="width:150px" data-autosubmit>{{$r := .Region}}{{range .Regions}}<option {{if eq . $r}}selected{{end}}>{{.}}</option>{{end}}</select></form>{{end}}</div>{{end}}{{end}}
 
-{{define "content"}}{{with .Data}}
+{{define "content"}}<div class="tabs"><a href="/_pogi/cost" class="on" aria-current="page">Running in pogi</a><a href="/_pogi/cost/terraform">Terraform</a></div>{{with .Data}}
 <div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:start">
   <section class="card"><div class="body"><div class="dim">Estimated monthly cost</div><div class="bigcost">${{printf "%.2f" .Total}}</div><div class="faint">≈ ${{printf "%.2f" .PerDay}} / day · on-demand · no free tier</div><div class="faint" style="margin-top:4px">Traffic: {{.Basis}}.</div>
     <div class="svcbars" style="margin-top:14px">{{range .Bars}}<div><span>{{.Service}}</span><span><span class="hbar" style="width:{{.Pct}}%"></span></span><span>${{printf "%.2f" .Monthly}}</span></div>
@@ -16,5 +16,5 @@
     {{else}}<tr><td colspan="3"><div class="empty" style="padding:24px">No resources yet.</div></td></tr>{{end}}
     {{if .More}}<tr><td colspan="3" class="faint">+{{.More}} more, not priced</td></tr>{{end}}
     </tbody></table></section></div></div>
-<div class="banner">{{icon "file"}}On-demand list prices, no free tier. EC2, S3, Lambda, DynamoDB, RDS and SQS come from pogi's embedded AWS price list; SNS, Kinesis, Step Functions, API Gateway, CloudWatch Logs, Secrets Manager and KMS, the main Google Cloud services (us-central1) and Azure services (East US) from a static table. A service's requests are its counter over the uptime, as a rate for 30 days, split among its resources. Anything else is listed, not priced.</div>
+<div class="banner">{{icon "file"}}On-demand list prices, no free tier. AWS prices come from the real AWS price list built into pogi, for the region you pick. Azure prices are for East US. Google Cloud prices are typed-in estimates for us-central1. A service's requests are its counter over the uptime, as a rate for 30 days, split among its resources. Anything else is listed, not priced.</div>
 {{end}}{{end}}

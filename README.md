@@ -29,7 +29,7 @@
   <img src="docs/images/demo.gif" width="880" alt="Typing pogi opens its terminal screen. Calls from the AWS, Google Cloud and Azure CLIs fill the dashboard, then the Requests tab lists each one: S3, SQS, DynamoDB, Cloud Storage, Pub/Sub and Blob Storage, all answering 200 or 201.">
 </p>
 
-pogi runs AWS, Google Cloud and Azure on your laptop. Point your SDKs, the cloud CLIs, Terraform or the CDK at it, and they work the way they do against the real cloud: no account, no bill, and nothing leaves your machine. It is one program on one port, it starts in about 25 ms, and it covers 181 services.
+pogi runs AWS, Google Cloud and Azure on your laptop. Point your SDKs, the cloud CLIs, Terraform or the CDK at it, and they work the way they do against the real cloud: no account, no bill, and nothing leaves your machine. It is one program on one port, and it starts in about 25 ms. It covers <!-- count:total -->355 services: 144 AWS (88 with real behavior, 56 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (29 with real behavior, 74 Thin)<!-- /count -->. A Thin service keeps your resources and reads them back, but nothing runs behind them.
 
 > [!NOTE]
 > pogi is new, at version 0.x. Flags, config keys and APIs may still change between releases, and the [changelog](CHANGELOG.md) lists every change.
@@ -42,19 +42,19 @@ pogi runs AWS, Google Cloud and Azure on your laptop. Point your SDKs, the cloud
 brew install nrndev/tap/pogi
 ```
 
-**2. Start it.** This opens a live terminal screen. Add `--headless` if you only want plain logs.
+**2. Start it.** This opens the terminal screen (the TUI). Add `--headless` for plain logs instead.
 
 ```sh
 pogi
 ```
 
-**3. Point your tools at it.** In a second terminal, this sets the endpoint and test credentials for the AWS, Google Cloud and Azure tools.
+**3. Point your tools at it.** In a second terminal, this sets the endpoint and test credentials your tools read.
 
 ```sh
 eval "$(pogi env)"
 ```
 
-**4. Make something.** Use the CLIs you already have.
+**4. Make something.** Use the CLIs you already have:
 
 ```sh
 aws s3 mb s3://demo
@@ -62,21 +62,21 @@ gcloud storage buckets create gs://demo
 az storage container create -n demo
 ```
 
-**5. Look inside.** Open the web console at <http://localhost:7644/_pogi/> to see your buckets and every call you made.
+**5. Look inside.** Open the web console at <http://localhost:7644/_pogi/>. It shows your buckets and every call you made.
 
-That's all your code needs too: only the endpoint and the credentials change, and `pogi env` sets both.
+Your own code needs nothing more. Only the endpoint and the credentials change, and `pogi env` sets both.
 
 ## Why pogi
 
-**One place for three clouds.** AWS, Google Cloud and Azure all answer on `localhost:7644`: 131 AWS services, 26 Google Cloud and 24 Azure. You don't need a separate emulator for each service.
+**One place for three clouds.** AWS, Google Cloud and Azure all answer on `localhost:7644`. That covers <!-- count:total -->355 services: 144 AWS (88 with real behavior, 56 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (29 with real behavior, 74 Thin)<!-- /count -->. You don't need a separate emulator for each cloud.
 
 **It behaves like the real thing.** pogi is tested with the official SDKs. Lambda runs Python and Node.js directly, Terraform and `cdk deploy` work, and services trigger each other as they do in the cloud: S3 to SQS, SNS to Lambda, Pub/Sub push, Event Grid and more.
 
-**It's made for tests.** Reset everything in one command, save and load snapshots, make chosen calls fail or slow down, and keep state on disk or in memory. Run it in CI, or start it right inside your Go tests.
+**It's made for tests.** Reset everything with one command. Save and load snapshots. Make chosen calls fail or slow down. Keep state on disk or in memory. Run it in CI, or start it inside your Go tests.
 
-**It's a drop-in for LocalStack.** It has the same health endpoint, init hooks and `Ready.` log line, and `--port 4566` keeps your old endpoint. See [Migrate from LocalStack](docs/how-to/migrate-from-localstack.md).
+**It's a drop-in for LocalStack.** It has the same health endpoint, init hooks and `Ready.` log line. `--port 4566` keeps your old endpoint. See [Migrate from LocalStack](docs/how-to/migrate-from-localstack.md).
 
-**It stays on your machine.** pogi listens on 127.0.0.1 only, refuses requests from other websites, and never phones home.
+**It stays on your machine.** pogi listens on 127.0.0.1 only, refuses requests from other websites and never phones home.
 
 ## The console
 
@@ -85,35 +85,37 @@ That's all your code needs too: only the endpoint and the credentials change, an
   <img src="docs/images/console-light.jpg" alt="The pogi web console's Home page: six services in use across AWS, Google Cloud and Azure, request and error counts, a rough real-cloud cost, and a live list of calls.">
 </picture>
 
-While pogi runs, the console at `http://localhost:7644/_pogi/` shows what your code did:
+While pogi runs, the web console at `http://localhost:7644/_pogi/` shows what your code did:
 
 - every call, and the chain of calls one request set off across services;
 - a map of your resources and how they connect, with live traffic;
-- a least-privilege IAM policy built from what each caller really did, which you can enforce with `--iam soft` or `--iam strict`;
+- a least-privilege IAM policy (IAM is the set of rules for who may call what), built from what each caller really did. Enforce it with `--iam soft` or `--iam strict`;
 - a rough monthly estimate of what your setup would cost in the real clouds;
+- what a Terraform folder or plan would cost a month on the real cloud, plus a diagram of its resources and what a plan changes. Use `pogi cost ./infra` or the console's Cost page. pogi reads the files itself and never runs Terraform. Google Cloud prices are not included yet. See [Estimate Terraform cost](docs/how-to/estimate-terraform-cost.md);
 - chaos rules and snapshots;
 - a SQL editor, your secrets, and an inbox for the email, SMS and push messages your apps sent.
 
 ## Use it from your coding agent
 
-pogi has a built-in MCP server, so AI coding agents such as Claude Code, Cursor and Codex can look inside your local cloud and drive it while they work. Your agent can deploy a stack, invoke the function it just wrote, read the function's logs, peek at a queue, and check which IAM calls were denied, all without touching a real account.
+pogi has a built-in MCP server. MCP is the protocol AI coding agents use to call tools, so agents such as Claude Code, Cursor and Codex can look inside your local cloud and drive it while they work. An agent can deploy a stack, invoke the function it just wrote, read the function's logs, peek at a queue and check which IAM calls were denied, all without touching a real account.
 
-Add it to Claude Code with one line (pogi must be running):
+Add it to Claude Code with one line. pogi must be running:
 
 ```sh
 claude mcp add pogi -- pogi mcp
 ```
 
-`pogi mcp --print-config` prints the setup for Cursor and Codex too, and `pogi agents init` adds a short brief on using pogi to your project's AGENTS.md.
+`pogi mcp --print-config` prints the setup for Cursor and Codex too. `pogi agents init` adds a short brief on using pogi to your project's AGENTS.md.
 
-The server has 22 tools. Agents use them to:
+The server has 24 tools. Agents use them to:
 
 - see what's there: resources, their details, the request log, and any request in full;
 - debug: IAM decisions, messages waiting in a queue, the email and SMS your app sent, function logs;
+- price Terraform: what a folder or plan costs, and the sizes of a machine type;
 - act: invoke a function, deploy or delete a CloudFormation stack, seed resources, and reset;
 - test failure: save and load snapshots, and add or clear chaos rules.
 
-Cloud calls themselves still go through the normal SDKs and CLIs, so the agent tests your code the same way you would. The [CLI reference](docs/reference/cli.md#pogi-mcp-run-the-mcp-server-for-ai-agents) lists every tool.
+Cloud calls still go through the normal SDKs and CLIs, so the agent tests your code the way you would. The [CLI reference](docs/reference/cli.md#pogi-mcp-run-the-mcp-server-for-ai-agents) lists every tool.
 
 ## Install
 
@@ -126,11 +128,11 @@ brew install nrndev/tap/pogi
 **Linux** (Debian, Ubuntu) with the `.deb` package. On Arm, use `arm64` in place of `amd64`:
 
 ```sh
-curl -LO https://github.com/nrndev/pogi/releases/download/v0.1.0/pogi_0.1.0_linux_amd64.deb
-sudo apt install ./pogi_0.1.0_linux_amd64.deb
+curl -LO https://github.com/nrndev/pogi/releases/download/v0.2.0/pogi_0.2.0_linux_amd64.deb
+sudo apt install ./pogi_0.2.0_linux_amd64.deb
 ```
 
-Fedora, RHEL and Amazon Linux use the `.rpm` from the same place: `sudo dnf install ./pogi_0.1.0_linux_amd64.rpm`.
+Fedora, RHEL and Amazon Linux use the `.rpm` from the same place: `sudo dnf install ./pogi_0.2.0_linux_amd64.rpm`.
 
 **Windows** with Scoop:
 
@@ -139,19 +141,19 @@ scoop bucket add nrndev https://github.com/nrndev/scoop-bucket
 scoop install nrndev/pogi
 ```
 
-**Docker**, with nothing to install. The image includes Python and Node.js, so functions run inside it. Ports 10000 to 10002 are for Azure Storage.
+**Docker**, with nothing else to install. The image includes Python and Node.js, so functions run inside it. Ports 10000 to 10002 are for Azure Storage.
 
 ```sh
 docker run --rm -p 127.0.0.1:7644:7644 -p 127.0.0.1:10000-10002:10000-10002 ghcr.io/nrndev/pogi
 ```
 
-**Go**, version 1.27.2 or newer:
+**Go**, version 1.27.3 or newer:
 
 ```sh
 go install github.com/nrndev/pogi/cmd/pogi@latest
 ```
 
-You can also download a binary for Linux, macOS or Windows, on Intel or Arm, from the [releases page](https://github.com/nrndev/pogi/releases). After installing, `pogi doctor` checks your setup. [Install pogi](docs/how-to/install.md) has more detail.
+You can also download a binary for Linux, macOS or Windows, on Intel or Arm, from the [releases page](https://github.com/nrndev/pogi/releases). After installing, run `pogi doctor` to check your setup. [Install pogi](docs/how-to/install.md) has more detail.
 
 ## Use it with
 
@@ -168,27 +170,31 @@ You can also download a binary for Linux, macOS or Windows, on Intel or Arm, fro
 ## Services
 
 <details>
-<summary><b>181 services</b>: 131 AWS, 26 Google Cloud and 24 Azure. Click to see them all.</summary>
+<summary><!-- count:total -->355 services: 144 AWS (88 with real behavior, 56 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (29 with real behavior, 74 Thin)<!-- /count -->. Click to see them all.</summary>
 
 <!-- services:start (generated from the registry and docs/reference/coverage.yaml by `go generate .`) -->
 | Cloud | Services |
 |---|---|
-| **AWS** | S3, SQS, SNS, DynamoDB + Streams, Lambda, API Gateway v1 + v2, Step Functions, EventBridge + Scheduler, Kinesis / Firehose, CloudFormation, IAM, STS, KMS, Secrets Manager, CloudWatch Logs, CloudWatch Metrics, SES v1 + v2, Cognito user pools, AppSync, EventBridge Pipes, API Gateway WebSockets, Cognito identity pools, IoT Core, Cloud Map, CloudTrail, Fault Injection Service, CodeDeploy + CodePipeline, Organizations + SCPs, Verified Permissions, Resource Explorer, AppConfig, CloudFront, S3 Vectors, SES SMTP, IAM Identity Center, Security services, Transfer Family, DataSync, S3 Tables, AWS Backup, Config, Managed Prometheus, RUM, OAM, Cloud Control API, Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect, Bedrock and the AI services, Cost services, ACM, Route 53, EC2 network, Tagging, and 16 more long-tail services generated from the AWS API models (see [docs/reference/aws-long-tail.md](docs/reference/aws-long-tail.md)); with Docker running: Systems Manager (SSM), RDS / ElastiCache, ECR, ECS, ELB v2, EC2 transit gateways, flow logs, hosts and images, EKS, EC2 instances, Auto Scaling + Application Auto Scaling, Batch, CodeBuild, RDS extras, ElastiCache users / MemoryDB, MSK, Amazon MQ, OpenSearch Service, Glue + Athena, Redshift + Data API + Serverless, Timestream for InfluxDB |
-| **Google Cloud** | Cloud Storage, Pub/Sub, Firestore (Native), Firestore (Datastore mode), Secret Manager, Cloud Logging, Cloud Monitoring, Cloud Tasks, Cloud Scheduler, Eventarc, IAM, IAM Credentials, OAuth2, STS, Resource Manager, Service Usage, Cloud KMS, Firebase Auth, Long-running operations; with Docker running: Cloud SQL, Cloud Run, BigQuery, Cloud Functions, Managed Kafka, Kubernetes Engine, Compute Engine, Artifact Registry |
-| **Azure** | Blob Storage, Queue Storage, Table Storage, Cosmos DB (NoSQL), Key Vault, Service Bus, Event Hubs, Event Grid, App Configuration, SignalR, Communication Services email, Resource Manager, Entra ID, Managed Identity, Graph, Management planes (ARM), Azure Monitor, Virtual Network, API Management; with Docker running: Azure Functions, Azure SQL, PostgreSQL, MySQL, MariaDB, Cache for Redis, Kubernetes Service, Container Registry, Container Instances, Container Apps, Virtual Machines |
+| **AWS** | S3, SQS, SNS, DynamoDB + Streams, Lambda, API Gateway v1 + v2, Step Functions, EventBridge + Scheduler, Kinesis / Firehose, CloudFormation, IAM, STS, KMS, Secrets Manager, CloudWatch Logs, CloudWatch Metrics, SES v1 + v2, Cognito user pools, AppSync, EventBridge Pipes, API Gateway WebSockets, Cognito identity pools, IoT Core, Cloud Map, CloudTrail, Fault Injection Service, CodeDeploy + CodePipeline, Organizations + SCPs, Verified Permissions, Resource Explorer, AppConfig, CloudFront, S3 Vectors, SES SMTP, Amplify, Polly, Shield, CodeCommit, Location, Keyspaces, FSx, Resource Groups, CodeStar Connections, X-Ray, DAX, IAM Identity Center, Security services, Transfer Family, DataSync, S3 Tables, AWS Backup, Config, Managed Prometheus, RUM, OAM, Cloud Control API, Beanstalk, EMR, MWAA, Flink, Lightsail, DMS, Lake Formation, Connect, Bedrock and the AI services, Cost services, ACM, Route 53, EC2 network, Tagging, AppFlow, MediaConvert, IVS, Security Lake, QuickSight, Amazon Managed Grafana, VPC Lattice, MediaLive, MediaPackage, GameLift, Kinesis Video Streams, DataZone, Data Exchange, Clean Rooms, Resilience Hub, Application Recovery Controller, Payment Cryptography, Private CA, AWS Direct Connect, Amazon WorkSpaces, Amazon WorkSpaces Secure Browser, Amazon AppStream 2.0, AWS Directory Service, AWS Signer, AWS Elastic Disaster Recovery, AWS Cloud WAN and Network Manager, AWS Device Farm, AWS License Manager, Firewall Manager, User Notifications, Compute Optimizer, Cost Optimization Hub, EC2 Image Builder, Storage Gateway, End User Messaging SMS and voice, Serverless Application Repository, Oracle Database@AWS, Aurora DSQL, and 15 more long-tail services generated from the AWS API models (see [docs/reference/aws-long-tail.md](docs/reference/aws-long-tail.md)); with Docker running: Systems Manager (SSM), RDS / ElastiCache, ECR, ECS, ELB v2, EC2 transit gateways, flow logs, hosts and images, EKS, EC2 instances, Auto Scaling + Application Auto Scaling, Batch, CodeBuild, RDS extras, ElastiCache users / MemoryDB, MSK, Amazon MQ, OpenSearch Service, Glue + Athena, Redshift + Data API + Serverless, Timestream for InfluxDB |
+| **Google Cloud** | Cloud Storage, Pub/Sub, Firestore (Native), Firestore (Datastore mode), Secret Manager, Cloud Logging, Cloud Monitoring, Cloud Tasks, Cloud Scheduler, Eventarc, IAM, IAM Credentials, OAuth2, STS, Resource Manager, Service Usage, Cloud KMS, Firebase Auth, Long-running operations, Workflows, Cloud DNS, Filestore, Certificate Manager, Cloud Bigtable, Looker, Certificate Authority Service, Cloud Healthcare, Dataplex, BigQuery Data Transfer, Storage Transfer, Cloud Build, Cloud Deploy, API Keys, Service Directory, Binary Authorization, Container Analysis, Essential Contacts, Organization Policy, Cloud Asset Inventory, Dataproc, Cloud Composer, Dataflow, Memorystore for Memcached, Serverless VPC Access, Network Connectivity Center, AlloyDB, Datastream, Cloud Load Balancing, Cloud Armor, Analytics Hub, BigLake, Cloud Data Fusion, Dataform, Dataproc Metastore, Database Migration Service, Memorystore for Valkey, Oracle Database@Google Cloud, Backup and DR Service, NetApp Volumes, Parallelstore, Managed Lustre, Transcoder API, Apigee, API hub, App Hub, Application Integration, Integration Connectors, Cloud Endpoints, Developer Connect, Secure Source Manager, Parameter Manager, Cloud Billing budgets, Migration Center, Blockchain Node Engine, License Manager, Firebase App Check, Firebase App Hosting, Firebase Data Connect, Network Intelligence Center, Cloud NGFW, Cloud Service Mesh, Cloud Domains, VMware Engine, Google Distributed Cloud, GKE Multi-Cloud, Backup for GKE, App Engine, Cloud Workstations, Cluster Director, VM Manager, Cloud Quotas, Infrastructure Manager, VPC Service Controls, Managed Microsoft AD, Assured Workloads, Chrome Enterprise Premium, Google Security Operations, Cloud Identity, Cloud IDS, Compliance Manager, Sensitive Data Protection, Identity-Aware Proxy, Privileged Access Manager, reCAPTCHA, Security Command Center, Public CA; with Docker running: Cloud SQL, Cloud Run, BigQuery, Cloud Functions, Managed Kafka, Kubernetes Engine, Compute Engine, Artifact Registry, Memorystore for Redis, Cloud Spanner |
+| **Azure** | Blob Storage, Queue Storage, Table Storage, Cosmos DB (NoSQL), Key Vault, Service Bus, Event Hubs, Event Grid, App Configuration, SignalR, Communication Services email, Resource Manager, Entra ID, Managed Identity, Graph, Management planes (ARM), Azure Monitor, Virtual Network, API Management, Azure Files, Data Lake Storage Gen2, DNS, Policy, Logic Apps, Front Door, Application Gateway, Load Balancer, Firewall, Bastion, Traffic Manager, Private Link, Virtual WAN, Data Factory, Azure Batch, Azure Managed Grafana, Cognitive Services, Databricks, AI Search, Synapse, Data Explorer, Stream Analytics, Static Web Apps, Web PubSub, Notification Hubs, Relay, IoT Hub, Azure Maps, Automation, Recovery Services, Azure Arc, Azure Local, Azure VMware Solution, Azure Red Hat OpenShift, Kubernetes Fleet Manager, Service Fabric, Azure Virtual Desktop, DevTest Labs, Dev Box, Azure Load Testing, Managed DevOps Pools, Center for SAP solutions, Network Watcher, DDoS Protection, Virtual Network Manager, Route Server, ExpressRoute, VPN Gateway, Web Application Firewall, Application Gateway for Containers, NetApp Files, Azure Managed Lustre, Elastic SAN, Storage Mover, Azure File Sync, Data Share, Analysis Services, HDInsight, Power BI Embedded, Fabric capacities, Managed Redis, Oracle Database@Azure, Health Data Services, Digital Twins, IoT Hub Device Provisioning, Microsoft Entra Domain Services, Microsoft Defender for Cloud, Microsoft Sentinel, Confidential Ledger, Trusted Signing, Azure Lighthouse, Azure Advisor, Cost Management, Azure Managed Applications, Microsoft Purview, Chaos Studio; with Docker running: Azure Functions, Azure SQL, PostgreSQL, MySQL, Cache for Redis, Kubernetes Service, Container Registry, Container Instances, Container Apps, Virtual Machines, Cosmos DB for MongoDB, App Service |
 <!-- services:end -->
 
 </details>
 
-Most services run inside pogi itself. The ones marked "with Docker running" start real software, such as Postgres, Redis or Kafka, in Docker, Podman, Colima or OrbStack.
+Most services run inside pogi itself. The ones marked "with Docker running" start real software, such as Postgres, Redis or Kafka, in Docker (or any engine with the Docker API: Podman, Colima or OrbStack).
 
 ## What pogi doesn't do
 
-pogi is not the real cloud. Some services go deep, with real behavior wired to other services; others cover the common create, read and delete calls. The [coverage page](docs/reference/coverage.md) says what each one does and what it doesn't do yet.
+pogi is not the real cloud. Some services have real behavior wired to other services. A Thin service stores your resources and reads them back, and nothing runs behind it. The [coverage page](docs/reference/coverage.md) says what each service does and what it doesn't do yet.
 
-It's built for tests and local development. It keeps data in memory by default and limits uploads to 10 MB (raise that with `--max-upload-mb`), so don't run it as a server for other people.
+It's built for tests and local development. It keeps data in memory by default and limits uploads to 10 MB (raise that with `--max-upload-mb`). Don't run it as a server for other people.
 
 It never calls the real clouds, so never give it real credentials. `pogi env` sets test ones for you.
+
+## Third-party icons
+
+The console and the Terraform diagram show the official AWS, Azure and Google Cloud icons. They are in `internal/web/icons/`, unchanged, and they are **not** under the MIT license: each provider's terms apply. See [internal/web/icons/NOTICE](internal/web/icons/NOTICE). A service with no official icon shows one of pogi's own plain glyphs.
 
 ## Learn more
 

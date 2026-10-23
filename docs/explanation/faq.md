@@ -7,11 +7,11 @@ description: Short answers to common questions about pogi.
 
 ## Is pogi free?
 
-Yes. pogi is MIT licensed. There is no account, no license key, no sign-up and no paid plan.
+Yes. pogi is MIT licensed. It needs no account, license key or sign-up, and there is no paid plan.
 
 ## Do I need Docker?
 
-Not for the core. S3, SQS, SNS, DynamoDB, Lambda in Python and Node.js, and most other services run inside the pogi program. Services that run real software need Docker: RDS, ECS, Cloud SQL and Azure SQL, for example. The [coverage page](../reference/coverage.md) lists them. Any engine with the Docker API works: Docker, Podman, Colima or OrbStack.
+Not for the core services. S3, SQS, SNS, DynamoDB, Lambda in Python and Node.js, and most other services run inside the pogi program. Services that run real software need Docker: RDS, ECS, Cloud SQL and Azure SQL, for example. The [coverage page](../reference/coverage.md) lists them. Any engine with the Docker API works: Docker, Podman, Colima or OrbStack.
 
 ## Does it run on Windows?
 
@@ -19,7 +19,7 @@ Yes. Release builds exist for Windows, on Intel and Arm. The easiest way to inst
 
 ## Does it phone home?
 
-No. We searched pogi's code for outgoing network calls and found none that send usage data, check for updates or contact a pogi server. An idle pogi makes no outgoing connections.
+No. pogi's code has no outgoing network call that sends usage data, checks for updates or contacts a pogi server. An idle pogi makes no outgoing connections.
 
 pogi reaches out only when you ask it to:
 
@@ -50,22 +50,35 @@ pogi covers AWS, Google Cloud and Azure in one program, and needs no account. Se
 
 ## Which services does it cover?
 
-181 services: 131 for AWS, 26 for Google Cloud and 24 for Azure. The [coverage page](../reference/coverage.md) lists them all.
+<!-- count:total -->355 services: 144 AWS (88 with real behavior, 56 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (29 with real behavior, 74 Thin)<!-- /count -->. A Thin service keeps your resources and reads them back, but nothing runs behind them. The [coverage page](../reference/coverage.md) lists them all.
 
 ## Does it work with Terraform and the CDK?
 
 Yes. `pogi tf` prints a provider block for Terraform, and the CDK works with `AWS_ENDPOINT_URL` set. See [Connect your tools](../how-to/connect-your-tools.md#terraform).
 
+## Does pogi run Terraform to price my code?
+
+No. `pogi cost` reads your `.tf` files, or a `plan.json` you made, and never runs Terraform, a provider or a script. See [How Terraform cost works](how-terraform-cost-works.md).
+
+## Does pogi send my Terraform files anywhere?
+
+No. `pogi cost` reads them on your machine. In the console, the browser sends them only to your own pogi, which reads them in memory and keeps nothing.
+
+## Does pogi phone home for prices?
+
+No. The prices are built into the program, and pogi never fetches them. The date of each snapshot is in every estimate. New prices come with new releases.
+
 ## Can AI coding agents use it?
 
-Yes. pogi is an MCP server (a tool server that coding agents can call): `claude mcp add pogi -- pogi mcp`. See [CLI](../reference/cli.md#pogi-mcp-run-the-mcp-server-for-ai-agents).
+Yes. pogi is an MCP server (MCP is the protocol AI coding agents use to call tools). Add it with `claude mcp add pogi -- pogi mcp`. See [CLI](../reference/cli.md#pogi-mcp-run-the-mcp-server-for-ai-agents).
 
 ## Something doesn't work. What do I check?
 
-Run `pogi doctor`. It checks the server, the runtimes, Docker and the local certificate authority. [Troubleshoot](../how-to/troubleshoot.md) covers the common problems.
+Run `pogi doctor`. It checks the server, the runtimes, Docker and pogi's own certificate authority (CA). [Troubleshoot](../how-to/troubleshoot.md) covers the common problems.
 
 ## See also
 
+- [How Terraform cost works](how-terraform-cost-works.md)
 - [How pogi works](how-pogi-works.md)
 - [Install pogi](../how-to/install.md)
 - [Troubleshoot](../how-to/troubleshoot.md)

@@ -7,20 +7,20 @@ description: Fix the problems people hit most when they start pogi or point thei
 
 ## Start here: run `pogi doctor`
 
-`pogi doctor` checks the server, Python and Node.js for Lambda, the AWS SDKs for native Lambda, Docker, `*.localhost` names and the local certificate authority.
+`pogi doctor` checks the server, Python and Node.js for Lambda, the AWS SDKs for native Lambda, Docker, `*.localhost` names and pogi's own certificate authority (CA).
 
 ```bash
 pogi doctor
 ```
 
-A line that starts with `✗` is a check that failed, and the line says how to fix it. Here, the AWS SDKs that native Lambda needs are not installed, and `pogi lambda-sdks` installs them. Long lines run off the right edge. Scroll the block to read the rest.
+A line that starts with `✗` is a check that failed, and the line says how to fix it. Here, the AWS SDKs that native Lambda needs are not installed, and `pogi lambda-sdks` installs them.
 
 ```text title="Output"
-  ✓ server at http://localhost:7644 0.1.0
+  ✓ server at http://localhost:7644 0.2.0
   ✓ python3 for Python Lambdas: Python 3.9.6
-  ✓ node for Node.js Lambdas: v25.9.0
+  ✓ node for Node.js Lambdas: v24.15.0
   ✗ AWS SDKs for native Lambdas in ~/.pogi/lambda — run `pogi lambda-sdks` (CDK custom resources need them)
-  ✓ Docker Desktop 29.4.1 at unix:///var/run/docker.sock (Engine API 1.54)
+  ✓ Docker Desktop 29.9.1 at unix:///var/run/docker.sock (Engine API 1.54)
   ✓ *.localhost names resolve (pogi env --hostname aws.localhost, virtual-host S3, execute-api and lambda-url hosts)
   ✓ local CA ~/.pogi/certs/ca.pem
 pogi: 1 check(s) need attention
@@ -37,7 +37,7 @@ If the first line is `✗ server at …`, pogi is not running. Start it with `po
 1. Look at the error. If another program already uses the port, pogi stops at once:
 
    ```text title="Output"
-   pogi: listen tcp 127.0.0.1:7644: bind: address already in use
+   pogi: port 7644 is in use (another pogi?); use --port — listen tcp 127.0.0.1:7644: bind: address already in use
    ```
 
 2. Find out what holds the port. It is often an older pogi:
@@ -67,7 +67,7 @@ If the first line is `✗ server at …`, pogi is not running. Start it with `po
    {"completed":false,"scripts":null}
    ```
 
-   `pogi wait` says the same in words:
+   `pogi wait` says the same in words, and exits with an error:
 
    ```text title="Output"
    pogi: not ready at http://localhost:7644 after 2s: it is still starting
@@ -150,7 +150,7 @@ Names such as `<bucket>.aws.localhost`, `<api>.execute-api.localhost` and `<id>.
 
 ## Docker isn't running
 
-The core of pogi doesn't need Docker. S3, SQS, SNS, DynamoDB, Lambda in Python and Node.js and most other services run inside the pogi program.
+pogi's core doesn't need Docker. S3, SQS, SNS, DynamoDB, Lambda in Python and Node.js and most other services run inside the pogi program.
 
 1. Run `pogi doctor`. Without a container engine it prints a note, not a failure:
 
@@ -164,6 +164,8 @@ The core of pogi doesn't need Docker. S3, SQS, SNS, DynamoDB, Lambda in Python a
    level=WARN msg="Docker is not available: the API works, but no database runs behind this endpoint" service=rds id=db1
    ```
 
+   The console's Status column says so next to the status: `available · no database: Docker isn't running`. The same column shows `failed · killed: out of memory` when a container dies later.
+
 3. Lambda needs Docker for runtimes other than Python and Node.js, and for container images. The call fails with a clear message. This one is for `java21`:
 
    ```text title="Output"
@@ -174,15 +176,34 @@ The core of pogi doesn't need Docker. S3, SQS, SNS, DynamoDB, Lambda in Python a
 
 ## Azure Storage ports 10000 to 10002 are taken
 
-Blob, Queue and Table Storage use ports 10000, 10001 and 10002, the same as Azurite (Microsoft's storage emulator). If another program holds them, pogi still starts and prints `Ready.`. It logs one warning for each port it could not open:
+Blob, Queue and Table Storage use ports 10000, 10001 and 10002, the same as Azurite (Microsoft's storage emulator). If another program holds them, pogi still starts and prints `Ready.`, but those three services are off. With `--headless`, the banner names each port it could not open:
 
 ```text title="Output"
-time=2026-10-14T00:29:15.900+05:30 level=WARN msg="extra port unavailable" service=azblob port=10000 err="listen tcp 127.0.0.1:10000: bind: address already in use"
-time=2026-10-14T00:29:15.900+05:30 level=WARN msg="extra port unavailable" service=azqueue port=10001 err="listen tcp 127.0.0.1:10001: bind: address already in use"
-time=2026-10-14T00:29:15.900+05:30 level=WARN msg="extra port unavailable" service=aztable port=10002 err="listen tcp 127.0.0.1:10002: bind: address already in use"
+pogi 0.2.0  ·  355 services  ·  data ~/.pogi
+  endpoint  http://127.0.0.1:7644
+  console   http://127.0.0.1:7644/_pogi/
+  env       eval "$(pogi env)"
+  azblob    port 10000 is in use, so this is off — listen tcp 127.0.0.1:10000: bind: address already in use
+  azqueue   port 10001 is in use, so this is off — listen tcp 127.0.0.1:10001: bind: address already in use
+  aztable   port 10002 is in use, so this is off — listen tcp 127.0.0.1:10002: bind: address already in use
+Ready.
 ```
 
-Everything else works. The connection string from `pogi env` still points at 10000 to 10002, so Azure Storage calls reach the other program instead of pogi.
+`pogi status` lists the same ports as problems, one `!` line each, and the terminal screen and the console show them too. The first line is the usual status line:
+
+```bash
+pogi status
+```
+
+```text title="Output (trimmed)"
+pogi 0.2.0 at http://localhost:7644 · up 7s · region us-east-1 · persistence false · iam off
+! azblob: port 10000 is in use, so this is off — listen tcp 127.0.0.1:10000: bind: address already in use
+! azqueue: port 10001 is in use, so this is off — listen tcp 127.0.0.1:10001: bind: address already in use
+! aztable: port 10002 is in use, so this is off — listen tcp 127.0.0.1:10002: bind: address already in use
+…
+```
+
+Everything else works. The connection string from `pogi env` still points at ports 10000 to 10002, so Azure Storage calls reach the other program instead of pogi.
 
 1. Find the program. It is often Azurite:
 
@@ -194,17 +215,17 @@ Everything else works. The connection string from `pogi env` still points at 100
 
 ## My upload is refused
 
-pogi is a local emulator for tests, so it limits uploads to 10 MB (the whole file, even when it is sent in parts). A bigger upload fails with a message like this:
+pogi limits uploads to 10 MB, counting the whole file even when the client sends it in parts. A bigger upload fails with a message like this:
 
 ```text title="Output"
-pogi is a local emulator for tests, so uploads are limited to 10 MB (this one is 23 MB). Raise the limit with --max-upload-mb or server.maxUploadMB in pogi.yaml.
+pogi is a local emulator for tests, so uploads are limited to 10 MB (this one is 24 MB). Raise the limit with --max-upload-mb or server.maxUploadMB in pogi.yaml.
 ```
 
 1. Use a smaller file in your test. This is the best fix: tests rarely need big files.
 2. Or raise the limit. Pass the flag, or set the key in `pogi.yaml`:
 
    ```bash
-   pogi --max-upload-mb 100
+   pogi start --max-upload-mb 100
    ```
 
    ```yaml title="pogi.yaml"
@@ -214,7 +235,26 @@ pogi is a local emulator for tests, so uploads are limited to 10 MB (this one is
 
 Function code zips (up to 50 MB) and container image pushes are not limited by this setting.
 
-If the error is `408` (`RequestTimeout`), the upload sent no data for 30 seconds. Check that your client or a proxy is not stalling.
+A `408` error (`RequestTimeout`) means the upload sent no data for 30 seconds. Check that your client or a proxy is not stalling.
+
+## An image download is stalled or failed
+
+A resource such as an RDS database needs a container image. pogi downloads it the first time, which can take a while. The console shows the progress in the resource's row, and the bell tells you when the resource is ready or the download failed.
+
+A download fails when no data arrives for 2 minutes ("the download stalled"), or after 30 minutes in all. The error says why, in a plain sentence. Docker's own text may follow after a dash:
+
+| Message | What to do |
+|---|---|
+| `Docker isn't running` | Start Docker, OrbStack, Colima or Podman, or set `DOCKER_HOST`. |
+| `image not found: mariadb:99` | Check the engine and version. The image name is in the message. |
+| `The registry can't be reached` | Check your network, VPN or proxy, then try again. |
+| `Docker stopped answering` | Docker quit, or hung, while pogi was using it, or a call took over 2 minutes. Restart Docker, then try again. |
+| `killed: out of memory (raise Docker's memory limit)` | A database or cluster container ran out of memory and Docker stopped it. Raise Docker's memory limit, then delete the resource and create it again. |
+| `stopped: exit 1 — …` | The container stopped by itself. The last line it wrote follows the dash; `docker logs` has the rest. |
+| `The disk is full` | Free disk space (`docker system df` shows what uses it), then try again. |
+| `the download stalled` | Check your network, then delete the resource and create it again. |
+
+To download images before you need them (on a slow network, or in CI), run [`pogi pull`](../reference/cli.md#pogi-pull-download-images-ahead-of-time).
 
 ## Containers or volumes are left over
 
@@ -232,9 +272,22 @@ pogi stops or removes its containers when it shuts down. One that was killed (`k
    pogi clean
    ```
 
-3. A start without saved state also removes the containers a crashed pogi left behind.
+3. A start without saved state also removes the containers and data volumes a crashed pogi left behind.
+
+Containers and volumes kept for saved state are listed by data folder. Delete one folder's with `pogi clean --data-dir <folder>`, or start pogi on that folder to use them again.
 
 `pogi clean` keeps your saved state unless you say yes to its second question (or pass `--state`). It never removes the `pogi` network or images. See [`pogi clean`](../reference/cli.md#pogi-clean-delete-leftover-containers-and-volumes).
+
+## Saved state can't be read or written
+
+Only one pogi can use a data folder at a time. These messages come from saved state (`--persist` or `--storage`):
+
+| What you see | What to do |
+|---|---|
+| `another pogi (pid N) is using <folder>` | Stop that pogi, or start this one with another `--data-dir`. A pogi that crashed leaves no lock behind. |
+| `pogi can't use the data folder` | Fix the folder's permissions, or pick another `--data-dir`. pogi won't run without saving when you asked it to save. |
+| `could not read the saved state of <service> (kept as …)` | The file was damaged. pogi moved it to `<name>.corrupt-<time>` in `<data folder>/state`, started that service empty, and shows this in the bell. Fix or restore the file by hand. |
+| `pogi can't save its state` (console banner, bell and `/_pogi/api/info`) | The disk is full or the folder isn't writable. Changes made now are lost if pogi stops. The notice goes away by itself once saving works. |
 
 ## See also
 

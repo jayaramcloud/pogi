@@ -63,6 +63,11 @@ func (s *Service) resource(k *call, path string) (int, any, error) {
 	return http.StatusOK, list(filter(items, k.r.URL.Query().Get("$filter"))...), nil
 }
 
+// parentNotFound is ARM's 404 for a PUT of a child whose parent does not exist.
+func parentNotFound(parent ID) error {
+	return core.Errorf(http.StatusNotFound, "ParentResourceNotFound", "Can not perform requested operation on nested resource. Parent resource '%s' not found.", parent.Name())
+}
+
 func methodNotAllowed(m, typ string) error {
 	return core.Errorf(http.StatusMethodNotAllowed, "MethodNotAllowed", "The method %s is not allowed for resource type '%s'.", m, typ)
 }
@@ -91,6 +96,9 @@ func (s *Service) item(k *call, id ID) (int, any, error) {
 			}
 			in = merge(clone(cur), in)
 		} else if len(id.Types) > 1 && !s.exists(c, id.Parent()) {
+			if p != nil && p.ParentNotFound {
+				return 0, nil, parentNotFound(id.Parent())
+			}
 			return 0, nil, NotFound(id.Parent())
 		}
 		out, err := s.put(c, id, p, in)
@@ -104,7 +112,7 @@ func (s *Service) item(k *call, id ID) (int, any, error) {
 		if getErr != nil {
 			status = created
 		}
-		if p != nil && p.Async && k.r.Method == http.MethodPut { // a PATCH (update tags) is a plain call
+		if p != nil && (p.Async || p.AsyncPut) && k.r.Method == http.MethodPut { // a PATCH (update tags) is a plain call
 			k.async(id.Subscription)
 			status = created
 		}
@@ -119,7 +127,7 @@ func (s *Service) item(k *call, id ID) (int, any, error) {
 		if p != nil && p.Deleted != 0 {
 			return p.Deleted, nil, nil
 		}
-		if p != nil && p.Async {
+		if p != nil && (p.Async || p.AsyncDelete) {
 			k.async(id.Subscription)
 			return http.StatusAccepted, nil, nil
 		}
@@ -383,6 +391,9 @@ func (s *Service) scoped(k *call, path string, p *Provider, collection bool) (in
 			return 0, nil, err
 		}
 		if getErr != nil {
+			if p.Created != 0 { // the status the clients of this type accept
+				return p.Created, out, nil
+			}
 			return http.StatusCreated, out, nil
 		}
 		return http.StatusOK, out, nil

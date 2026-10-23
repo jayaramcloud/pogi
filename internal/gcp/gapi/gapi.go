@@ -53,7 +53,7 @@ func (a *REST) Split(path string) (project string, parts []string, ok bool) {
 	}
 	parts = seg[4:]
 	coll := parts[0]
-	if coll == "locations" && len(parts) > 2 {
+	if (coll == "locations" || coll == "regions") && len(parts) > 2 { // regions: Dataproc
 		coll = parts[2]
 	}
 	coll, _, _ = strings.Cut(coll, ":")

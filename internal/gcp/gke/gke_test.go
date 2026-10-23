@@ -3,6 +3,7 @@ package gke_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -19,6 +20,7 @@ import (
 	mkpb "cloud.google.com/go/managedkafka/apiv1/managedkafkapb"
 	"github.com/nrndev/pogi"
 	"github.com/nrndev/pogi/internal/core"
+	"github.com/nrndev/pogi/internal/docker"
 	"github.com/nrndev/pogi/internal/gcp/gke"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
@@ -229,19 +231,37 @@ func TestKubectl(t *testing.T) {
 		out, err := cmd.CombinedOutput()
 		return string(out), err
 	}
+	// diag says what the cluster's k3s container was doing, so a failure explains itself (the gate of 2026-10-21 saw
+	// the API server drop and refuse connections once under load, and a rerun did not reproduce it)
+	diag := func() string {
+		d, id := s.Hub.Docker(), docker.Name("gke", "p-us-central1-"+name)
+		var b strings.Builder
+		if in, err := d.Inspect(ctx, id); err != nil {
+			fmt.Fprintf(&b, "inspect %s: %v\n", id, err)
+		} else {
+			fmt.Fprintf(&b, "k3s container %s: %s, running=%v, exit=%d, out of memory=%v\n", id, in.State.Status, in.State.Running, in.State.ExitCode, in.State.OOMKilled)
+		}
+		var lines []string
+		d.Logs(ctx, id, false, func(l string) { lines = append(lines, l) })
+		if len(lines) > 40 {
+			lines = lines[len(lines)-40:]
+		}
+		b.WriteString(strings.Join(lines, "\n"))
+		return b.String()
+	}
 	check := func(kubeconfig string) {
 		t.Helper()
 		out, err := kubectl(kubeconfig, "get", "nodes", "--no-headers")
 		if lines := strings.Split(strings.TrimSpace(out), "\n"); err != nil || len(lines) != 1 || !strings.Contains(lines[0], " Ready ") {
-			t.Fatalf("kubectl get nodes: %v\n%s", err, out)
+			t.Fatalf("kubectl get nodes: %v\n%s\n%s", err, out, diag())
 		}
 		cm := filepath.Join(dir, "cm.yaml")
 		os.WriteFile(cm, []byte("apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: pogi-e2e\n  namespace: default\ndata:\n  hello: world\n"), 0o600)
 		if out, err := kubectl(kubeconfig, "apply", "-f", cm); err != nil {
-			t.Fatalf("kubectl apply: %v\n%s", err, out)
+			t.Fatalf("kubectl apply: %v\n%s\n%s", err, out, diag())
 		}
 		if out, err := kubectl(kubeconfig, "get", "configmap", "pogi-e2e", "-o", "jsonpath={.data.hello}"); err != nil || out != "world" {
-			t.Fatalf("kubectl get configmap: %v\n%s", err, out)
+			t.Fatalf("kubectl get configmap: %v\n%s\n%s", err, out, diag())
 		}
 	}
 

@@ -125,7 +125,7 @@ func (s *Service) entries(w http.ResponseWriter, r *http.Request, op string, req
 		return
 	}
 	if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(core.Body(r), req); err != nil {
-		gapi.Err(w, c, gapi.Invalid("Invalid JSON payload received. %v", err))
+		gapi.Err(w, c, gapi.Invalid("Invalid JSON payload received. %s", gapi.PlainProto(core.Body(r), err)))
 		return
 	}
 	out, err := call()
@@ -227,11 +227,11 @@ func (s *Service) Resources() []core.Table {
 	for _, e := range s.st.entries {
 		counts[e.LogName]++
 	}
-	logs := core.Table{Name: "Logs", Columns: []string{"Log", "Entries"}}
+	logs := core.Table{Name: "Logs", Log: true, Columns: []string{"Log", "Entries"}}
 	for _, n := range core.SortedKeys(counts) {
 		logs.Rows = append(logs.Rows, []string{n, strconv.Itoa(counts[n])})
 	}
-	ents := core.Table{Name: "Entries", Columns: []string{"Time", "Severity", "Log", "Resource", "Message"}}
+	ents := core.Table{Name: "Entries", Log: true, Columns: []string{"Time", "Severity", "Log", "Resource", "Message"}}
 	for i := len(s.st.entries) - 1; i >= 0 && len(ents.Rows) < 200; i-- {
 		e := s.st.entries[i]
 		ents.Rows = append(ents.Rows, []string{e.Timestamp.AsTime().Format(time.DateTime), e.Severity.String(), e.LogName, e.Resource.GetType(), preview(e)})

@@ -33,7 +33,7 @@ type catData struct {
 	Groups  []catGroup
 	Cloud   string
 	UseOnly bool
-	Total   int
+	Count   string // the services count with its depth split
 }
 
 // Href is the catalog's URL with the in-use filter changed.
@@ -47,14 +47,14 @@ func (c catData) Href(use bool) string {
 func (ui *UI) catalog(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	d := catData{Cloud: ui.cloud(r), UseOnly: q.Get("use") != ""}
+	_, d.Count = serviceCount(d.Cloud, ui.hub.Status().Services)
 	cov, pins := coverage(), pinned(r)
 	by := map[string][]tile{}
 	for _, s := range ui.hub.Status().Services {
 		if d.Cloud != "" && s.Cloud != d.Cloud {
 			continue
 		}
-		d.Total++
-		used := s.Resources > 0 && s.Requests > 0
+		used := ui.inUse(s)
 		if d.UseOnly && !used {
 			continue
 		}
@@ -103,6 +103,7 @@ type scopeBar struct {
 
 type svcPage struct {
 	Name, Title, Cloud, CloudName, Depth, Sub, Tab, Back string
+	Rev                                                  string // see svcRev
 	Pinned                                               bool
 	Tabs                                                 []svcTab
 	Table                                                *tbl
@@ -268,6 +269,7 @@ func (ui *UI) servicePage(w http.ResponseWriter, r *http.Request, name string) {
 			res, reqs = s.Resources, s.Requests
 		}
 	}
+	p.Rev = rev(res, reqs)
 	if res == 0 && reqs == 0 {
 		p.Sub = "Nothing here yet"
 	} else {
@@ -340,4 +342,28 @@ func (ui *UI) bulkTag(w http.ResponseWriter, r *http.Request) {
 	}
 	ui.renderX(w, r, "tag", title, svc, plural(len(rows), "row")+" selected", map[string]any{
 		"Service": svc, "Table": table, "Rows": rows, "Back": r.URL.Query().Get("back")})
+}
+
+// rev changes whenever a service gains or loses resources or answers a call. A service page polls it
+// (GET /_pogi/rev?svc=) so resources made elsewhere, by the CLI, an SDK or Terraform, show up without a Refresh.
+func rev(resources, requests int) string {
+	return strconv.Itoa(resources) + "-" + strconv.Itoa(requests)
+}
+
+// svcRev is GET /_pogi/rev?svc=name: {"rev": "..."}, or "" for a service pogi does not run.
+func (ui *UI) svcRev(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("svc")
+	if name == "" {
+		http.Error(w, "svc is required", http.StatusBadRequest)
+		return
+	}
+	out := ""
+	for _, s := range ui.hub.Status().Services {
+		if s.Name == name {
+			out = rev(s.Resources, s.Requests)
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	json.NewEncoder(w).Encode(map[string]string{"rev": out})
 }

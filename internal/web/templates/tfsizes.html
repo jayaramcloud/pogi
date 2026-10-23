@@ -1,0 +1,25 @@
+{{define "head"}}{{with .Data}}<div class="ph"><div><div class="crumbs"><a href="/_pogi/cost/terraform">Terraform cost</a>{{icon "right"}}<span>Try another size</span></div><h1>Try another size</h1><p class="sub mono">{{.Address}}</p></div></div>{{end}}{{end}}
+
+{{define "content"}}{{with .Data}}{{template "tfsizesbody" .}}{{end}}{{end}}
+
+{{define "tfsizesbody"}}
+<p class="dim" style="margin-top:0">Every size sold in <b>{{.Region}}</b>, cheapest first. Picking one prices this view again; your <code>.tf</code> file is not changed.</p>
+<div class="toolbar tfsizefilter" data-tf-sizes>
+  <div class="field" style="margin:0"><label for="tf-fc">Min vCPU</label><input class="input" id="tf-fc" type="number" min="0" step="1" style="width:84px" data-tf-f="c"></div>
+  <div class="field" style="margin:0"><label for="tf-fm">Min memory (GiB)</label><input class="input" id="tf-fm" type="number" min="0" step="1" style="width:110px" data-tf-f="m"></div>
+  <div class="field" style="margin:0"><label for="tf-ff">Family or name</label><input class="input" id="tf-ff" type="search" style="width:140px" data-tf-f="q" autocomplete="off"></div>
+  <label class="switch" style="margin-bottom:2px"><input type="checkbox" data-tf-f="old"><i></i>Show older generations</label>
+  <span class="faint" id="tf-fcount" role="status" aria-live="polite" style="margin-bottom:6px"></span>
+</div>
+<div class="tablecard"><table class="dt tfsizes"><thead><tr><th>Size</th><th class="num">vCPU</th><th class="num">Memory</th><th class="num">Per month</th><th class="num">vs now</th><th></th></tr></thead><tbody>
+{{range .Rows}}<tr data-n="{{.Name}} {{.Family}}" data-c="{{.VCPU}}" data-m="{{.MemGB}}" data-old="{{.Old}}" {{if .Current}}class="sel" aria-current="true"{{end}}>
+  <td class="mono">{{.Name}}{{if .Current}} <span class="st mute">now</span>{{end}}{{if .Old}} <span class="faint">older</span>{{end}}{{if .GPU}}<div class="faint tfgpu">{{.GPU}}× {{.GPUModel}}</div>{{end}}</td>
+  <td class="num">{{.VCPU}}</td><td class="num">{{.MemGB}} GiB</td>
+  <td class="num">{{usd .Monthly}}</td>
+  <td class="num">{{if .Current}}<span class="faint">—</span>{{else if gt .Diff 0.005}}<span class="tfup">{{sgn .Diff}}</span>{{else if lt .Diff -0.005}}<span class="tfdown">{{sgn .Diff}}</span>{{end}}</td>
+  <td class="tfacts"><button type="button" class="btn sm" data-tf-pick="{{$.Address}}" data-size="{{.Name}}" {{if .Current}}disabled{{end}}>Pick</button> <button type="button" class="btn sm ghost" data-copy="{{.Copy}}" aria-label="Copy {{.Copy}}" title="Copy {{.Copy}}">{{icon "copy"}}</button></td></tr>
+{{end}}</tbody></table></div>
+{{end}}
+
+{{define "drawer"}}{{with .Data}}<header><div class="eyebrow">{{$.Eyebrow}}</div><div class="title"><h2 id="dtitle">Try another size</h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<div class="dbody">{{template "tfsizesbody" .}}</div>{{end}}{{end}}

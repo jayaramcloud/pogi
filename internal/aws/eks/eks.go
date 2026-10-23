@@ -298,6 +298,14 @@ func (s *Service) boot(key string, cl *cluster, restart bool) {
 	k := &K3s{Name: cl.Container, Image: "rancher/k3s:" + k3sTags[str(cl.Doc["version"])], Service: "eks", Resource: str(cl.Doc["name"]),
 		Token: cl.Token, Webhook: "http://" + d.HostAddr() + ":" + port + "/_aws/eks/authn/" + key,
 		Args: []string{"--service-cidr=" + str(object(cl.Doc["kubernetesNetworkConfig"])["serviceIpv4Cidr"])}}
+	k.Watch, k.OnExit = s.ctx, func(note string) {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if s.st.Clusters[key] == cl && cl.Doc["status"] == "ACTIVE" {
+			cl.Doc["status"], cl.Note = "FAILED", note
+			s.hub.Log.Warn("eks cluster stopped", "cluster", key, "note", note)
+		}
+	}
 	core.Go("eks.boot", func() {
 		defer cancel()
 		endpoint, ca, err := k.Run(ctx, d, restart)
@@ -310,7 +318,7 @@ func (s *Service) boot(key string, cl *cluster, restart bool) {
 			if restart {
 				err = fmt.Errorf("its k3s container did not start again: %w", err)
 			}
-			cl.Doc["status"], cl.Note = "FAILED", err.Error()
+			cl.Doc["status"], cl.Note = "FAILED", docker.Plain(err)
 			s.hub.Log.Warn("eks cluster failed", "cluster", key, "err", err)
 		default:
 			cl.Doc["status"], cl.Doc["endpoint"], cl.Note = "ACTIVE", endpoint, ""

@@ -1,9 +1,11 @@
 ---
 title: LocalStack to pogi mapping
-description: LocalStack's endpoints, variables, tools and files, and their pogi counterparts.
+description: What each LocalStack endpoint, variable, tool and file becomes in pogi.
 ---
 
 # LocalStack to pogi mapping
+
+pogi keeps most of LocalStack's paths, variables and directories, and replaces the rest.
 
 | Section | LocalStack thing |
 |---|---|
@@ -40,7 +42,7 @@ Container ports:
 
 | LocalStack | pogi |
 |---|---|
-| `SERVICES=s3,sqs` | `SERVICES` or `POGI_SERVICES`. It also takes cloud names (`aws`, `gcp`, `azure`) and `-name` to leave one out. Unlike LocalStack, services that are not named are not lazily started on demand: they are not there. Leave it unset and everything is on, and costs little ([why](../explanation/how-pogi-works.md#why-is-pogi-built-this-way)) |
+| `SERVICES=s3,sqs` | `SERVICES` or `POGI_SERVICES`. It also takes cloud names (`aws`, `gcp`, `azure`) and `-name` to leave one out. Unlike LocalStack, services that are not named are not lazily started on demand: they are not there. Leave it unset and everything is on, which costs little ([why](../explanation/how-pogi-works.md#why-is-pogi-built-this-way)) |
 | `PERSISTENCE=1` | `PERSISTENCE=1` or `POGI_PERSIST=1`, or `--persist` (storage mode `hybrid`) |
 | `DEFAULT_REGION` | `DEFAULT_REGION` or `POGI_REGION` |
 | `DEBUG=1` | `DEBUG=1` or `POGI_DEBUG=1` |
@@ -48,7 +50,7 @@ Container ports:
 | `LAMBDA_EXECUTOR` | `POGI_LAMBDA`: `auto` (native Python and Node.js, else Docker), `native` or `docker` |
 | `ENFORCE_IAM=1` | `POGI_IAM=soft` (records allow and deny decisions) or `strict` |
 | `S3_SKIP_SIGNATURE_VALIDATION=0` | `POGI_VALIDATE_SIGNATURES=1` |
-| `LOCALSTACK_HOSTNAME`, `HOSTNAME_EXTERNAL` | `POGI_HOSTNAME`, see Hostnames |
+| `LOCALSTACK_HOSTNAME`, `HOSTNAME_EXTERNAL` | `POGI_HOSTNAME`, see [Hostnames](#hostnames) |
 | `DOCKER_HOST` | the same; pogi talks to the Docker or Podman API itself |
 | `LOCALSTACK_AUTH_TOKEN`, `LOCALSTACK_API_KEY` | not needed and ignored. Nothing in pogi is gated |
 
@@ -64,51 +66,44 @@ Any other variable LocalStack reads is ignored without a warning. [Configuration
 
 | LocalStack tool | With pogi |
 |---|---|
-| `localstack start` | `pogi start`, or `pogi` for the TUI. `pogi start --headless` logs like a daemon |
+| `localstack start` | `pogi start`, or `pogi` for the terminal screen (the TUI). `pogi start --headless` logs like a daemon |
 | `localstack status`, `localstack wait` | `pogi status`, `pogi wait --timeout 60s` |
-| `localstack logs -f` | `pogi logs -f` (the request log; use `docker logs` for the container) |
+| `localstack logs -f` | `pogi logs -f` (the log of calls; use `docker logs` for the container) |
 | `localstack state export/import` and Cloud Pods | `pogi snapshot save <name>`, `load`, `ls`, `rm`, `export <name> file`, `import file`. The files are pogi's, not LocalStack's |
 | `awslocal s3 ls` | `pogi aws s3 ls`, or `eval "$(pogi env)"` and use `aws`. To keep the name, `alias awslocal=aws` after `eval "$(pogi env)"` |
 | `tflocal apply` | `pogi tf > pogi_override.tf`, then plain `terraform apply`. `pogi tf` writes a provider block with every endpoint, for the aws, google and azurerm providers |
 | `cdklocal deploy` | plain `cdk bootstrap` and `cdk deploy` with `AWS_ENDPOINT_URL` set. No wrapper |
 | `samlocal`, `awscli-local` | the same as `awslocal`; SAM itself works once `AWS_ENDPOINT_URL` is set |
-| chaos API (Enterprise) | `pogi chaos add/ls/rm/clear`, or `POST /_pogi/api/chaos`; and `chaos:` in `pogi.yaml` |
+| chaos API (Enterprise) | `pogi chaos add/ls/rm/clear`, `POST /_pogi/api/chaos`, or `chaos:` in `pogi.yaml` |
 | LocalStack web app | `http://localhost:7644/_pogi/`, no account |
 
 ## Init hooks
 
-The directories and stages are the same.
+pogi uses LocalStack's directories and stages, so existing hook scripts and volume mounts keep working.
 
 - **Stages:** `boot.d`, `start.d`, `ready.d` and `shutdown.d`.
-- **Where:** `/etc/localstack/init/` (so existing volume mounts work) or `~/.pogi/init/` (`<data dir>/init`).
-- **Order:** scripts run in name order. `.sh` files run with `sh`, `.py` with `python3`, and anything executable runs as itself.
-- **Environment:** `AWS_ENDPOINT_URL`, test credentials and a region.
+- **Where:** `/etc/localstack/init/` or `~/.pogi/init/` (`<data folder>/init`).
 - **State:** `GET /_localstack/init` and `/_localstack/init/ready` report it, as in LocalStack. See the [REST API](rest-api.md#get-init-hook-status).
 
-Two things to check:
-
-- Scripts that call `awslocal` need it on the `PATH`. The pogi image does not ship it. Use `aws`, which sees `AWS_ENDPOINT_URL`.
-- The image has Python 3 and Node.js, but not every tool the LocalStack image has.
-
-For resources that need no script, `pogi.yaml` can seed buckets, queues, tables, stacks and more before `Ready.`, and again after every reset.
+Order and environment are in [Init hooks](configuration.md#init-hooks). For resources that need no script, `pogi.yaml` can seed buckets, queues, tables, stacks and more before `Ready.`, and again after every reset.
 
 ## Persistence
 
 | | LocalStack | pogi |
 |---|---|---|
 | On | `PERSISTENCE=1`, volume at `/var/lib/localstack` | `PERSISTENCE=1`, volume at `/var/lib/pogi` (`POGI_DATA_DIR`) |
-| Modes | one | `memory` (default), `hybrid` (what `PERSISTENCE=1` selects: written every few seconds and on exit), `persistent` (before each write is answered) and `wal` (DynamoDB, SQS and S3 journal each change) |
+| Modes | one | `memory` (default), `hybrid` (what `PERSISTENCE=1` selects: written every few seconds and on exit), `persistent` (before each write is acknowledged) and `wal` (DynamoDB, SQS and S3 journal each change) |
 | Survives `kill -9` | no guarantee | in `persistent` and `wal`, yes |
 | Per service | no | yes, `storage.services` in `pogi.yaml` |
 
 ## Hostnames
 
-- LocalStack's DNS name `localhost.localstack.cloud` and its subdomains are not provided. pogi never needs the network for names.
+- pogi does not provide LocalStack's DNS name `localhost.localstack.cloud` or its subdomains. It never needs the network for names.
 - The path-style default works with `AWS_ENDPOINT_URL` alone.
 - For virtual-host style S3 and for API Gateway and Lambda URLs, start pogi with `--hostname aws.localhost` (or `hostname:` in `pogi.yaml`). Then:
-  - S3 answers `<bucket>.aws.localhost:7644`.
-  - API Gateway answers `<api>.execute-api.localhost:7644`.
-  - Lambda URLs answer `<id>.lambda-url.localhost:7644`.
+  - S3 answers at `<bucket>.aws.localhost:7644`.
+  - API Gateway answers at `<api>.execute-api.localhost:7644`.
+  - Lambda URLs answer at `<id>.lambda-url.localhost:7644`.
 - `pogi env --hostname aws.localhost` prints matching variables.
 - `pogi doctor` says whether `*.localhost` resolves on your machine. It does on macOS and with systemd-resolved, but not in Alpine containers.
 

@@ -26,6 +26,12 @@ type K3s struct {
 	Token    string   // k3s server token
 	Webhook  string   // URL of a TokenReview webhook that authenticates bearer tokens; empty: none
 	Args     []string // more k3s server flags
+
+	// Watch and OnExit, when both are set, report a container that stops on its own after Run succeeded: OnExit gets
+	// a plain sentence ("killed: out of memory…", "stopped: exit 1 — …"). Watch ends the watching; the Run context
+	// ends when Run returns, so it is not that one.
+	Watch  context.Context
+	OnExit func(note string)
 }
 
 // DefaultImage is the k3s image of EKS's default Kubernetes version, which GKE and AKS run too.
@@ -63,6 +69,8 @@ func (k *K3s) Run(ctx context.Context, d *docker.Client, restart bool) (endpoint
 		return "", nil, err
 	}
 	end := time.Now().Add(5 * time.Minute)
+	tr := d.Track(k.Service, k.Resource, "start", k.Image) // until the API server answers
+	defer func() { tr.End(err) }()
 	err = k.wait(ctx, end, func() (bool, error) {
 		out, code, err := d.Exec(ctx, k.Name, "kubectl", "get", "nodes", "-o", `jsonpath={.items[*].status.conditions[?(@.type=="Ready")].status}`)
 		return err == nil && code == 0 && strings.TrimSpace(string(out)) == "True", err // err: the container stopped
@@ -80,6 +88,9 @@ func (k *K3s) Run(ctx context.Context, d *docker.Client, restart bool) (endpoint
 	info, err := d.Inspect(ctx, k.Name)
 	if err != nil {
 		return "", nil, err
+	}
+	if k.Watch != nil && k.OnExit != nil {
+		d.Watch(k.Watch, k.Name, k.OnExit)
 	}
 	endpoint = "https://127.0.0.1:" + strconv.Itoa(info.HostPort(6443)) // what clients on the host use
 	probe := "https://" + d.Addr(info.HostPort(6443))                   // where pogi reaches it (differs when pogi runs in a container)

@@ -15,6 +15,16 @@
   "signingName": "account",
   "title": "AWS Account"
  },
+ "acm-pca": {
+  "apiVersion": "2017-08-22",
+  "endpointPrefix": "acm-pca",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "ACM PCA",
+  "signingName": "acm-pca",
+  "targetPrefix": "ACMPrivateCA",
+  "title": "AWS Certificate Manager Private Certificate Authority"
+ },
  "amp": {
   "apiVersion": "2020-08-01",
   "endpointPrefix": "aps",
@@ -22,6 +32,24 @@
   "serviceId": "amp",
   "signingName": "aps",
   "title": "Amazon Prometheus Service"
+ },
+ "amplify": {
+  "apiVersion": "2017-07-25",
+  "endpointPrefix": "amplify",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "Amplify",
+  "signingName": "amplify",
+  "title": "AWS Amplify"
+ },
+ "appflow": {
+  "apiVersion": "2020-08-23",
+  "endpointPrefix": "appflow",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "Appflow",
+  "signingName": "appflow",
+  "title": "Amazon Appflow"
  },
  "appintegrations": {
   "apiVersion": "2020-07-29",
@@ -31,6 +59,16 @@
   "serviceId": "AppIntegrations",
   "signingName": "app-integrations",
   "title": "Amazon AppIntegrations Service"
+ },
+ "appstream": {
+  "apiVersion": "2016-12-01",
+  "endpointPrefix": "appstream2",
+  "jsonVersion": "1.1",
+  "protocol": "smithy-rpc-v2-cbor",
+  "serviceId": "AppStream",
+  "signingName": "appstream",
+  "targetPrefix": "PhotonAdminProxyService",
+  "title": "Amazon AppStream"
  },
  "backup": {
   "apiVersion": "2018-11-15",
@@ -128,6 +166,14 @@
   "targetPrefix": "AWSInsightsIndexService",
   "title": "AWS Cost Explorer Service"
  },
+ "cleanrooms": {
+  "apiVersion": "2022-02-17",
+  "endpointPrefix": "cleanrooms",
+  "protocol": "rest-json",
+  "serviceId": "CleanRooms",
+  "signingName": "cleanrooms",
+  "title": "AWS Clean Rooms Service"
+ },
  "cloudcontrol": {
   "apiVersion": "2021-09-30",
   "endpointPrefix": "cloudcontrolapi",
@@ -157,14 +203,24 @@
   "signingName": "codeartifact",
   "title": "CodeArtifact"
  },
- "codeguru-reviewer": {
-  "apiVersion": "2019-09-19",
-  "endpointPrefix": "codeguru-reviewer",
+ "codecommit": {
+  "apiVersion": "2015-04-13",
+  "endpointPrefix": "codecommit",
   "jsonVersion": "1.1",
-  "protocol": "rest-json",
-  "serviceId": "CodeGuru Reviewer",
-  "signingName": "codeguru-reviewer",
-  "title": "Amazon CodeGuru Reviewer"
+  "protocol": "json",
+  "serviceId": "CodeCommit",
+  "targetPrefix": "CodeCommit_20150413",
+  "title": "AWS CodeCommit"
+ },
+ "codestar-connections": {
+  "apiVersion": "2019-12-01",
+  "endpointPrefix": "codestar-connections",
+  "jsonVersion": "1.0",
+  "protocol": "json",
+  "serviceId": "CodeStar connections",
+  "signingName": "codestar-connections",
+  "targetPrefix": "com.amazonaws.codestar.connections.CodeStar_connections_20191201",
+  "title": "AWS CodeStar connections"
  },
  "comprehend": {
   "apiVersion": "2017-11-27",
@@ -175,6 +231,16 @@
   "signingName": "comprehend",
   "targetPrefix": "Comprehend_20171127",
   "title": "Amazon Comprehend"
+ },
+ "compute-optimizer": {
+  "apiVersion": "2019-11-01",
+  "endpointPrefix": "compute-optimizer",
+  "jsonVersion": "1.0",
+  "protocol": "smithy-rpc-v2-cbor",
+  "serviceId": "Compute Optimizer",
+  "signingName": "compute-optimizer",
+  "targetPrefix": "ComputeOptimizerService",
+  "title": "AWS Compute Optimizer"
  },
  "config": {
   "apiVersion": "2014-11-12",
@@ -210,6 +276,16 @@
   "signingName": "controltower",
   "title": "AWS Control Tower"
  },
+ "cost-optimization-hub": {
+  "apiVersion": "2022-07-26",
+  "endpointPrefix": "cost-optimization-hub",
+  "jsonVersion": "1.0",
+  "protocol": "json",
+  "serviceId": "Cost Optimization Hub",
+  "signingName": "cost-optimization-hub",
+  "targetPrefix": "CostOptimizationHubService",
+  "title": "Cost Optimization Hub"
+ },
  "cur": {
   "apiVersion": "2017-01-06",
   "endpointPrefix": "cur",
@@ -219,6 +295,14 @@
   "signingName": "cur",
   "targetPrefix": "AWSOrigamiServiceGatewayService",
   "title": "AWS Cost and Usage Report Service"
+ },
+ "dataexchange": {
+  "apiVersion": "2017-07-25",
+  "endpointPrefix": "dataexchange",
+  "protocol": "rest-json",
+  "serviceId": "DataExchange",
+  "signingName": "dataexchange",
+  "title": "AWS Data Exchange"
  },
  "datasync": {
   "apiVersion": "2018-11-09",
@@ -230,6 +314,23 @@
   "targetPrefix": "FmrsService",
   "title": "AWS DataSync"
  },
+ "datazone": {
+  "apiVersion": "2018-05-10",
+  "endpointPrefix": "datazone",
+  "protocol": "rest-json",
+  "serviceId": "DataZone",
+  "signingName": "datazone",
+  "title": "Amazon DataZone"
+ },
+ "dax": {
+  "apiVersion": "2017-04-19",
+  "endpointPrefix": "dax",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "DAX",
+  "targetPrefix": "AmazonDAXV3",
+  "title": "Amazon DynamoDB Accelerator (DAX)"
+ },
  "detective": {
   "apiVersion": "2018-10-26",
   "endpointPrefix": "api.detective",
@@ -238,6 +339,24 @@
   "serviceId": "Detective",
   "signingName": "detective",
   "title": "Amazon Detective"
+ },
+ "devicefarm": {
+  "apiVersion": "2015-06-23",
+  "endpointPrefix": "devicefarm",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Device Farm",
+  "targetPrefix": "DeviceFarm_20150623",
+  "title": "AWS Device Farm"
+ },
+ "directconnect": {
+  "apiVersion": "2012-10-25",
+  "endpointPrefix": "directconnect",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Direct Connect",
+  "targetPrefix": "OvertureService",
+  "title": "AWS Direct Connect"
  },
  "dlm": {
   "apiVersion": "2018-01-12",
@@ -256,6 +375,31 @@
   "serviceId": "Database Migration Service",
   "targetPrefix": "AmazonDMSv20160101",
   "title": "AWS Database Migration Service"
+ },
+ "drs": {
+  "apiVersion": "2020-02-26",
+  "endpointPrefix": "drs",
+  "protocol": "rest-json",
+  "serviceId": "drs",
+  "signingName": "drs",
+  "title": "Elastic Disaster Recovery Service"
+ },
+ "ds": {
+  "apiVersion": "2015-04-16",
+  "endpointPrefix": "ds",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Directory Service",
+  "targetPrefix": "DirectoryService_20150416",
+  "title": "AWS Directory Service"
+ },
+ "dsql": {
+  "apiVersion": "2018-05-10",
+  "endpointPrefix": "dsql",
+  "protocol": "rest-json",
+  "serviceId": "DSQL",
+  "signingName": "dsql",
+  "title": "Amazon Aurora DSQL"
  },
  "efs": {
   "apiVersion": "2015-02-01",
@@ -295,6 +439,34 @@
   "signingName": "emr-serverless",
   "title": "EMR Serverless"
  },
+ "fms": {
+  "apiVersion": "2018-01-01",
+  "endpointPrefix": "fms",
+  "jsonVersion": "1.1",
+  "protocol": "smithy-rpc-v2-cbor",
+  "serviceId": "FMS",
+  "targetPrefix": "AWSFMS_20180101",
+  "title": "Firewall Management Service"
+ },
+ "fsx": {
+  "apiVersion": "2018-03-01",
+  "endpointPrefix": "fsx",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "FSx",
+  "signingName": "fsx",
+  "targetPrefix": "AWSSimbaAPIService_v20180301",
+  "title": "Amazon FSx"
+ },
+ "gamelift": {
+  "apiVersion": "2015-10-01",
+  "endpointPrefix": "gamelift",
+  "jsonVersion": "1.1",
+  "protocol": "smithy-rpc-v2-cbor",
+  "serviceId": "GameLift",
+  "targetPrefix": "GameLift",
+  "title": "Amazon GameLift"
+ },
  "globalaccelerator": {
   "apiVersion": "2018-08-08",
   "endpointPrefix": "globalaccelerator",
@@ -304,6 +476,14 @@
   "signingName": "globalaccelerator",
   "targetPrefix": "GlobalAccelerator_V20180706",
   "title": "AWS Global Accelerator"
+ },
+ "grafana": {
+  "apiVersion": "2020-08-18",
+  "endpointPrefix": "grafana",
+  "protocol": "rest-json",
+  "serviceId": "grafana",
+  "signingName": "grafana",
+  "title": "Amazon Managed Grafana"
  },
  "guardduty": {
   "apiVersion": "2017-11-28",
@@ -323,6 +503,15 @@
   "targetPrefix": "AWSIdentityStore",
   "title": "AWS SSO Identity Store"
  },
+ "imagebuilder": {
+  "apiVersion": "2019-12-02",
+  "endpointPrefix": "imagebuilder",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "imagebuilder",
+  "signingName": "imagebuilder",
+  "title": "EC2 Image Builder"
+ },
  "inspector2": {
   "apiVersion": "2020-06-08",
   "endpointPrefix": "inspector2",
@@ -330,6 +519,24 @@
   "serviceId": "Inspector2",
   "signingName": "inspector2",
   "title": "Inspector2"
+ },
+ "ivs": {
+  "apiVersion": "2020-07-14",
+  "endpointPrefix": "ivs",
+  "protocol": "rest-json",
+  "serviceId": "ivs",
+  "signingName": "ivs",
+  "title": "Amazon Interactive Video Service"
+ },
+ "keyspaces": {
+  "apiVersion": "2022-02-10",
+  "endpointPrefix": "cassandra",
+  "jsonVersion": "1.0",
+  "protocol": "smithy-rpc-v2-cbor",
+  "serviceId": "Keyspaces",
+  "signingName": "cassandra",
+  "targetPrefix": "KeyspacesService",
+  "title": "Amazon Keyspaces"
  },
  "kinesisanalyticsv2": {
   "apiVersion": "2018-05-23",
@@ -340,6 +547,13 @@
   "signingName": "kinesisanalytics",
   "targetPrefix": "KinesisAnalytics_20180523",
   "title": "Amazon Kinesis Analytics"
+ },
+ "kinesisvideo": {
+  "apiVersion": "2017-09-30",
+  "endpointPrefix": "kinesisvideo",
+  "protocol": "rest-json",
+  "serviceId": "Kinesis Video",
+  "title": "Amazon Kinesis Video Streams"
  },
  "lakeformation": {
   "apiVersion": "2017-03-31",
@@ -358,6 +572,15 @@
   "signingName": "lambda",
   "title": "Lambda MicroVMs"
  },
+ "license-manager": {
+  "apiVersion": "2018-08-01",
+  "endpointPrefix": "license-manager",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "License Manager",
+  "targetPrefix": "AWSLicenseManager",
+  "title": "AWS License Manager"
+ },
  "lightsail": {
   "apiVersion": "2016-11-28",
   "endpointPrefix": "lightsail",
@@ -366,6 +589,14 @@
   "serviceId": "Lightsail",
   "targetPrefix": "Lightsail_20161128",
   "title": "Amazon Lightsail"
+ },
+ "location": {
+  "apiVersion": "2020-11-19",
+  "endpointPrefix": "geo",
+  "protocol": "rest-json",
+  "serviceId": "Location",
+  "signingName": "geo",
+  "title": "Amazon Location Service"
  },
  "macie2": {
   "apiVersion": "2020-01-01",
@@ -395,6 +626,32 @@
   "targetPrefix": "AWSMPEntitlementService",
   "title": "AWS Marketplace Entitlement Service"
  },
+ "mediaconvert": {
+  "apiVersion": "2017-08-29",
+  "endpointPrefix": "mediaconvert",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "MediaConvert",
+  "signingName": "mediaconvert",
+  "title": "AWS Elemental MediaConvert"
+ },
+ "medialive": {
+  "apiVersion": "2017-10-14",
+  "endpointPrefix": "medialive",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "MediaLive",
+  "signingName": "medialive",
+  "title": "AWS Elemental MediaLive"
+ },
+ "mediapackagev2": {
+  "apiVersion": "2022-12-25",
+  "endpointPrefix": "mediapackagev2",
+  "protocol": "rest-json",
+  "serviceId": "MediaPackageV2",
+  "signingName": "mediapackagev2",
+  "title": "AWS Elemental MediaPackage v2"
+ },
  "meteringmarketplace": {
   "apiVersion": "2016-01-14",
   "endpointPrefix": "metering.marketplace",
@@ -423,6 +680,23 @@
   "targetPrefix": "NetworkFirewall_20201112",
   "title": "AWS Network Firewall"
  },
+ "networkmanager": {
+  "apiVersion": "2019-07-05",
+  "endpointPrefix": "networkmanager",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "NetworkManager",
+  "signingName": "networkmanager",
+  "title": "AWS Network Manager"
+ },
+ "notifications": {
+  "apiVersion": "2018-05-10",
+  "endpointPrefix": "notifications",
+  "protocol": "rest-json",
+  "serviceId": "Notifications",
+  "signingName": "notifications",
+  "title": "AWS User Notifications"
+ },
  "oam": {
   "apiVersion": "2022-06-10",
   "endpointPrefix": "oam",
@@ -431,6 +705,43 @@
   "serviceId": "OAM",
   "signingName": "oam",
   "title": "CloudWatch Observability Access Manager"
+ },
+ "odb": {
+  "apiVersion": "2024-08-20",
+  "endpointPrefix": "odb",
+  "jsonVersion": "1.0",
+  "protocol": "json",
+  "serviceId": "odb",
+  "signingName": "odb",
+  "targetPrefix": "Odb",
+  "title": "odb"
+ },
+ "payment-cryptography": {
+  "apiVersion": "2021-09-14",
+  "endpointPrefix": "controlplane.payment-cryptography",
+  "jsonVersion": "1.0",
+  "protocol": "json",
+  "serviceId": "Payment Cryptography",
+  "signingName": "payment-cryptography",
+  "targetPrefix": "PaymentCryptographyControlPlane",
+  "title": "Payment Cryptography Control Plane"
+ },
+ "pinpoint-sms-voice-v2": {
+  "apiVersion": "2022-03-31",
+  "endpointPrefix": "sms-voice",
+  "jsonVersion": "1.0",
+  "protocol": "json",
+  "serviceId": "Pinpoint SMS Voice V2",
+  "signingName": "sms-voice",
+  "targetPrefix": "PinpointSMSVoiceV2",
+  "title": "Amazon Pinpoint SMS Voice V2"
+ },
+ "polly": {
+  "apiVersion": "2016-06-10",
+  "endpointPrefix": "polly",
+  "protocol": "rest-json",
+  "serviceId": "Polly",
+  "title": "Amazon Polly"
  },
  "pricing": {
   "apiVersion": "2017-10-15",
@@ -441,6 +752,14 @@
   "signingName": "pricing",
   "targetPrefix": "AWSPriceListService",
   "title": "AWS Price List Service"
+ },
+ "quicksight": {
+  "apiVersion": "2018-04-01",
+  "endpointPrefix": "quicksight",
+  "jsonVersion": "1.0",
+  "protocol": "rest-json",
+  "serviceId": "QuickSight",
+  "title": "Amazon QuickSight"
  },
  "ram": {
   "apiVersion": "2018-01-04",
@@ -459,12 +778,38 @@
   "targetPrefix": "RekognitionService",
   "title": "Amazon Rekognition"
  },
+ "resiliencehub": {
+  "apiVersion": "2020-04-30",
+  "endpointPrefix": "resiliencehub",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "resiliencehub",
+  "signingName": "resiliencehub",
+  "title": "AWS Resilience Hub"
+ },
+ "resource-groups": {
+  "apiVersion": "2017-11-27",
+  "endpointPrefix": "resource-groups",
+  "protocol": "rest-json",
+  "serviceId": "Resource Groups",
+  "signingName": "resource-groups",
+  "title": "AWS Resource Groups"
+ },
  "route53": {
   "apiVersion": "2013-04-01",
   "endpointPrefix": "route53",
   "protocol": "rest-xml",
   "serviceId": "Route 53",
   "title": "Amazon Route 53"
+ },
+ "route53-recovery-control-config": {
+  "apiVersion": "2020-11-02",
+  "endpointPrefix": "route53-recovery-control-config",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "Route53 Recovery Control Config",
+  "signingName": "route53-recovery-control-config",
+  "title": "AWS Route53 Recovery Control Config"
  },
  "route53resolver": {
   "apiVersion": "2018-04-01",
@@ -519,6 +864,24 @@
   "signingName": "securityhub",
   "title": "AWS SecurityHub"
  },
+ "securitylake": {
+  "apiVersion": "2018-05-10",
+  "endpointPrefix": "securitylake",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "SecurityLake",
+  "signingName": "securitylake",
+  "title": "Amazon Security Lake"
+ },
+ "serverlessrepo": {
+  "apiVersion": "2017-09-08",
+  "endpointPrefix": "serverlessrepo",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "ServerlessApplicationRepository",
+  "signingName": "serverlessrepo",
+  "title": "AWSServerlessApplicationRepository"
+ },
  "service-quotas": {
   "apiVersion": "2019-06-24",
   "endpointPrefix": "servicequotas",
@@ -536,6 +899,24 @@
   "serviceId": "Service Catalog",
   "targetPrefix": "AWS242ServiceCatalogService",
   "title": "AWS Service Catalog"
+ },
+ "shield": {
+  "apiVersion": "2016-06-02",
+  "endpointPrefix": "shield",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Shield",
+  "targetPrefix": "AWSShield_20160616",
+  "title": "AWS Shield"
+ },
+ "signer": {
+  "apiVersion": "2017-08-25",
+  "endpointPrefix": "signer",
+  "jsonVersion": "1.1",
+  "protocol": "rest-json",
+  "serviceId": "signer",
+  "signingName": "signer",
+  "title": "AWS Signer"
  },
  "sso": {
   "apiVersion": "2019-06-10",
@@ -564,6 +945,15 @@
   "serviceId": "SSO OIDC",
   "signingName": "sso-oauth",
   "title": "AWS SSO OIDC"
+ },
+ "storagegateway": {
+  "apiVersion": "2013-06-30",
+  "endpointPrefix": "storagegateway",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "Storage Gateway",
+  "targetPrefix": "StorageGateway_20130630",
+  "title": "AWS Storage Gateway"
  },
  "swf": {
   "apiVersion": "2012-01-25",
@@ -613,6 +1003,14 @@
   "targetPrefix": "AWSShineFrontendService_20170701",
   "title": "Amazon Translate"
  },
+ "vpc-lattice": {
+  "apiVersion": "2022-11-30",
+  "endpointPrefix": "vpc-lattice",
+  "protocol": "rest-json",
+  "serviceId": "VPC Lattice",
+  "signingName": "vpc-lattice",
+  "title": "Amazon VPC Lattice"
+ },
  "wafv2": {
   "apiVersion": "2019-07-29",
   "endpointPrefix": "wafv2",
@@ -621,5 +1019,29 @@
   "serviceId": "WAFV2",
   "targetPrefix": "AWSWAF_20190729",
   "title": "AWS WAFV2"
+ },
+ "workspaces": {
+  "apiVersion": "2015-04-08",
+  "endpointPrefix": "workspaces",
+  "jsonVersion": "1.1",
+  "protocol": "json",
+  "serviceId": "WorkSpaces",
+  "targetPrefix": "WorkspacesService",
+  "title": "Amazon WorkSpaces"
+ },
+ "workspaces-web": {
+  "apiVersion": "2020-07-08",
+  "endpointPrefix": "workspaces-web",
+  "protocol": "rest-json",
+  "serviceId": "WorkSpaces Web",
+  "signingName": "workspaces-web",
+  "title": "Amazon WorkSpaces Web"
+ },
+ "xray": {
+  "apiVersion": "2016-04-12",
+  "endpointPrefix": "xray",
+  "protocol": "rest-json",
+  "serviceId": "XRay",
+  "title": "AWS X-Ray"
  }
 }

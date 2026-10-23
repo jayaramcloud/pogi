@@ -5,7 +5,7 @@ description: How pogi's start-up time, memory and speed were measured, and on wh
 
 # Benchmarks
 
-These are the numbers on pogi's website and how we got them. All of them were measured on 2026-10-16 on an Apple M5
+pogi's website quotes the numbers below. All of them were measured on 2026-10-16 on an Apple M5
 with 32 GB of memory, using the pogi v0.1.0 release build. The machine was also running other work at the time, so
 a quiet machine may do better. Your numbers will differ with your machine.
 

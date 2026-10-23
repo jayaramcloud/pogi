@@ -37,7 +37,7 @@ func Listen(tb TB, h http.Handler) string {
 // ServeTest starts a hub with only the given services, for package tests.
 func ServeTest(tb TB, build ...func(*Hub) Service) (*Hub, string) {
 	tb.Helper()
-	h := NewHub(Config{Version: "test", DataDir: tb.TempDir(), ValidateSigs: testSigs()}, nil)
+	h := NewHub(Config{Version: "test", DataDir: tb.TempDir(), ValidateSigs: testSigs(), LambdaInit: TestLambdaInit}, nil)
 	for _, b := range build {
 		h.Register(b(h))
 	}
@@ -46,6 +46,11 @@ func ServeTest(tb TB, build ...func(*Hub) Service) (*Hub, string) {
 	return h, h.URL
 }
 
+// TestLambdaInit is the Lambda start limit in pogi's own tests. AWS's 10 seconds is too tight for a cold start
+// while a full test run loads the machine (TestExternalExtension failed so, 3 runs in about 22); a start that is
+// truly stuck still fails.
+const TestLambdaInit = time.Minute
+
 // testSigs turns on signature checking for a whole test run
 // (POGI_TEST_VALIDATE_SIGNATURES=1 go test ./...).
 func testSigs() bool { return os.Getenv("POGI_TEST_VALIDATE_SIGNATURES") == "1" }
@@ -53,7 +58,7 @@ func testSigs() bool { return os.Getenv("POGI_TEST_VALIDATE_SIGNATURES") == "1" 
 // ServePort serves one service on its own random port for tests (Azure Storage).
 func ServePort(tb TB, build func(*Hub) Service) (*Hub, string) {
 	tb.Helper()
-	h := NewHub(Config{Version: "test", DataDir: tb.TempDir(), ValidateSigs: testSigs()}, nil)
+	h := NewHub(Config{Version: "test", DataDir: tb.TempDir(), ValidateSigs: testSigs(), LambdaInit: TestLambdaInit}, nil)
 	svc := build(h)
 	h.Register(svc)
 	h.URL = Listen(tb, h)
@@ -106,6 +111,8 @@ func Env(endpoint, region string, storage ...string) []string {
 		"FIRESTORE_EMULATOR_HOST="+hp,
 		"FIREBASE_AUTH_EMULATOR_HOST="+hp,
 		"DATASTORE_EMULATOR_HOST="+hp,
+		"SPANNER_EMULATOR_HOST="+hp,
+		"BIGTABLE_EMULATOR_HOST="+hp,
 		"AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey="+AzuriteKey+";"+
 			azurite(0, "Blob")+azurite(1, "Queue")+azurite(2, "Table"),
 		"COSMOS_ENDPOINT=https://"+hp+"/",
@@ -126,7 +133,7 @@ const DefaultProject = "pogi"
 // property api_endpoint_overrides/<name>.
 var gcloudAPIs = []string{"pubsub", "storage", "secretmanager", "firestore", "run", "cloudfunctions", "cloudtasks",
 	"cloudscheduler", "eventarc", "managedkafka", "cloudkms", "sql", "datastore", "iam", "iamcredentials",
-	"cloudresourcemanager", "serviceusage", "logging", "monitoring", "bigquery"}
+	"cloudresourcemanager", "serviceusage", "logging", "monitoring", "bigquery", "compute"}
 
 // GcloudEnv points the gcloud CLI at pogi: one CLOUDSDK_API_ENDPOINT_OVERRIDES_<API>
 // per served API, the default project and a dummy access token. The override
@@ -139,6 +146,13 @@ func GcloudEnv(endpoint string) []string {
 	for _, api := range gcloudAPIs {
 		out = append(out, "CLOUDSDK_API_ENDPOINT_OVERRIDES_"+strings.ToUpper(api)+"="+strings.TrimSuffix(endpoint, "/")+"/")
 	}
+	for _, api := range SortedKeys(googlePrefixed) { // the APIs served under /<api>/ (googlePrefix)
+		path := "/" + api + "/"
+		if api == "dns" { // its own paths already start with /dns/v1/
+			path = "/"
+		}
+		out = append(out, "CLOUDSDK_API_ENDPOINT_OVERRIDES_"+strings.ToUpper(api)+"="+strings.TrimSuffix(endpoint, "/")+path)
+	}
 	return append(out, "CLOUDSDK_CORE_PROJECT="+DefaultProject, "CLOUDSDK_AUTH_ACCESS_TOKEN=pogi-token", "CLOUDSDK_CORE_DISABLE_PROMPTS=1")
 }
 
@@ -148,6 +162,11 @@ func Hostport(endpoint string) string {
 }
 
 const internalHeader = "X-Pogi-Internal"
+
+// ConsoleHeader marks an in-process call as a write the console made for the user. Such calls are
+// logged (marked "console"); other internal calls are not. Like internalHeader, it only counts
+// for in-process calls.
+const ConsoleHeader = "X-Pogi-Console"
 
 // Call invokes a JSON-protocol operation in-process as account/region, the
 // way Lambda pollers, Step Functions and CloudFormation reach other services.
@@ -159,6 +178,15 @@ func (h *Hub) Call(account, region, target, op string, in, out any) error {
 // CallTrace is Call inside a flow: the called service sees the trace on X-Amzn-Trace-Id,
 // so what it sends on stays in the same flow.
 func (h *Hub) CallTrace(trace, account, region, target, op string, in, out any) error {
+	return h.call(false, trace, account, region, target, op, in, out)
+}
+
+// ConsoleCall is Call for a write the console makes: it shows in Activity, marked "console".
+func (h *Hub) ConsoleCall(account, region, target, op string, in, out any) error {
+	return h.call(true, "", account, region, target, op, in, out)
+}
+
+func (h *Hub) call(console bool, trace, account, region, target, op string, in, out any) error {
 	if h.targets[target] == nil {
 		return &Error{http.StatusBadRequest, "ServiceNotEnabled", "no enabled service handles " + target}
 	}
@@ -172,6 +200,9 @@ func (h *Hub) CallTrace(trace, account, region, target, op string, in, out any) 
 	req.Header.Set("Content-Type", "application/x-amz-json-1.0")
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential="+account+"/20260101/"+region+"/pogi/aws4_request")
 	req.Header.Set(internalHeader, "1")
+	if console {
+		req.Header.Set(ConsoleHeader, "1")
+	}
 	if trace != "" {
 		req.Header.Set("X-Amzn-Trace-Id", TraceHeader(trace))
 	}

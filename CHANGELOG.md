@@ -7,6 +7,173 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-23
+
+### Security
+
+- **The MCP endpoint refuses other websites.** `/_pogi/mcp` now has the same cross-origin check as the admin API, so a page on another local port can no longer call its tools.
+- **More secrets are hidden in Activity.** SSM SecureStrings, Key Vault values, Google Secret Manager payloads, Azure SQL passwords, Lambda environment variables, Cognito tokens, security-token and API-key headers and query values now show as `[redacted]`. Names stay visible.
+- **`evil.xlocalhost` is no longer treated as localhost.** Only `localhost`, `*.localhost` and the `-localhost` form pogi uses count.
+- **Built with Go 1.27.3.** Go 1.27.2, which built 0.1.0, still trusted certificates from eight eMudhra intermediate certificate authorities whose keys were stolen ([GO-2026-6809](https://pkg.go.dev/vuln/GO-2026-6809)). Go 1.27.3 rejects them, so pogi's outbound HTTPS connections do too.
+
+### Fixed
+
+- **Extra arguments are an error, and flags work anywhere.** Commands used to ignore words they do not take, so `pogi start version` started the server, and a flag after an argument was dropped, so `pogi ls s3 --endpoint URL` quietly used the default endpoint. Now pogi names the argument it did not expect. Flags may come before or after the arguments (`pogi snapshot --endpoint URL ls` works too), and `-h` at the end of any command prints its help.
+- **`pogi reset` refuses empty and unknown names.** `pogi reset ""`, as from an unset variable in a script, used to reset every service, and a misspelled name reported success while resetting nothing. Both now fail with a message. `pogi reset` with no name still resets everything.
+- **Bad settings from flags and environment variables fail.** `--iam stict`, `--storage bogus` or `POGI_PORT=abc` used to start pogi anyway. They now get the same checks as `pogi.yaml`. An unknown name in `--services` fails too and suggests close names; if you set LocalStack's `SERVICES`, every name in it must be one pogi has.
+- **Chaos rules are checked.** A status outside 400-599, a rate outside 0-1 or a negative latency is refused by `pogi chaos add`, the console, MCP and the admin API, and `pogi.yaml` checks latency too. `pogi chaos ls --status 500` and the like fail, since those flags only mean something to `add`.
+- **Client commands give up on a pogi that does not answer.** They used to wait forever; now they stop after 2 minutes and say so.
+- **A failed `pogi snapshot export` leaves no file.** The file used to be created before the download, so an unknown name left an empty file. Now it appears only once the whole snapshot has arrived.
+- **The start banner's `pogi env` hint fits the port.** On a port other than the one `pogi env` uses by default, it now shows `pogi env --endpoint URL`.
+- **Bad client flag values fail.** `pogi env --shell nushell` used to print `sh` syntax, and `pogi logs -n -5` was accepted. Both now stop with a message.
+- **Removing things says so.** `pogi snapshot rm`, `pogi chaos rm` and `pogi chaos clear` print what they removed.
+- **`NO_COLOR` and `TERM=dumb` are respected.** `pogi cost` prints no bold text and `pogi pull` no redrawn progress line when either is set.
+- **`pogi clean -h` prints its `--data-dir` flag correctly.**
+- **Every command's help says what it does.** `-h` and `pogi help <command>` now show a one-line summary, the usage, an example and the flags, spelled `--name` as in these docs. Help goes to standard output, so it can be piped to `grep` or `less`.
+- **Ctrl-C on `pogi start` answers at once, and a second one quits.** pogi used to print nothing until every container had stopped, and ignored a second Ctrl-C. Now it prints `Stopping… (press Ctrl-C again to quit now)` right away, and a second Ctrl-C ends it without waiting. `pogi clean` removes any container left behind.
+- **`pogi clean` no longer asks when no one can answer.** Without a terminal it used to print `Delete these? [y/N]`, read no answer, delete nothing and exit 0, so a forgotten `--yes` in CI went unnoticed. Now it stops and asks for `--yes` or `--dry-run`. When some deletes fail, it prints each reason, counts only what it deleted and exits 1.
+- **`/dev/null` is not a terminal.** pogi took any character device for a terminal, so `pogi clean < /dev/null` would prompt and `pogi start < /dev/null` could try to open the terminal screen. pogi now asks the system whether it is a real terminal.
+- **Plainer errors for a missing snapshot, a missing path and a pogi that is not running.** `pogi snapshot rm`, `load` and `export` with an unknown name used to show the server's file path or `404 page not found`; now they say `no snapshot named "x" (pogi snapshot ls lists them)`, and the admin API answers 404. `pogi cost`, `pogi pull` and the MCP tools say `/x was not found`, not `stat /x: no such file or directory`. A pogi that is not running is `cannot reach pogi at …`, not `pogi: pogi is not reachable at …`.
+- **An unknown service name is an error, not an empty list.** `pogi ls nosuch` and `pogi logs --service nosuch` used to print nothing and exit 0, which looked the same as "no resources". Now they fail with `no enabled service "nosuch" (pogi services lists them)`. The admin API answers `GET /_pogi/api/resources?service=` and `GET /_pogi/api/requests?service=` with 404 for a service that is not running. The terminal screen's Logs tab asks only for the log services that run, so it works with CloudWatch Logs or Cloud Logging turned off.
+- **`pogi tf diagram` opens no browser in CI.** When standard output is not a terminal, it prints the page's address, as `--no-open` does.
+- **`pogi status` shows problems.** Saved state pogi can't read or write, and ports it could not open, used to show only in the console and the terminal screen. `pogi status` now lists each under its first line, in red in a terminal.
+- **A busy port is said once, and everywhere.** With `--headless`, a busy SMTP, AMQP or Azure Storage port showed as a `level=WARN` log line and again in the banner. Now the banner says it once (`--debug` logs it too). It is also a pogi problem: the terminal screen counts it in its header and lists it on the Overview tab, the console shows a banner and the bell a note, and `/_pogi/api/info` lists it under `problems` with `"kind":"port"`. Before, a busy port showed nowhere in the terminal screen.
+- **Usage errors exit with 2.** A bad flag, a bad flag value, an argument a command does not take or a missing one now exits with `2`, in every command. Other errors still exit with `1`. A bad flag's message names the command and points to its `-h`.
+- **`pogi --version` and `pogi -v` print the version.** They used to be read as unknown server flags and failed.
+- **The terminal screen showed calls more than once.** Each tab switch started one more background refresh, so the same call could appear several times and the counts went up. Now there is one refresh. Log lines with line breaks or terminal escape codes no longer break the screen.
+- **Snapshots are checked before they load.** A snapshot from a newer pogi, an empty one (`{}`) or one that does not decode is refused with a plain message that names the service. A load is all or nothing: if one service fails, the state stays as it was. A service this pogi does not know is skipped with a warning.
+- **Saved state survives a power cut.** The state writer now flushes the temp file to disk before the rename, and the folder after it.
+- **EC2 `RunInstances` honors `ClientToken`.** The same token with the same parameters returns the first call's reservation (also when many calls arrive at once); the same token with other parameters returns `IdempotentParameterMismatch`. Tokens are saved with the instances.
+- **A code zip with a `../` or absolute entry is refused at upload.** Lambda `CreateFunction` and `UpdateFunctionCode` answer `InvalidParameterValueException` naming the entry; Azure Functions and Google Cloud Functions use the same check when they unpack.
+- **A model call stops when the client leaves.** Bedrock, SageMaker, Comprehend and Translate calls to your local model now end with the request, not after a fixed 5 minutes. The limit is `ai.timeout` in `pogi.yaml` (default `5m`).
+- **Busy ports are said plainly.** A busy main port exits 1 with "port N is in use (another pogi?); use --port". A busy SMTP, AMQP or Azure Storage port now shows in the start banner, next to its name.
+- **A registry that never answers is named as one.** A timed-out image download says "The registry can't be reached". Calls pogi makes to your function host, a blob copy source and the Spanner emulator now have a time limit.
+- **A restarted container no longer waits on port 0.** Docker names a container's host ports a moment after a start
+  or restart; pogi read them at once, so under load an MQ broker reboot could wait 5 minutes on a port it never had.
+  pogi now waits until Docker has named every published port, and says so if it never does.
+- **A Lambda function that does not start in time says why.** The error names the slow part: the runtime never asked
+  for work, or an extension had not finished its init, with the time each part became ready. The limit is
+  `lambda.initTimeout` in `pogi.yaml`: AWS's 10 seconds by default; raise it on a slow or busy machine.
+- **Databases keep their data in a volume.** Each database container mounts a Docker volume named
+  `<container>-data`. A container that was removed, or won't start, is made again on the same volume, so its data
+  stays; "recreated empty" is said only when the volume is gone too. A new database and a snapshot restore start from
+  an empty volume. Deleting a resource, `pogi reset` and exiting without saved state remove the volumes. `pogi clean`
+  now lists the containers and volumes kept for a data folder's saved state by folder, with `pogi clean --data-dir
+  <folder>` to delete them.
+- **Malformed requests get plain errors.** A request body that isn't JSON, or has a field of the wrong type, is answered
+  with a sentence such as "the request body is not valid JSON" or "field QueueUrl must be a string, not number", in each
+  cloud's own error shape. Go's parser text, when shown, follows after " — ". A bad `plan.json` is refused the same way.
+- **Odd names are checked.** Azure resource group names (1 to 90 characters) and Blob container names (3 to 63 lowercase
+  letters, digits and single hyphens) are refused with Azure's error codes, and GCS bucket names over 63 characters
+  (222 with dots) with GCS's `invalid` error. A Pub/Sub name with `%2F` is refused as an invalid name instead of
+  answering 501.
+- **Saved state is safer.** One data folder is used by one pogi: a second one exits with "another pogi (pid N) is using
+  <folder>". A state file that won't load is kept as `<name>.corrupt-<time>` and never overwritten, and the console
+  bell and `/_pogi/api/info` say so. pogi stops at start, with a plain message, when it can't use the data folder or
+  read an old `state.json`, instead of running without saving. A failing save (disk full, no permission) is logged
+  once, shown in the console banner, the bell and status, and clears itself when saving works again.
+- **Huge or deeply nested input no longer hurts pogi.** A Terraform file that nests deeper than 200 levels is refused with
+  "<file>:<line>: nested too deep (over 200 levels)" (it used to crash all of pogi), and a crash while reading one is a plain
+  400. Every console form now stops at the upload limit instead of filling the disk, and a refused upload shows its real
+  size. SQS, DynamoDB and the other JSON and query APIs answer `413` for a body that is too large, not "does not
+  implement".
+- **Containers and Docker.** Every Docker call (create, start, inspect, remove, exec) now ends after 2 minutes, so an
+  engine that never answers no longer leaves a database "creating" for ever or holds up shutdown. A dead or
+  silent engine gives "Docker isn't running" or "Docker stopped answering", not raw network text, and a
+  download cut by a dying engine no longer blames the registry. pogi now watches the container of every database,
+  cache and k3s cluster (RDS, ElastiCache, MemoryDB, Cloud SQL, GKE, EKS, AKS and the others that run one): one
+  that stops on its own turns "failed", with a note such as "killed: out of memory (raise Docker's memory limit)"
+  or "stopped: exit 1 — <last log line>", and a container that dies while starting fails at once, not after 5
+  minutes. A container removed while pogi was stopped is recreated with the note "its container was removed
+  while pogi was stopped, so it was recreated empty". The console's Status column for databases, caches and
+  similar resources now shows the note next to the status, such as "available · no database: Docker isn't running".
+
+### Added
+
+- **JSON from the list commands.** `pogi status`, `services`, `ls`, `snapshot ls` and `chaos ls` take `--json`, `pogi logs --json` prints one JSON object per call, and `pogi cost --json` is short for `--format json`.
+- **Help for each command.** `pogi help <command>` shows that command's flags, the main help names `pogi tf diagram` and links the docs and the issue tracker, and `pogi version -h` works.
+- **Long and short flag names.** `logs --follow` and `--lines` (for `-f` and `-n`), `start -q` (for `--quiet`) and `tf diagram --output` (for `-o`).
+- **`-` in snapshots.** `pogi snapshot export NAME -` writes to standard output, and `pogi snapshot import - NAME` reads standard input.
+- **A clearer terminal screen.** Every list in the TUI is now a table with column headers, and narrow windows drop the least important columns first.
+  - The top line shows whether pogi is ready, whether state is saved, the IAM mode, the region, the chaos rules and any saved-state problems.
+  - Overview (was Dashboard) adds errors, average time and the last call for each service in use, calls per second, and the top errors.
+  - Requests shows the selected call's details under the list, filters by cloud, and sorts by time, slowest or errors first.
+  - Resources lists the services that hold something, beside their tables. Logs has a level column, a filter and a warnings-and-errors switch.
+  - A new Flows tab lists the steps where one service hands work to another, such as an SNS message delivered to SQS.
+  - Loading or deleting a snapshot and resetting one service now ask first. Inside `pogi start`, the footer says that `q` stops pogi.
+- **`GET /_pogi/api/spans`** returns the recent flow steps: deliveries, function runs, dead-letter moves and notifications.
+- **Image downloads you can see.** The console shows an image download and a container start in the resource's row, tells the bell
+  when a resource is ready or a download failed (mute it with "Your resources"), and serves the work as JSON at
+  `/_pogi/tasks`. A download fails when no data arrives for 2 minutes, or after 30 minutes, and Docker's errors come
+  as plain sentences. `pogi pull <folder | plan.json>` (also `--all` and `--list`) downloads the images a stack needs ahead of time.
+- **Clearer feedback in the console.** Buttons show they are busy and cannot be double-clicked. Messages name
+  the resource ("Bucket photos created"), and pages you reach by redirect show a success bar. Deleting asks in
+  pogi's own dialog, and removing a single chaos rule now asks too. Resource tables refresh themselves while a
+  row is creating or deleting, a row shows image download progress or the plain reason it failed, and a top-bar
+  indicator lists background work. Writes made in the console now appear in Activity with a "console" label.
+- **Service icons in the console.** Every service now has its cloud's own icon (AWS, Azure and Google Cloud; a
+  service with none shows a plain glyph). They show in the sidebar, the collapsed sidebar, each service page's
+  header, `⌘K` results and Map nodes. The Terraform diagram uses the same icons. The counts now say how many
+  services pogi covers (counted as products, with the Deep, Core and Thin split), Flows has its own sidebar
+  link, service names on the Services page wrap instead of being cut off, Deep, Core and Thin badges explain
+  themselves, and a service filled from the console shows under "In use".
+- **Terraform cost.** `pogi cost ./infra` works out what a Terraform folder or a `plan.json` would cost a month
+  on the real cloud. pogi reads the files itself and never runs Terraform. Each row says how sure pogi is
+  (known, assumed, usage or needs), and a plan shows the cost before, after and the change. It prices AWS and
+  Azure from price lists built into pogi, with no network. Google Cloud prices are not included yet. There is
+  also a usage file, a size what-if (`--size`, `pogi cost sizes`), and output as a table, JSON or Markdown.
+  The console's Cost page has a Terraform tab with a size picker, and the `estimate_terraform_cost` and
+  `list_sizes` MCP tools give agents the same numbers. See
+  [Estimate Terraform cost](docs/how-to/estimate-terraform-cost.md).
+- **A diagram of your Terraform.** The new Terraform page draws each resource as a box, the references between
+  them, and what a plan creates, updates, replaces or deletes, with what depends on each change. You can group
+  by module or by network (VPC, VNet or Google network, with their subnets as frames), pan, zoom and export it
+  as SVG or PNG. pogi keeps the last stack in memory, so the Cost page's Terraform tab shows the same one. See
+  [See what a plan changes](docs/how-to/see-what-a-plan-changes.md).
+- **`pogi tf diagram [path]`** sends a Terraform folder or plan to the running pogi and opens the Terraform page.
+  With `-o diagram.svg` it writes the SVG with no running pogi.
+- **11 more AWS services.** X-Ray keeps the traces you send
+  and finds them again, with sampling rules and targets. A DAX cluster's endpoint is pogi's own DynamoDB, so a
+  plain DynamoDB client pointed at it works. Amplify, Polly, Shield, CodeCommit, Location, Keyspaces,
+  FSx, Resource Groups and CodeStar Connections keep their resources, so Terraform and the SDKs can create,
+  read, update and delete them, but nothing runs behind them. See [Coverage](docs/reference/coverage.md).
+- **38 more AWS services on the generated engine:** AppFlow, MediaConvert, IVS, Security Lake, QuickSight,
+  Managed Grafana, VPC Lattice, Direct Connect, WorkSpaces, WorkSpaces Secure Browser, AppStream 2.0, Directory
+  Service, Signer, Elastic Disaster Recovery, Cloud WAN, Device Farm, License Manager, MediaLive, MediaPackage,
+  GameLift, Kinesis Video Streams, DataZone, Data Exchange, Clean Rooms, Resilience Hub, Application Recovery
+  Controller, Payment Cryptography, Private CA, Firewall Manager, User Notifications, Compute Optimizer, Cost
+  Optimization Hub, EC2 Image Builder, Storage Gateway, End User Messaging, Serverless Application Repository
+  (its applications deploy through pogi's CloudFormation), Oracle Database@AWS and Aurora DSQL. Terraform and the
+  SDKs can create, read, update and delete their resources, but nothing runs behind them.
+- **Google Cloud services that really run.** Spanner runs Google's own emulator in Docker behind pogi's port.
+  Bigtable runs Google's own emulator inside pogi, with no Docker, and pogi adds the instance admin API that
+  emulator lacks. Each Memorystore for Redis instance is a real Redis container, and its `host` and `port` work
+  for a client. Workflows runs your workflow's YAML: `assign`, `call` (HTTP, `sys.*` and subworkflows), `switch`,
+  `for`, `try` with `retry`, `return` and `raise`. A step pogi doesn't support fails the execution with an error
+  that names it.
+- **Azure services that really run.** App Service web apps run their container image, or zip-deployed Node or
+  Python code, at `<app>.azurewebsites.localhost`. Azure Files serves shares, directories, files and ranges.
+  Data Lake Storage Gen2 serves the `dfs` endpoint on Blob Storage, with real directories and renames. A Cosmos DB
+  account of kind MongoDB runs on a real MongoDB, and `listConnectionStrings` returns a string that a Mongo
+  driver connects with.
+- **More Thin services for Google Cloud and Azure.** Two new engines, like the one behind AWS's long tail, build
+  services from Google's API descriptions and Microsoft's API specs. On them run Google Cloud services such
+  as Cloud DNS, Filestore, Cloud Build, Dataproc and AlloyDB, and Azure services such as DNS, Policy, Front Door,
+  Application Gateway, Firewall, Data Factory and Databricks.
+  Terraform and the SDKs can create, read, update and delete their resources, but nothing runs behind them.
+  Azure still refuses a resource type that pogi doesn't list, with a clear error.
+- **<!-- count:total -->355 services: 144 AWS (88 with real behavior, 56 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (29 with real behavior, 74 Thin)<!-- /count -->,** each product counted once. See [Coverage](docs/reference/coverage.md).
+- `pogi env` now points gcloud at every Google API that pogi serves, and sets `SPANNER_EMULATOR_HOST` and
+  `BIGTABLE_EMULATOR_HOST`. Some Google APIs share their paths, so pogi tells them apart by a prefix, such as
+  `/redis/`. `pogi env` and `pogi tf --cloud gcp` add it for you. See
+  [Connect your tools](docs/how-to/connect-your-tools.md#google-cloud).
+
+### Removed
+
+- **Amazon CodeGuru Reviewer.** AWS stopped taking new customers for it on November 7, 2025, and pogi lists only
+  products that are open to new customers.
+- **Azure Database for MariaDB.** Microsoft retired it in September 2025.
+
 ## [0.1.0] - 2026-10-17
 
 The first release. pogi is one Go binary that emulates AWS, Google Cloud and Azure on one port
@@ -64,5 +231,6 @@ at idle ([how we measured](docs/reference/benchmarks.md)).
   for Linux, macOS and Windows on amd64 and arm64. The checksums and the image are signed with
   cosign, and the archives and packages carry GitHub build attestations ([how to check a download](docs/how-to/install.md)).
 
-[Unreleased]: https://github.com/nrndev/pogi/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/nrndev/pogi/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/nrndev/pogi/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nrndev/pogi/releases/tag/v0.1.0

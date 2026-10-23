@@ -220,7 +220,7 @@ func decodeBody(r *http.Request, v any) error {
 		return nil
 	}
 	if err := json.Unmarshal(b, v); err != nil {
-		return invalid("Invalid JSON payload received. %v", err)
+		return invalid("Invalid JSON payload received. %s", core.PlainJSON(err))
 	}
 	return nil
 }
@@ -659,7 +659,7 @@ func (s *Service) insertAll(r *http.Request, seg []string) (any, error) {
 	}
 	d := jsonDecoder(core.Body(r))
 	if err := d.Decode(&in); err != nil {
-		return nil, invalid("Invalid JSON payload received. %v", err)
+		return nil, invalid("Invalid JSON payload received. %s", core.PlainJSON(err))
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

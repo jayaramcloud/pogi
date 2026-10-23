@@ -30,19 +30,19 @@ When the same setting comes from more than one place, the first of these wins:
 | `--storage` | `POGI_STORAGE` | `memory` | `memory`, `hybrid`, `persistent` or `wal`. See [Storage modes](#storage-modes). |
 | `--region` | `POGI_REGION`, `DEFAULT_REGION` | `us-east-1` | Default AWS region. The partition follows it (`cn-*`, `us-gov-*`). |
 | `--lambda` | `POGI_LAMBDA` | `auto` | Lambda executor: `auto`, `native` or `docker`. |
-| `--iam` | `POGI_IAM` | `off` | IAM (who may do what) enforcement: `off`, `soft` or `strict`. See [Switch IAM modes](../how-to/switch-iam-modes.md). |
-| `--validate-signatures` | `POGI_VALIDATE_SIGNATURES` | off | Reject requests whose SigV4 signature (how AWS signs requests) is wrong. |
+| `--iam` | `POGI_IAM` | `off` | IAM (the rules for who may call what) enforcement: `off`, `soft` or `strict`. See [Switch IAM modes](../how-to/switch-iam-modes.md). |
+| `--validate-signatures` | `POGI_VALIDATE_SIGNATURES` | off | Reject requests whose SigV4 signature (the way AWS signs requests) is wrong. |
 | `--allow-external` | `POGI_ALLOW_EXTERNAL` | off (on inside containers) | Allow a `--host` other than loopback. |
 | `--hostname` | `POGI_HOSTNAME` | `localhost` | Host name in URLs. `aws.localhost` turns on virtual-host style. |
-| `--tls-cert`, `--tls-key` | | pogi's local certificate authority | Your own HTTPS certificate and key. |
-| `--max-upload-mb` | | `0` (10 MB) | Largest upload in MiB. Larger ones are refused with `413` (`EntityTooLarge`). |
+| `--tls-cert`, `--tls-key` | | pogi's own certificate authority (CA) | Your own HTTPS certificate and key. |
+| `--max-upload-mb` | | `0` (10 MB) | Largest upload in MiB. Larger ones are refused with `413` (`EntityTooLarge`). It also caps every console form. |
 | `--smtp-port` | `POGI_SMTP_PORT` | `2525` | SES SMTP port. `-1` turns it off. |
 | `--smtp-relay` | `POGI_SMTP_RELAY` | none | Also deliver all SES mail to this server, `smtp://[user:pass@]host:port`. |
 | `--mqtt-port` | `POGI_MQTT_PORT` | `1883` | IoT MQTT port. Opened on first IoT use. `-1` leaves only the WebSocket at `/mqtt`. |
 | `--amqp-port` | `POGI_AMQP_PORT` | `5672` | AMQP 1.0 port for Service Bus and Event Hubs. `-1` turns it off. |
 | `--transfer-port` | `POGI_TRANSFER_PORT` | `2222` | Transfer Family SFTP port. Opened with the first server. `-1` picks a free port. |
 | `--config` | `POGI_CONFIG` | `./pogi.yaml` if present | The `pogi.yaml` to load. |
-| `--headless` | | off | No TUI: print logs and requests. |
+| `--headless` | | off | No terminal screen (the TUI): print logs and requests. |
 | `--quiet` | | off | With `--headless`, do not print each request. |
 | `--debug` | `DEBUG=1`, `POGI_DEBUG=1` | off | Verbose logging. |
 
@@ -54,7 +54,7 @@ Most start flags have an environment variable, listed in [Start flags](#start-fl
 |---|---|---|
 | `POGI_ENDPOINT` | Client commands | Where `pogi status`, `pogi ls`, `pogi chaos` and the other client commands find pogi. Default `http://localhost:7644`. The `--endpoint` flag beats it. |
 | `GATEWAY_LISTEN` | `pogi start` | LocalStack's `host:port[,...]`. The first address sets `--host` and `--port`. |
-| `DOCKER_HOST` | Services that use containers | The container engine to use. |
+| `DOCKER_HOST` | Services that use containers | The Docker engine to use. Any engine with the Docker API works: Podman, Colima or OrbStack. |
 | `DOCKER_TLS_VERIFY` | Services that use containers | Set it (to `1`) to reach a `tcp://` engine over TLS and check its certificate. |
 | `DOCKER_CERT_PATH` | Services that use containers | The folder with `ca.pem`, `cert.pem` and `key.pem` for a TLS engine. Default `~/.docker`. |
 | `AWS_ENDPOINT_URL` and others | Your SDKs and CLIs | Set by `pogi env`. See [Connect your tools](../how-to/connect-your-tools.md). |
@@ -73,7 +73,7 @@ The Docker image sets `POGI_HOST=0.0.0.0`, `POGI_ALLOW_EXTERNAL=1` and `POGI_DAT
 | `5672` | AMQP 1.0 for Service Bus and Event Hubs. | `--amqp-port` |
 | `2222` | Transfer Family SFTP. | `--transfer-port` |
 
-The main port also speaks HTTPS, with a certificate from pogi's local certificate authority. `pogi cert` shows where it is and how to trust it.
+The main port also speaks HTTPS, with a certificate from pogi's own certificate authority (CA). `pogi cert` shows where it is and how to trust it.
 
 ## pogi.yaml
 
@@ -88,11 +88,11 @@ Top-level keys:
 | `services` | `enable` and `disable`: clouds (`aws`, `gcp`, `azure`), service names or `all`. |
 | `storage` | `mode`, `dir`, `flushInterval` (for `hybrid`), `services` (a mode per service). |
 | `iam` | `mode` and `validateSignatures`. |
-| `lambda` | `executor` and `warmPool` (idle environments kept warm per function, default 4). |
+| `lambda` | `executor`, `warmPool` (idle environments kept warm per function, default 4) and `initTimeout` (the longest a new environment, with its extensions, may take to start before the invoke fails; default `10s`, as on AWS; raise it on a slow or busy machine). |
 | `docker` | `host`, `network` and `images` (for example `rds.postgres: "postgres:16-alpine"`). |
-| `ai` | `endpoint`, `apiKey` and `models`: an OpenAI-compatible endpoint (Ollama, LM Studio) for Bedrock and the language services. Without one they return canned answers. |
+| `ai` | `endpoint`, `apiKey`, `models` and `timeout`: an OpenAI-compatible endpoint (Ollama, LM Studio) for Bedrock and the language services. Without one they return canned answers. `timeout` (for example `5m`, the default) is the longest one model call may take; a call also ends when the client that asked for it leaves. |
 | `email` | `smtpPort` and `relay`. |
-| `chaos` | A list of fault rules. See [Inject chaos](../how-to/inject-chaos.md). |
+| `chaos` | A list of chaos rules (rules that make chosen calls fail or slow down). See [Inject chaos](../how-to/inject-chaos.md). |
 | `identities` | IAM users and roles. |
 | `resources` | Resources to create at startup. |
 | `stacks` | CloudFormation stacks to deploy at startup. |
@@ -143,6 +143,8 @@ storage:
 
 With any mode but `memory`, pogi stops its containers (databases, brokers and the like) when it exits, and starts them again at the next start, so the data inside survives and nothing runs while pogi is off. Each container carries a `pogi.data` label with the data folder it belongs to. Without saved state, containers are removed on exit. `pogi clean` deletes leftovers.
 
+A database keeps its data in a Docker volume named after its container (`pogi-<service>-<resource>-data`), with the same labels. If its container is removed while pogi is off, or won't start, pogi makes a new one on the same volume, so the data stays. Only when the volume is gone too does the resource say "recreated empty". A new resource, and a restore from a snapshot, start from an empty volume. Deleting a resource, `pogi reset`, and exiting without saved state remove the volumes.
+
 ## The data folder
 
 The data folder is `~/.pogi` unless you set `--data-dir`.
@@ -151,10 +153,10 @@ The data folder is `~/.pogi` unless you set `--data-dir`.
 |---|---|
 | `state/` | One JSON file per service, when a storage mode other than `memory` is on. |
 | `snapshots/` | Named snapshots (`<name>.json`). See [Save and load snapshots](../how-to/save-and-load-snapshots.md). |
-| `certs/` | pogi's local certificate authority (`ca.pem`) and the certificate it signs. |
+| `certs/` | pogi's CA (`ca.pem`) and the certificate it signs. |
 | `lambda/` | The AWS SDKs that `pogi lambda-sdks` installs for native functions. |
 | `init/` | Init hooks. |
-| `pogi.log` | The log, when pogi runs with the TUI. |
+| `pogi.log` | The log, when pogi runs with the terminal screen. |
 
 ### Init hooks
 
@@ -162,18 +164,45 @@ Scripts run at four stages: `boot.d`, `start.d`, `ready.d` and `shutdown.d`, und
 
 ## Network behavior
 
-- **Listening.** A `--host` other than loopback needs `--allow-external` (`allowExternal: true` in `pogi.yaml`), except inside Docker or Podman.
-- **Browsers.** Pages on `localhost`, `*.localhost`, `127.0.0.1` or `[::1]` (any port) may call every API, as with LocalStack. pogi refuses (`403`) every other browser request before it reaches a service, so a website you visit cannot use your local cloud:
-  - a request whose `Origin` is another site;
-  - a cross-site request with no `Origin` (an image or link), unless it comes from a localhost page;
-  - a request whose `Host` is not a local name (`localhost`, `*.localhost`, an IP, a name with no dot, `host.docker.internal`, `hostname` and its subdomains, the hosts in `server.cors.origins`, or a real AWS or Google API host). This stops DNS rebinding.
+### Listening
 
-  Opening the console from another site's link still works.
+A `--host` other than loopback needs `--allow-external` (`allowExternal: true` in `pogi.yaml`). Inside Docker or Podman it is already on.
 
-  SDKs, CLIs, Terraform and containers send no browser headers and are not affected. `server.cors.origins` in `pogi.yaml` adds origins (and their hosts); `["*"]` turns the check off. S3 bucket CORS, API Gateway and Lambda URLs still shape their responses, but only for origins that pass this check. The REST API (`/_pogi/api/`, `/_localstack/` and `/moto-api/`, and the console's form posts) also refuses cross-origin writes.
-- **`*.localhost`.** With `hostname: aws.localhost`, S3 answers `<bucket>.aws.localhost`, and `<api>.execute-api.localhost` and `<url-id>.lambda-url.localhost` reach API Gateway and Lambda URLs. `pogi env --hostname aws.localhost` prints matching variables, and `pogi doctor` says whether such names resolve on your machine.
-- **Partitions.** ARNs (AWS's IDs for resources) follow the region: `arn:aws-cn:` in `cn-*`, `arn:aws-us-gov:` in `us-gov-*`.
-- **Limits.** pogi is a local emulator for tests, so uploads stop at `maxUploadMB` (10 MB, whole file). This holds for every request body, and for files put together from parts (S3 multipart, Azure blocks and appends, GCS resumable chunks, SFTP) and for console uploads. A refused upload gets the cloud's own error (`EntityTooLarge` in AWS, `RequestBodyTooLarge` in Azure, 413 in GCP) with a message that names the limit. Two things are exempt: function code zips (up to 50 MB, or more if you raise the limit) and container image pushes. A body that sends no data for 30 seconds gets `408`; a slow upload that keeps sending is fine.
+### Browser requests
+
+Pages on `localhost`, `*.localhost`, `127.0.0.1` or `[::1]` (any port) may call every API, as with LocalStack. pogi refuses every other browser request with `403` before it reaches a service, so a website you visit cannot use your local cloud. It refuses:
+
+- a request whose `Origin` is another site;
+- a cross-site request with no `Origin` (an image or a link), unless it comes from a localhost page;
+- a request whose `Host` is not a local name. Local names are `localhost`, `*.localhost`, an IP, a name with no dot, `host.docker.internal`, `hostname` and its subdomains, the hosts in `server.cors.origins`, and real AWS or Google API hosts. This check stops DNS rebinding.
+
+Opening the console from another site's link still works.
+
+SDKs, CLIs, Terraform and containers send no browser headers, so none of this affects them. To allow more origins (and their hosts), list them in `server.cors.origins` in `pogi.yaml`. `["*"]` turns the check off.
+
+S3 bucket CORS, API Gateway and Lambda URLs still shape their responses, but only for origins that pass this check. The REST API (`/_pogi/api/`, `/_localstack/` and `/moto-api/`) and the console's form posts also refuse cross-origin writes.
+
+### `*.localhost` names
+
+With `hostname: aws.localhost`, S3 answers `<bucket>.aws.localhost`. `<api>.execute-api.localhost` and `<url-id>.lambda-url.localhost` reach API Gateway and Lambda URLs. `pogi env --hostname aws.localhost` prints matching variables, and `pogi doctor` says whether such names resolve on your machine.
+
+### Partitions
+
+ARNs (the IDs AWS gives resources) follow the region: `arn:aws-cn:` in `cn-*` and `arn:aws-us-gov:` in `us-gov-*`.
+
+### Upload limits
+
+pogi is a local emulator for tests, so a whole upload stops at `maxUploadMB` (10 MB). The limit covers:
+
+- every request body;
+- files put together from parts: S3 multipart, Azure blocks and appends, GCS resumable chunks and SFTP;
+- console uploads.
+
+A refused upload gets the cloud's own error, with a message that names the limit: `EntityTooLarge` in AWS, `RequestBodyTooLarge` in Azure and `413` in Google Cloud.
+
+Two things are exempt: function code zips (up to 50 MB, or more if you raise the limit) and container image pushes.
+
+A body that sends no data for 30 seconds gets `408`. A slow upload that keeps sending is fine.
 
 ## Lambda
 

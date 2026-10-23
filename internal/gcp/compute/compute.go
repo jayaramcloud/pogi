@@ -11,8 +11,9 @@
 // listener of its own, so that Google client libraries inside find the instance's metadata and tokens.
 // Without an engine the instance is RUNNING at once, as metadata only.
 //
-// ponytail: no live migration, snapshots, instance templates, groups, load balancing or custom
-// images. Networks do not carry traffic, and firewall rules are only stored.
+// Load balancing and Cloud Armor are in lb.go, served as the services gcplb and cloudarmor.
+//
+// ponytail: no live migration, snapshots, instance templates, groups or custom images. Networks do not carry traffic, and firewall rules are only stored.
 package compute
 
 import (
@@ -63,7 +64,7 @@ func New(h *core.Hub) *Service {
 func (s *Service) Info() core.Info {
 	return core.Info{Name: "compute", Cloud: core.GCP, Title: "Compute Engine", Match: func(r *http.Request) bool {
 		p := r.URL.Path
-		return strings.HasPrefix(p, "/compute/v1/") || strings.HasPrefix(p, "/compute/beta/") || isMetadata(p)
+		return (strings.HasPrefix(p, "/compute/v1/") || strings.HasPrefix(p, "/compute/beta/")) && !claims(p, lbColls) && !claims(p, armorColls) || isMetadata(p)
 	}}
 }
 
@@ -215,6 +216,8 @@ func (s *Service) route(q *req) (any, error) {
 			return nil, notFound("projects/" + q.project + "/" + seg[0] + "/" + seg[1])
 		}
 		return s.collection(q, seg[0], seg[1], seg[2:])
+	case slices.Contains([]string{"targetHttpProxies", "targetHttpsProxies"}, seg0(seg)) && len(seg) == 3: // setUrlMap and setSslCertificates have no /global/
+		return s.collection(q, "global", "", seg)
 	case seg0(seg) == "global" && len(seg) > 1:
 		return s.collection(q, "global", "", seg[1:])
 	}
@@ -525,7 +528,9 @@ func (s *Service) Close() error {
 }
 
 var tables = []struct{ name, coll string }{{"Instances", "instances"}, {"Disks", "disks"}, {"Networks", "networks"},
-	{"Subnetworks", "subnetworks"}, {"Firewalls", "firewalls"}, {"Addresses", "addresses"}}
+	{"Subnetworks", "subnetworks"}, {"Firewalls", "firewalls"}, {"Addresses", "addresses"}, {"Health checks", "healthChecks"},
+	{"Backend services", "backendServices"}, {"URL maps", "urlMaps"}, {"Target HTTP proxies", "targetHttpProxies"}, {"Target HTTPS proxies", "targetHttpsProxies"},
+	{"SSL certificates", "sslCertificates"}, {"Forwarding rules", "forwardingRules"}, {"Security policies", "securityPolicies"}}
 
 func (s *Service) Resources() []core.Table {
 	s.mu.Lock()

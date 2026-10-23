@@ -74,6 +74,7 @@ type region struct {
 	Instances map[string]*Instance         `json:"instances"`
 	Volumes   map[string]*Volume           `json:"volumes"`
 	Templates map[string]*LaunchTemplate   `json:"templates"` // by id
+	Tokens    map[string]runToken          `json:"tokens"`    // RunInstances ClientToken → what it made
 	Net       netState                     `json:"net"`       // see routing.go
 	X         *extras                      `json:"extras"`    // see extras.go; use x()
 }

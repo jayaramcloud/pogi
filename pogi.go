@@ -14,6 +14,7 @@ package pogi
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -23,6 +24,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/nrndev/pogi/internal/aws/acm"
@@ -92,6 +94,7 @@ import (
 	azaks "github.com/nrndev/pogi/internal/azure/aks"
 	"github.com/nrndev/pogi/internal/azure/apim"
 	azappconfig "github.com/nrndev/pogi/internal/azure/appconfig"
+	"github.com/nrndev/pogi/internal/azure/appservice"
 	"github.com/nrndev/pogi/internal/azure/arm"
 	"github.com/nrndev/pogi/internal/azure/blob"
 	azcompute "github.com/nrndev/pogi/internal/azure/compute"
@@ -102,7 +105,9 @@ import (
 	"github.com/nrndev/pogi/internal/azure/entra"
 	"github.com/nrndev/pogi/internal/azure/eventgrid"
 	"github.com/nrndev/pogi/internal/azure/eventhubs"
+	"github.com/nrndev/pogi/internal/azure/files"
 	azfunctions "github.com/nrndev/pogi/internal/azure/functions"
+	azgeneric "github.com/nrndev/pogi/internal/azure/generic"
 	"github.com/nrndev/pogi/internal/azure/graph"
 	"github.com/nrndev/pogi/internal/azure/keyvault"
 	azmonitor "github.com/nrndev/pogi/internal/azure/monitor"
@@ -116,6 +121,7 @@ import (
 	"github.com/nrndev/pogi/internal/core"
 	"github.com/nrndev/pogi/internal/gcp/artifactregistry"
 	"github.com/nrndev/pogi/internal/gcp/bigquery"
+	"github.com/nrndev/pogi/internal/gcp/bigtable"
 	gcpcompute "github.com/nrndev/pogi/internal/gcp/compute"
 	"github.com/nrndev/pogi/internal/gcp/datastore"
 	"github.com/nrndev/pogi/internal/gcp/eventarc"
@@ -123,11 +129,13 @@ import (
 	"github.com/nrndev/pogi/internal/gcp/firestore"
 	"github.com/nrndev/pogi/internal/gcp/functions"
 	"github.com/nrndev/pogi/internal/gcp/gapi"
+	gcpgeneric "github.com/nrndev/pogi/internal/gcp/generic"
 	"github.com/nrndev/pogi/internal/gcp/gke"
 	gcpiam "github.com/nrndev/pogi/internal/gcp/iam"
 	gcpkms "github.com/nrndev/pogi/internal/gcp/kms"
 	"github.com/nrndev/pogi/internal/gcp/logging"
 	"github.com/nrndev/pogi/internal/gcp/managedkafka"
+	"github.com/nrndev/pogi/internal/gcp/memorystore"
 	"github.com/nrndev/pogi/internal/gcp/monitoring"
 	gcpoauth "github.com/nrndev/pogi/internal/gcp/oauth"
 	"github.com/nrndev/pogi/internal/gcp/pubsub"
@@ -136,16 +144,18 @@ import (
 	gcpscheduler "github.com/nrndev/pogi/internal/gcp/scheduler"
 	"github.com/nrndev/pogi/internal/gcp/secretmanager"
 	"github.com/nrndev/pogi/internal/gcp/serviceusage"
+	"github.com/nrndev/pogi/internal/gcp/spanner"
 	gcpsql "github.com/nrndev/pogi/internal/gcp/sql"
 	gcs "github.com/nrndev/pogi/internal/gcp/storage"
 	"github.com/nrndev/pogi/internal/gcp/tasks"
+	"github.com/nrndev/pogi/internal/gcp/workflows"
 	"github.com/nrndev/pogi/internal/mcp"
 	"github.com/nrndev/pogi/internal/seed"
 	"github.com/nrndev/pogi/internal/web"
 )
 
 // Version is set at build time with -ldflags "-X github.com/nrndev/pogi.Version=…".
-var Version = "0.1.0"
+var Version = "0.2.0"
 
 // Config configures a pogi instance; zero values get sensible defaults.
 type Config = core.Config
@@ -227,13 +237,18 @@ var services = []factory{
 	{"firebaseauth", core.GCP, func(h *core.Hub) core.Service { return firebaseauth.New(h) }},
 	{"container", core.GCP, func(h *core.Hub) core.Service { return gke.New(h) }}, // before managedkafka: both have projects/p/locations/l/clusters; its matcher claims only what is GKE's
 	{"managedkafka", core.GCP, func(h *core.Hub) core.Service { return managedkafka.New(h) }},
+	{"redis", core.GCP, func(h *core.Hub) core.Service { return memorystore.New(h) }},
 	{"cloudtasks", core.GCP, func(h *core.Hub) core.Service { return tasks.New(h) }}, // these three before gcs: its matcher claims Google clients
 	{"cloudscheduler", core.GCP, func(h *core.Hub) core.Service { return gcpscheduler.New(h) }},
 	{"eventarc", core.GCP, func(h *core.Hub) core.Service { return eventarc.New(h) }},
+	{"workflows", core.GCP, func(h *core.Hub) core.Service { return workflows.New(h) }}, // before gcs: its matcher claims Google clients
 	{"firestore", core.GCP, func(h *core.Hub) core.Service { return firestore.New(h) }},
 	{"datastore", core.GCP, func(h *core.Hub) core.Service { return datastore.New(h) }}, // before gcs: its matcher claims POST /reset
 	{"run", core.GCP, func(h *core.Hub) core.Service { return run.New(h) }},             // before gcs: Google clients send X-Goog-Api-Client
 	{"compute", core.GCP, func(h *core.Hub) core.Service { return gcpcompute.New(h) }},  // before gcs: its matcher claims Google clients
+	// load balancing and Cloud Armor: after compute, whose state they share; before gcs
+	{"gcplb", core.GCP, func(h *core.Hub) core.Service { return gcpcompute.NewLoadBalancing(h) }},
+	{"cloudarmor", core.GCP, func(h *core.Hub) core.Service { return gcpcompute.NewCloudArmor(h) }},
 	// Artifact Registry: before gcs, like run
 	{"artifactregistry", core.GCP, func(h *core.Hub) core.Service { return artifactregistry.New(h) }},
 	{"cloudfunctions", core.GCP, func(h *core.Hub) core.Service { return functions.New(h) }},
@@ -246,11 +261,16 @@ var services = []factory{
 	{"bigquery", core.GCP, func(h *core.Hub) core.Service { return bigquery.New(h) }}, // these three before gcs: its matcher claims Google clients
 	{"logging", core.GCP, func(h *core.Hub) core.Service { return logging.New(h) }},
 	{"monitoring", core.GCP, func(h *core.Hub) core.Service { return monitoring.New(h) }},
+	{"spanner", core.GCP, func(h *core.Hub) core.Service { return spanner.New(h) }},   // before gcs: its matcher claims Google clients; after operations, which it delegates to
+	{"bigtable", core.GCP, func(h *core.Hub) core.Service { return bigtable.New(h) }}, // before gcs: its matcher claims Google clients; after operations, which its operations use
 	{"gcs", core.GCP, func(h *core.Hub) core.Service { return gcs.New(h) }},
 	{"apim", core.Azure, func(h *core.Hub) core.Service { return apim.New(h) }}, // before the other Azure services: it claims everything on <svc>.azure-api.localhost and /_azure/apim/, SignalR's paths included
 	{"azblob", core.Azure, func(h *core.Hub) core.Service { return blob.New(h) }},
 	{"azqueue", core.Azure, func(h *core.Hub) core.Service { return queue.New(h) }},
 	{"aztable", core.Azure, func(h *core.Hub) core.Service { return table.New(h) }},
+	// Azure Files and Data Lake Gen2: <account>.file.localhost and <account>.dfs.localhost (the second works on Blob's state)
+	{"azfiles", core.Azure, func(h *core.Hub) core.Service { return files.New(h) }},
+	{"azdatalake", core.Azure, func(h *core.Hub) core.Service { return blob.NewDFS(h) }},
 	{"azappconfig", core.Azure, func(h *core.Hub) core.Service { return azappconfig.New(h) }}, // before keyvault: a Bearer GET <store>.azconfig.localhost/keys is ours
 	{"keyvault", core.Azure, func(h *core.Hub) core.Service { return keyvault.New(h) }},
 	{"cosmos", core.Azure, func(h *core.Hub) core.Service { return cosmos.New(h) }},
@@ -259,6 +279,8 @@ var services = []factory{
 	{"signalr", core.Azure, func(h *core.Hub) core.Service { return signalr.New(h) }},
 	{"azemail", core.Azure, func(h *core.Hub) core.Service { return email.New(h) }},
 	{"eventhubs", core.Azure, func(h *core.Hub) core.Service { return eventhubs.New(h) }},
+	// App Service web apps: claims <app>.azurewebsites.localhost only for web apps it has, so before Functions, which claims every such host
+	{"azappservice", core.Azure, func(h *core.Hub) core.Service { return appservice.New(h) }},
 	{"azfunctions", core.Azure, func(h *core.Hub) core.Service { return azfunctions.New(h) }},
 	{"azdatabases", core.Azure, func(h *core.Hub) core.Service { return azdatabases.New(h) }},
 	{"azaks", core.Azure, func(h *core.Hub) core.Service { return azaks.New(h) }},
@@ -286,6 +308,23 @@ func init() {
 	}
 }
 
+// The generic Google APIs (internal/gcp/generic) come after every hand-written Google service.
+func init() {
+	for _, g := range gcpgeneric.Services() {
+		if !slices.ContainsFunc(services, func(f factory) bool { return f.name == g.Name }) {
+			services = append(services, factory{g.Name, core.GCP, g.New})
+		}
+	}
+}
+
+// The Azure resource-manager engine's services come after every hand-written Azure service: a type that one of
+// them serves is never served by the engine.
+func init() {
+	for _, n := range azgeneric.Names() {
+		services = append(services, factory{n, core.Azure, func(h *core.Hub) core.Service { return azgeneric.New(h, n) }})
+	}
+}
+
 // ServiceNames lists every service pogi can run.
 func ServiceNames() []string {
 	var out []string
@@ -300,6 +339,7 @@ type Server struct {
 	Hub   *core.Hub
 	URL   string            // set once listening
 	Ports map[string]string // base URLs of services on their own ports (Azure Storage)
+	Busy  map[string]string // services whose own port could not be opened: name -> plain sentence, for the start banner (see busy)
 
 	closePorts []func() // record the extra ports pogi opened (the services close them) for the shutdown list
 }
@@ -354,10 +394,33 @@ func New(cfg Config, log *slog.Logger) *Server {
 		}
 	}
 	hub.Mount("/_pogi/", web.New(hub))
-	hub.Mount("/_pogi/mcp", mcp.Handler(hub))
+	hub.Mount("/_pogi/mcp", http.NewCrossOriginProtection().Handler(mcp.Handler(hub)))
 	hub.Mount("/favicon.ico", web.Favicon)
 	seed.Hook(hub, cfg.File)
-	return &Server{Hub: hub, Ports: map[string]string{}}
+	return &Server{Hub: hub, Ports: map[string]string{}, Busy: map[string]string{}}
+}
+
+// CheckServices reports a name in list (as Config.Services takes them) that is no service, cloud or
+// "all", so a typo fails instead of silently leaving a service off.
+func CheckServices(list []string) error {
+	for _, s := range list {
+		n := strings.TrimPrefix(strings.TrimSpace(strings.ToLower(s)), "-")
+		if n == "all" || slices.ContainsFunc(services, func(f factory) bool { return f.name == n || f.cloud == n }) {
+			continue
+		}
+		// ponytail: suggests names that contain the typo or are contained in it; edit distance if typos slip by
+		var near []string
+		for _, f := range services {
+			if len(n) >= 4 && len(near) < 5 && (strings.Contains(f.name, n) || len(f.name) >= 4 && strings.Contains(n, f.name)) {
+				near = append(near, f.name)
+			}
+		}
+		if len(near) > 0 {
+			return fmt.Errorf("services: no service or cloud %q (did you mean %s?)", s, strings.Join(near, ", "))
+		}
+		return fmt.Errorf("services: no service or cloud %q", s)
+	}
+	return nil
 }
 
 // enabled reports whether list (services, clouds or "all"; "-name" or
@@ -394,7 +457,7 @@ func (s *Server) Run(ctx context.Context, ready func(url string)) error {
 	}
 	core.Go("docker.Sweep", func() { h.Docker().Sweep() }) // containers a crashed pogi left behind
 	if err := h.OpenStorage(); err != nil {
-		h.Log.Warn("could not load saved state", "err", err)
+		return err // saved state was asked for: don't run without it
 	}
 	initDirs := []string{filepath.Join(cfg.DataDir, "init"), "/etc/localstack/init"}
 	var tc *tls.Config
@@ -463,7 +526,7 @@ func (s *Server) Run(ctx context.Context, ready func(url string)) error {
 		}
 		plns, err := listen(p.Port())
 		if err != nil {
-			h.Log.Warn("extra port unavailable", "service", svc.Info().Name, "port", p.Port(), "err", err)
+			s.busy(svc.Info().Name, p.Port(), err)
 			continue
 		}
 		es := &http.Server{Handler: h.Handler(svc), Protocols: core.Protocols(), ReadHeaderTimeout: 30 * time.Second, IdleTimeout: 2 * time.Minute}
@@ -515,6 +578,23 @@ func (s *Server) Run(ctx context.Context, ready func(url string)) error {
 	return nil
 }
 
+// portNote is the plain sentence for a port pogi could not open, with the system's text after " — ".
+// busy records that name's own port could not be opened: in Busy for the start banner, and as a
+// pogi-wide problem for the TUI, the console and pogi status. It is logged only with --debug, so the
+// headless banner does not say it twice.
+func (s *Server) busy(name string, port int, err error) {
+	s.Busy[name] = portNote(port, err)
+	s.Hub.PortProblem(name, name+": "+s.Busy[name])
+	s.Hub.Log.Debug("port unavailable", "service", name, "port", port, "err", err)
+}
+
+func portNote(port int, err error) string {
+	if errors.Is(err, syscall.EADDRINUSE) {
+		return fmt.Sprintf("port %d is in use, so this is off — %v", port, err)
+	}
+	return fmt.Sprintf("port %d could not be opened, so this is off — %v", port, err)
+}
+
 // smtp serves SES's SMTP interface on Config.SMTPPort; host names it in Ports["ses"].
 func (s *Server) smtp(host string) {
 	cfg := s.Hub.Cfg
@@ -525,7 +605,7 @@ func (s *Server) smtp(host string) {
 	port := strconv.Itoa(cfg.SMTPPort)
 	ln, err := net.Listen("tcp", net.JoinHostPort(cfg.Host, port))
 	if err != nil {
-		s.Hub.Log.Warn("SMTP port unavailable", "port", cfg.SMTPPort, "err", err)
+		s.busy("smtp", cfg.SMTPPort, err)
 		return
 	}
 	core.Go("pogi.ServeSMTP", func() { svc.ServeSMTP(ln) })
@@ -547,7 +627,7 @@ func (s *Server) amqp(host string) {
 	port := strconv.Itoa(cfg.AMQPPort)
 	ln, err := net.Listen("tcp", net.JoinHostPort(cfg.Host, port))
 	if err != nil {
-		s.Hub.Log.Warn("AMQP port unavailable", "port", cfg.AMQPPort, "err", err)
+		s.busy("amqp", cfg.AMQPPort, err)
 		return
 	}
 	go s.Hub.AMQP().Serve(ln)
@@ -591,6 +671,9 @@ func Start(tb core.TB, cfg ...Config) *Running {
 		c.DataDir = tb.TempDir()
 	}
 	c.ValidateSigs = c.ValidateSigs || os.Getenv("POGI_TEST_VALIDATE_SIGNATURES") == "1"
+	if c.LambdaInit == 0 {
+		c.LambdaInit = core.TestLambdaInit
+	}
 	if c.ECRPort == 0 {
 		c.ECRPort = -1 // no fixed port 4510 in tests; set ECRPort to docker push
 	}

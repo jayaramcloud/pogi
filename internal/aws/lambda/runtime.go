@@ -75,11 +75,17 @@ type instance struct {
 	next    chan *invocation
 	dead    chan struct{}
 	killed  sync.Once
-	gone    atomic.Bool // set by kill: the instance must never be pooled again
+	gone    atomic.Bool  // set by kill: the instance must never be pooled again
+	born    time.Time    // when the instance started
+	asked   atomic.Int64 // when the runtime first asked for an invocation (GET …/invocation/next), in Unix nanoseconds
 	stream  string
 	mu      sync.Mutex
 	current *invocation
-	logs    bytes.Buffer // logs of the current invocation
+	logs    bytes.Buffer  // logs of the current invocation
+	out     io.Writer     // a native runtime's output pipe; flush writes its mark here
+	marks   int           // marks flush has written
+	seen    int           // marks the output reader has met
+	flushed chan struct{} // closed when the reader has met every mark written
 	initErr []byte
 	used    time.Time
 	ext     extensions // the Extensions API, see extensions.go
@@ -299,9 +305,9 @@ func (p *pool) run(s *spec, payload []byte, clientCtx, trace string) (outcome, e
 		return outcome{}, err
 	}
 	inv := &invocation{id: core.UUID(), arn: s.arn, payload: payload, clientCtx: clientCtx, trace: trace, done: make(chan outcome, 1)}
-	initWait := 10 * time.Second
+	initWait := p.initLimit()
 	if in.docker != "" {
-		initWait = 5 * time.Minute // first run may pull the image
+		initWait = max(initWait, 5*time.Minute) // first run may pull the image
 	}
 	select {
 	case in.next <- inv: // the runtime picked it up (unbuffered)
@@ -310,7 +316,7 @@ func (p *pool) run(s *spec, payload []byte, clientCtx, trace string) (outcome, e
 		return p.initFailure(in), nil
 	case <-time.After(initWait):
 		p.kill(in)
-		return outcome{}, core.Errorf(502, "ServiceException", "function %s did not start within %s", s.name, initWait)
+		return outcome{}, core.Errorf(502, "ServiceException", "function %s did not start within %s%s", s.name, initWait, in.waiting())
 	}
 	start := time.Now()
 	in.log(fmt.Sprintf("START RequestId: %s Version: %s", inv.id, s.version))
@@ -332,6 +338,7 @@ func (p *pool) run(s *spec, payload []byte, clientCtx, trace string) (outcome, e
 		p.kill(in)
 	}
 	d := time.Since(start)
+	in.flush()
 	in.log("END RequestId: " + inv.id)
 	in.log(fmt.Sprintf("REPORT RequestId: %s\tDuration: %.2f ms\tBilled Duration: %d ms\tMemory Size: %d MB\tMax Memory Used: %d MB",
 		inv.id, float64(d.Microseconds())/1000, d.Milliseconds()+1, s.memory, min(s.memory, 64)))
@@ -364,6 +371,60 @@ func (in *instance) log(line string) {
 	in.pool.svc.logLine(in.spec, in.stream, line)
 }
 
+// mark is what flush writes into a runtime's output pipe. The NUL bytes keep it apart from printed text.
+const mark = "\x00pogi:flush\x00"
+
+// flush waits until the output reader has logged everything the runtime printed so far. A function
+// prints, then posts its response; the reader may not have read those lines yet when the response
+// arrives, and END would beat them into the log. The pipe keeps order, so once the reader meets a mark
+// written now, every line before it is logged.
+func (in *instance) flush() {
+	if in.out == nil {
+		return // a container's output comes through Docker's log stream instead (see dockerRun)
+	}
+	in.mu.Lock()
+	in.marks++
+	flushed := make(chan struct{})
+	in.flushed = flushed
+	in.mu.Unlock()
+	if _, err := io.WriteString(in.out, mark+"\n"); err != nil {
+		flushed = nil // the runtime has exited: in.dead closes once the reader reaches the end of its output
+	}
+	select {
+	case <-flushed:
+	case <-in.dead:
+	case <-time.After(5 * time.Second): // a reader this far behind would hold up the response; log what it has
+	}
+}
+
+// readOutput logs each line a runtime prints, until its output ends. A line longer than the buffer
+// comes out in pieces, so the reader never stops early. A line ending in mark answers a flush; any text
+// before the mark is a line the runtime had not finished.
+func (in *instance) readOutput(r io.Reader) {
+	sc := bufio.NewScanner(r)
+	sc.Buffer(make([]byte, 64<<10), 1<<20)
+	sc.Split(func(data []byte, atEOF bool) (int, []byte, error) {
+		if n, line, err := bufio.ScanLines(data, atEOF); n > 0 || len(data) < 1<<20 {
+			return n, line, err
+		}
+		return len(data), data, nil
+	})
+	for sc.Scan() {
+		line, marked := strings.CutSuffix(sc.Text(), mark)
+		if line != "" || !marked {
+			in.log(line)
+		}
+		if marked {
+			in.mu.Lock()
+			if in.seen++; in.seen >= in.marks && in.flushed != nil {
+				close(in.flushed)
+				in.flushed = nil
+			}
+			in.mu.Unlock()
+		}
+	}
+}
+
 // start launches a runtime process (or container) serving its own Runtime API.
 func (p *pool) start(s *spec) (*instance, error) {
 	select {
@@ -375,7 +436,7 @@ func (p *pool) start(s *spec) (*instance, error) {
 	if err != nil {
 		return nil, err
 	}
-	in := &instance{id: core.RandHex(16), pool: p, spec: s, next: make(chan *invocation), dead: make(chan struct{}), used: time.Now()}
+	in := &instance{id: core.RandHex(16), pool: p, spec: s, next: make(chan *invocation), dead: make(chan struct{}), used: time.Now(), born: time.Now()}
 	in.stream = time.Now().UTC().Format("2006/01/02") + "/[" + s.version + "]" + in.id
 	listen := "127.0.0.1"
 	if mode == "docker" {
@@ -424,10 +485,17 @@ func (p *pool) start(s *spec) (*instance, error) {
 	if cmd == nil { // dockerRun started the container
 		return in, nil
 	}
-	stdout, _ := cmd.StdoutPipe()
-	cmd.Stderr = cmd.Stdout
+	// stdout and stderr share one pipe; pogi keeps its write end too, for flush's marks
+	r, w, err := os.Pipe()
+	if err != nil {
+		in.srv.Close()
+		return nil, err
+	}
+	cmd.Stdout, cmd.Stderr, in.out = w, w, w
 	core.OwnGroup(cmd) // the runtime's own children go with it when it is killed
 	if err := cmd.Start(); err != nil {
+		r.Close()
+		w.Close()
 		in.srv.Close()
 		return nil, core.Errorf(502, "InvalidRuntimeException", "cannot start %s runtime: %v", s.runtime, err)
 	}
@@ -436,13 +504,13 @@ func (p *pool) start(s *spec) (*instance, error) {
 	p.all[in] = true
 	p.mu.Unlock()
 	core.Go("lambda.start", func() {
-		defer close(in.dead)
-		sc := bufio.NewScanner(stdout)
-		sc.Buffer(make([]byte, 64<<10), 1<<20)
-		for sc.Scan() {
-			in.log(sc.Text())
-		}
 		cmd.Wait()
+		w.Close() // now the reader meets the end of the output once it has read the rest
+	})
+	core.Go("lambda.start", func() {
+		defer close(in.dead)
+		in.readOutput(r)
+		r.Close()
 	})
 	return in, nil
 }
@@ -452,7 +520,8 @@ func (in *instance) api() http.Handler {
 	m := http.NewServeMux()
 	in.mountExtensions(m)
 	m.HandleFunc("GET /2018-06-01/runtime/invocation/next", func(w http.ResponseWriter, r *http.Request) {
-		in.ext.waitInit(r.Context(), in.dead)
+		in.asked.CompareAndSwap(0, time.Now().UnixNano())
+		in.ext.waitInit(r.Context(), in.dead, in.pool.initLimit())
 		select {
 		case inv := <-in.next:
 			inv.deadline = time.Now().Add(in.spec.timeout)
@@ -582,6 +651,9 @@ func interpreter(names ...string) string {
 	}
 	return ""
 }
+
+// initLimit is how long a new environment may take to start (lambda.initTimeout); AWS's limit is 10 seconds.
+func (p *pool) initLimit() time.Duration { return cmp.Or(p.svc.hub.Cfg.LambdaInit, 10*time.Second) }
 
 func (p *pool) dockerAvailable() bool { return p.svc.hub.Docker().Available() }
 
@@ -723,6 +795,9 @@ func (p *pool) dockerRun(s *spec, in *instance, env map[string]string, port, end
 	p.mu.Lock()
 	p.all[in] = true
 	p.mu.Unlock()
+	// ponytail: nothing orders Docker's log stream with the Runtime API, so a container's last lines can
+	// land after END. flush would need its mark written into the container's own stdout (a docker exec
+	// per invoke, and a shell in the image); add that if container logs come up short.
 	core.Go("lambda.dockerRun", func() {
 		defer close(in.dead)
 		d.Logs(context.Background(), ct.Name, true, in.log)
@@ -852,3 +927,28 @@ func exists(path string) bool { _, err := os.Stat(path); return err == nil }
 // node_modules for Node.js, python/ for boto3. Function code is unpacked
 // below it, so Node's module lookup finds the SDK without NODE_PATH.
 func SDKDir(dataDir string) string { return filepath.Join(dataDir, "lambda") }
+
+// waiting says what a function that did not start in time was waiting for, and when each part got ready
+// after the instance started, so the error points at the slow part.
+func (in *instance) waiting() string {
+	after := func(t time.Time) string { return t.Sub(in.born).Round(100 * time.Millisecond).String() }
+	out := ": its runtime never asked for an invocation"
+	if n := in.asked.Load(); n != 0 {
+		out = ": its runtime asked for an invocation after " + after(time.Unix(0, n))
+	}
+	e := &in.ext
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.expected == 0 {
+		return out
+	}
+	out += fmt.Sprintf("; %d extensions started, %d registered", e.expected, len(e.list))
+	for _, id := range core.SortedKeys(e.list) {
+		x := e.list[id]
+		out += "; " + x.name + " registered after " + after(x.registered)
+		if !x.ready.IsZero() {
+			out += " and finished its init after " + after(x.ready)
+		}
+	}
+	return out
+}

@@ -123,3 +123,48 @@ func TestWait(t *testing.T) {
 		t.Fatalf("want a timeout, got %v", err)
 	}
 }
+
+// Flags and environment variables get the checks pogi.yaml gets: a bad value fails and says which.
+func TestSettingsChecked(t *testing.T) {
+	t.Chdir(t.TempDir())
+	for _, k := range []string{"POGI_CONFIG", "POGI_PORT", "POGI_IAM", "POGI_SERVICES", "SERVICES", "POGI_STORAGE", "POGI_LAMBDA", "GATEWAY_LISTEN"} {
+		t.Setenv(k, "")
+	}
+	start := func(args ...string) error {
+		fs := flag.NewFlagSet("start", flag.ContinueOnError)
+		apply := serverFlags(fs)
+		if err := applyEnvDefaults(fs); err != nil {
+			return err
+		}
+		if err := fs.Parse(args); err != nil {
+			t.Fatal(err)
+		}
+		_, err := loadConfig("", apply)
+		return err
+	}
+	for _, tc := range []struct {
+		args      []string
+		env, want string
+	}{
+		{[]string{"--iam", "stict"}, "", `iam.mode: "stict" is not one of off, soft, strict`},
+		{[]string{"--storage", "bogus"}, "", `storage.mode: "bogus" is not one of`},
+		{[]string{"--lambda", "bogus"}, "", `lambda.executor: "bogus" is not one of`},
+		{[]string{"--services", "s3,dynamodbb"}, "", `no service or cloud "dynamodbb" (did you mean dynamodb?)`},
+		{nil, "POGI_PORT=abc", `POGI_PORT="abc" is not a valid --port`},
+		{nil, "POGI_IAM=bogus", `iam.mode: "bogus" is not one of`},
+		{nil, "SERVICES=s3,nosuch", `no service or cloud "nosuch"`},
+		{[]string{"--services", "aws,-lambda", "--iam", "strict", "--storage", "wal"}, "", ""},
+	} {
+		k, v, _ := strings.Cut(tc.env, "=")
+		if k != "" {
+			t.Setenv(k, v)
+		}
+		err := start(tc.args...)
+		if k != "" {
+			t.Setenv(k, "")
+		}
+		if tc.want == "" && err != nil || tc.want != "" && (err == nil || !strings.Contains(err.Error(), tc.want)) {
+			t.Errorf("%v %s: got %v, want %q", tc.args, tc.env, err, tc.want)
+		}
+	}
+}

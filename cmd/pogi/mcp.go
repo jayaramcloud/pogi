@@ -16,10 +16,13 @@ import (
 
 // mcpCmd serves MCP over stdio by relaying to the running pogi's /_pogi/mcp.
 func mcpCmd(args []string) error {
-	fs := flag.NewFlagSet("mcp", flag.ExitOnError)
+	fs := flag.NewFlagSet("mcp", flag.ContinueOnError)
+	setUsage(fs, "Serve MCP on stdin and stdout for coding agents, relayed to the running pogi.", "pogi mcp [flags]", "pogi mcp --print-config")
 	ep := endpointFlag(fs)
 	printConfig := fs.Bool("print-config", false, "print the setup for Claude Code, Cursor and Codex")
-	fs.Parse(args)
+	if _, err := parseMax(fs, args, 0); err != nil {
+		return err
+	}
 	if *printConfig {
 		printMCPConfig(os.Stdout, *ep)
 		return nil
@@ -119,14 +122,22 @@ const (
 // agentsCmd is `pogi agents init`: pogi's brief for coding agents, in a marked
 // section of AGENTS.md or CLAUDE.md.
 func agentsCmd(args []string) error {
-	if len(args) == 0 || args[0] != "init" {
-		return errors.New("usage: pogi agents init [--file AGENTS.md|CLAUDE.md] [--force]")
-	}
-	fs := flag.NewFlagSet("agents init", flag.ExitOnError)
+	const use = "pogi agents init [--file AGENTS.md|CLAUDE.md] [--force]"
+	fs := flag.NewFlagSet("agents init", flag.ContinueOnError)
+	setUsage(fs, "Add a brief on using pogi to AGENTS.md (or another file), in a marked section a rerun updates.", use, "pogi agents init --file CLAUDE.md")
 	ep := endpointFlag(fs)
 	file := fs.String("file", "AGENTS.md", "file to write the pogi section into (created if missing)")
 	force := fs.Bool("force", false, "replace a pogi section that differs, e.g. one edited by hand")
-	fs.Parse(args[1:])
+	if len(args) > 0 && isHelp(args[0]) {
+		args = []string{"-h"} // "pogi agents help"; parseArgs prints the help
+	}
+	pos, err := parseMax(fs, args, 1) // flags may come before or after "init"
+	if err != nil {
+		return err
+	}
+	if len(pos) == 0 || pos[0] != "init" {
+		return usagef("usage: %s", use)
+	}
 	msg, err := agentsInit(*file, agentsBrief(*ep), *force)
 	if err == nil {
 		fmt.Println(msg)

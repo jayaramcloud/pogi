@@ -35,6 +35,15 @@ func (c *Call) fill(sh *shape, r *Resource) map[string]any {
 		for k, v := range r.Data {
 			idx[norm(k)] = v
 		}
+		if f.t != nil { // a member the create call prefixed with the type's name (ClusterName) is the resource's own (Cluster.Name)
+			for k, v := range r.Data {
+				if rest, ok := strings.CutPrefix(norm(k), f.t.n); ok && len(rest) >= 2 && len(rest) < len(norm(k)) {
+					if _, has := idx[rest]; !has {
+						idx[rest] = v
+					}
+				}
+			}
+		}
 		for k, v := range derived(c.Svc.meta.Name, r) {
 			idx[norm(k)] = v
 		}
@@ -146,6 +155,13 @@ func readyValue(enum []string) string {
 	for _, want := range ready {
 		for _, e := range enum {
 			if strings.EqualFold(e, want) {
+				return e
+			}
+		}
+	}
+	for _, suf := range []string{"_COMPLETE", "_COMPLETED", "_SUCCESSFUL", "_SUCCEEDED"} { // CREATE_COMPLETE, CREATION_SUCCESSFUL
+		for _, e := range enum {
+			if strings.HasSuffix(strings.ToUpper(e), suf) {
 				return e
 			}
 		}

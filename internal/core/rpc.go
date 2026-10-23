@@ -18,7 +18,7 @@ func H[In any](fn func(*Ctx, *In) (any, error)) Handler {
 	return func(c *Ctx, decode func(any) error) (any, error) {
 		in := new(In)
 		if err := decode(in); err != nil {
-			return nil, Errorf(400, "SerializationException", "%v", err)
+			return nil, Errorf(400, "SerializationException", "%s", PlainJSON(err))
 		}
 		return fn(c, in)
 	}
@@ -52,17 +52,6 @@ func TargetOp(target string) string {
 func (p *RPC) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := C(r)
 	body := Body(r)
-	// The Go and Java SDKs gzip a large request (CloudWatch PutMetricData over 10 KB) and say so here.
-	if strings.EqualFold(r.Header.Get("Content-Encoding"), "gzip") {
-		zr, err := gzip.NewReader(bytes.NewReader(body))
-		if err == nil {
-			body, err = io.ReadAll(zr)
-		}
-		if err != nil {
-			p.writeErr(w, c, wireJSON, Errorf(400, "SerializationException", "the gzip request body is not valid: %v", err))
-			return
-		}
-	}
 	var op string
 	var decode func(any) error
 	wire := wireJSON
@@ -95,6 +84,23 @@ func (p *RPC) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		decode = func(v any) error { return DecodeQuery(form, v) }
 	}
 	c.Op = op
+	// A body that was too large or stalled is answered first: whatever it left behind is not worth a
+	// "does not implement" or a gzip error.
+	if err := c.BodyErr(); err != nil {
+		p.writeErr(w, c, wire, err)
+		return
+	}
+	// The Go and Java SDKs gzip a large request (CloudWatch PutMetricData over 10 KB) and say so here.
+	if strings.EqualFold(r.Header.Get("Content-Encoding"), "gzip") {
+		zr, err := gzip.NewReader(bytes.NewReader(body))
+		if err == nil {
+			body, err = io.ReadAll(zr)
+		}
+		if err != nil {
+			p.writeErr(w, c, wireJSON, Errorf(400, "SerializationException", "the gzip request body is not valid: %v", err))
+			return
+		}
+	}
 	h := p.Ops[op]
 	if h == nil {
 		code := "UnknownOperationException"

@@ -218,6 +218,14 @@ func (s *Service) run(k string, cl *cluster, restart bool) {
 	// then gets Unauthorized until pogi listens where the container can reach it.
 	r := &eks.K3s{Name: cl.Container, Image: eks.DefaultImage(), Service: "azaks", Resource: str(cl.Doc["name"]), Token: cl.Token,
 		Webhook: "http://" + d.HostAddr() + ":" + port + "/_azure/aks/authn" + k}
+	r.Watch, r.OnExit = s.ctx, func(note string) {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if s.st.Clusters[k] == cl && cl.State == "Succeeded" {
+			cl.State, cl.Note = "Failed", note
+			s.hub.Log.Warn("aks cluster stopped", "cluster", k, "note", note)
+		}
+	}
 	core.Go("aks.run", func() {
 		defer cancel()
 		endpoint, ca, err := r.Run(ctx, d, restart)
@@ -227,7 +235,7 @@ func (s *Service) run(k string, cl *cluster, restart bool) {
 		case s.st.Clusters[k] != cl: // deleted meanwhile
 			s.drop(cl)
 		case err != nil:
-			cl.State, cl.Note = "Failed", err.Error()
+			cl.State, cl.Note = "Failed", docker.Plain(err)
 			s.hub.Log.Warn("aks cluster failed", "cluster", k, "err", err)
 		default:
 			cl.State, cl.Note = "Succeeded", ""

@@ -97,7 +97,7 @@ func TestMapCountsAndExport(t *testing.T) {
 	c.wire()
 	c.aws("sqs", "", url.Values{"Action": {"SendMessage"}, "QueueUrl": {c.base + "/000000000000/jobs"}, "MessageBody": {"hi"}})
 	page := c.get("/_pogi/map")
-	want(t, page, `class="ct"`, "1 msg<", "1 sub<")
+	want(t, page, `class="ct"`, "1 msg<", "1 sub<", `<image x=`, `href="/_pogi/icons/aws/sqs.svg"`)
 	res, err := http.Get(c.base + "/_pogi/map.svg")
 	if err != nil {
 		t.Fatal(err)
@@ -108,5 +108,6 @@ func TestMapCountsAndExport(t *testing.T) {
 		t.Fatalf("Content-Disposition = %q", cd)
 	}
 	want(t, string(b), `xmlns="http://www.w3.org/2000/svg"`, "<style>", "#ff9900", "SQS queue")
-	wantNot(t, string(b), "var(--")
+	wantNot(t, string(b), "var(--", "/_pogi/icons/") // the icons are embedded, not linked
+	want(t, string(b), `href="data:image/svg+xml;base64,`)
 }

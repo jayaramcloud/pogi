@@ -181,7 +181,13 @@ func (ui *UI) bulk(w http.ResponseWriter, r *http.Request) {
 		back(w, r, to, fmt.Errorf("%s", strings.Join(errs, "; ")))
 		return
 	}
-	done(w, r, to, map[string]string{"delete": "Deleted", "tag": "Tagged"}[action]+" "+plural(len(r.Form["row"]), "resource"), nil)
+	msg := map[string]string{"delete": "Deleted", "tag": "Tagged"}[action] + " " + plural(len(r.Form["row"]), "resource")
+	if rows := r.Form["row"]; len(rows) == 1 { // name it: "Queue jobs deleted"
+		if row, err := decRow(rows[0]); err == nil && len(row) > 0 {
+			msg = strings.ToUpper(singular(table)[:1]) + singular(table)[1:] + " " + row[0] + " " + map[string]string{"delete": "deleted", "tag": "tagged"}[action]
+		}
+	}
+	done(w, r, to, msg, nil)
 }
 
 func parseTags(s string) map[string]string {
@@ -225,7 +231,7 @@ func (ui *UI) bulkOne(svc, table, action string, sc scope, cols, row []string, t
 		if err != nil {
 			return err
 		}
-		return ui.hub.Call(c.account, c.region, curated[svc][0].Target, op, in, nil)
+		return ui.hub.ConsoleCall(c.account, c.region, curated[svc][0].Target, op, in, nil)
 	}
 	return ui.gcpBulkDelete(svc, table, row[0])
 }
@@ -259,4 +265,16 @@ func (ui *UI) armBulk(action string, sc scope, table string, row []string, tags 
 		return armError(status, resp)
 	}
 	return nil
+}
+
+// singular is a table's name for one row: "Queues" -> "queue". It is for toasts, so a rough guess will do.
+func singular(table string) string {
+	t := strings.ToLower(table)
+	switch {
+	case strings.HasSuffix(t, "ies"):
+		return t[:len(t)-3] + "y"
+	case strings.HasSuffix(t, "ses"), strings.HasSuffix(t, "xes"):
+		return t[:len(t)-2]
+	}
+	return strings.TrimSuffix(t, "s")
 }

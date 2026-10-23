@@ -181,7 +181,7 @@ func TestMetadataOnly(t *testing.T) {
 		t.Fatalf("changing the login: %v", err)
 	}
 
-	// SQL Server has its master database; MariaDB reports userVisibleState.
+	// SQL Server has its master database.
 	sqlSrv := e.put("Microsoft.Sql/servers", map[string]any{"location": "eastus", "properties": map[string]any{"administratorLogin": "sqladmin", "administratorLoginPassword": pw}}, name("sql"))
 	if sqlSrv["kind"] != "v12.0" || props(sqlSrv)["version"] != "12.0" || props(sqlSrv)["state"] != "Ready" {
 		t.Fatalf("sql %+v", sqlSrv)
@@ -194,10 +194,6 @@ func TestMetadataOnly(t *testing.T) {
 	sdb := e.put("Microsoft.Sql/servers/databases", map[string]any{"location": "eastus", "sku": map[string]any{"name": "Basic", "tier": "Basic"}}, sqlName, "app")
 	if props(sdb)["status"] != "Online" || sdb["sku"].(map[string]any)["name"] != "Basic" || props(sdb)["databaseId"] == "" {
 		t.Fatalf("sql database %+v", sdb)
-	}
-	maria := e.put("Microsoft.DBforMariaDB/servers", map[string]any{"location": "eastus", "properties": map[string]any{"administratorLogin": "mdb", "administratorLoginPassword": pw}}, name("mdb"))
-	if props(maria)["userVisibleState"] != "Ready" || maria["sku"].(map[string]any)["name"] != "B_Gen5_1" {
-		t.Fatalf("mariadb %+v", maria)
 	}
 
 	// Redis: keys and regeneration.
@@ -231,7 +227,7 @@ func TestMetadataOnly(t *testing.T) {
 		core.Stateful
 	})
 	tables := svc.Resources()
-	if len(tables) != 2 || len(tables[0].Rows) != 4 || len(tables[1].Rows) != 3 { // servers: pg, sql, mariadb, redis; databases: pg app, sql master and app
+	if len(tables) != 2 || len(tables[0].Rows) != 3 || len(tables[1].Rows) != 3 { // servers: pg, sql, redis; databases: pg app, sql master and app
 		t.Fatalf("tables %+v", tables)
 	}
 	if svc.Inspect("Servers", rname) == nil || svc.Inspect("Databases", "app") == nil || svc.Inspect("Servers", "nope") != nil {
@@ -334,10 +330,6 @@ func mysqlTest(t *testing.T, typ, srvType string, version string) {
 
 func TestMySQL(t *testing.T) {
 	mysqlTest(t, "Microsoft.DBforMySQL/flexibleServers", "state", "8.0.21")
-}
-
-func TestMariaDB(t *testing.T) {
-	mysqlTest(t, "Microsoft.DBforMariaDB/servers", "userVisibleState", "10.3")
 }
 
 // resp sends a Redis command and returns the first line of the reply (the data line of a bulk string).

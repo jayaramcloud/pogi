@@ -3,6 +3,7 @@ package generic
 import (
 	"encoding/base64"
 	"maps"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -28,12 +29,34 @@ func lookupIn(idx map[string]any, id string, t *rtype) (string, bool) {
 		ro := role(id)
 		keys = append(keys, ro, t.n+ro, t.n+norm(id)) // a delete may call DataIntegration's Identifier DataIntegrationIdentifier
 	}
-	for _, k := range keys {
-		if s := str(idx[k]); s != "" {
-			return s, true
+	for i, k := range keys {
+		s := str(idx[k])
+		if s == "" {
+			continue
 		}
+		// Name stands in for an identifier only when it is a valid one (VPC Lattice makes up rgw-... ids, and
+		// a gateway's name is not one).
+		if i > 0 && !fitsShape(t.idShape(id), s) {
+			continue
+		}
+		return s, true
 	}
 	return "", false
+}
+
+// fitsShape says whether a string meets a string shape's length and pattern; a nil shape takes anything.
+func fitsShape(sh *shape, s string) bool {
+	if sh == nil {
+		return true
+	}
+	if sh.Min != nil && float64(len(s)) < *sh.Min || sh.Max != nil && float64(len(s)) > *sh.Max {
+		return false
+	}
+	if sh.Pattern == "" {
+		return true
+	}
+	re, err := regexp.Compile("^(?:" + sh.Pattern + ")$")
+	return err != nil || re.MatchString(s)
 }
 
 func (c *Call) key() string { return c.Svc.region(c.Region) }

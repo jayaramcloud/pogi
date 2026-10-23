@@ -1,0 +1,11 @@
+google_cloud_run_v2_service.api:
+  monthly_requests: 2000000
+  avg_duration_ms: 150
+google_storage_bucket.assets:
+  storage_gb: 200
+  monthly_class_a_requests: 100000
+  monthly_class_b_requests: 1000000
+google_pubsub_topic.events:
+  monthly_gb_published: 50
+google_bigquery_dataset.logs:
+  storage_gb: 500

@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -31,7 +32,7 @@ type snapshotFile struct {
 
 // Snapshot serializes the state of every stateful service.
 func (h *Hub) Snapshot() ([]byte, error) {
-	f := snapshotFile{Version: 1, Saved: time.Now().UTC(), Pogi: h.Cfg.Version, Services: map[string]json.RawMessage{}}
+	f := snapshotFile{Version: snapshotFormat, Saved: time.Now().UTC(), Pogi: h.Cfg.Version, Services: map[string]json.RawMessage{}}
 	for _, s := range h.services {
 		st, ok := s.(Stateful)
 		if !ok {
@@ -46,25 +47,71 @@ func (h *Hub) Snapshot() ([]byte, error) {
 	return json.Marshal(f)
 }
 
-// Restore loads a snapshot; services missing from it are reset.
-func (h *Hub) Restore(b []byte) error {
+// snapshotFormat is the newest snapshot format this pogi reads and writes.
+const snapshotFormat = 1
+
+// parseSnapshot checks that b is a snapshot this pogi can read. what names it
+// in messages ("this snapshot" or "snapshot <name>").
+func parseSnapshot(what string, b []byte) (snapshotFile, error) {
 	var f snapshotFile
 	if err := json.Unmarshal(b, &f); err != nil {
-		return fmt.Errorf("bad snapshot: %w", err)
+		return f, fmt.Errorf("%s is not valid: it is not a pogi snapshot — %v", what, err)
 	}
+	if f.Version > snapshotFormat {
+		return f, fmt.Errorf("%s is from a newer pogi (format %d; this pogi reads up to %d)", what, f.Version, snapshotFormat)
+	}
+	if len(f.Services) == 0 {
+		return f, fmt.Errorf("%s is not valid: it has no services", what)
+	}
+	return f, nil
+}
+
+// Restore loads a snapshot; services missing from it are reset.
+func (h *Hub) Restore(b []byte) error { return h.restore("this snapshot", b) }
+
+// restore is all or nothing: if any service fails to load, every service is
+// put back as it was and the error names the one that failed.
+func (h *Hub) restore(what string, b []byte) error {
+	f, err := parseSnapshot(what, b)
+	if err != nil {
+		return err
+	}
+	known := map[string]bool{}
+	var undo []func()
 	defer h.syncAll() // the files and journals on disk no longer match
 	for _, s := range h.services {
 		st, ok := s.(Stateful)
 		if !ok {
 			continue
 		}
-		raw, ok := f.Services[s.Info().Name]
+		name := s.Info().Name
+		known[name] = true
+		raw, ok := f.Services[name]
 		if !ok {
-			st.Reset()
 			continue
 		}
-		if err := st.Load(raw); err != nil {
-			return fmt.Errorf("%s: %w", s.Info().Name, err)
+		before, err := st.Save()
+		if err == nil {
+			undo = append(undo, func() { st.Load(before) })
+			err = st.Load(raw)
+		}
+		if err != nil {
+			for i := len(undo) - 1; i >= 0; i-- {
+				undo[i]()
+			}
+			return fmt.Errorf("%s is not valid: %s — %v", what, name, err)
+		}
+	}
+	for _, s := range h.services {
+		if st, ok := s.(Stateful); ok && f.Services[s.Info().Name] == nil {
+			st.Reset()
+		}
+	}
+	for name := range f.Services {
+		if !known[name] {
+			msg := fmt.Sprintf("%s has data for %q, which this pogi does not know; that part was skipped", what, name)
+			h.Log.Warn(msg)
+			h.probs.set("snapshot:"+name, "state", msg)
 		}
 	}
 	return nil
@@ -109,7 +156,11 @@ func (h *Hub) MarkDirty() {}
 
 // Close stops background work of services that have any (Lambda processes,
 // containers), then writes on-disk state one last time; called on shutdown.
-func (h *Hub) Close() {
+// A second call does nothing, so a test may stop a server early and still
+// leave its cleanup in place (a service closing twice used to panic).
+func (h *Hub) Close() { h.closeOnce.Do(h.close) }
+
+func (h *Hub) close() {
 	d, before := h.Docker(), []docker.Summary(nil)
 	if h.shuttingDown() {
 		before = d.Mine(context.Background()) // to tell afterwards what was stopped or removed
@@ -125,6 +176,10 @@ func (h *Hub) Close() {
 	h.syncAll()
 	for _, st := range h.stores {
 		st.j.Close()
+	}
+	if h.lock != nil {
+		h.lock.Close() // drops the data folder lock
+		h.lock = nil
 	}
 	d.Close()
 	if before != nil {
@@ -163,16 +218,38 @@ func (h *Hub) SaveFile(path string) error {
 	return writeFile(path, b)
 }
 
-// writeFile replaces path atomically: a temp file, then a rename.
+// writeFile replaces path atomically: write a temp file and fsync it, rename
+// it over path, then fsync the folder so the rename survives a power cut.
+// (No test can cut power; the test only checks the file is written and replaced.)
 func writeFile(path string, b []byte) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o600); err != nil {
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
 		return err
 	}
-	return os.Rename(tmp, path)
+	_, err = f.Write(b)
+	if err == nil {
+		err = f.Sync()
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		return err
+	}
+	if d, err := os.Open(dir); err == nil { // folders can't be synced on Windows; ignore that
+		d.Sync()
+		d.Close()
+	}
+	return nil
 }
 
 // LoadFile restores a snapshot file.
@@ -181,7 +258,7 @@ func (h *Hub) LoadFile(path string) error {
 	if err != nil {
 		return err
 	}
-	return h.Restore(b)
+	return h.restore("snapshot "+strings.TrimSuffix(filepath.Base(path), ".json"), b)
 }
 
 var snapName = regexp.MustCompile(`^[A-Za-z0-9._-]{1,100}$`)
@@ -220,8 +297,8 @@ func (h *Hub) ImportSnapshot(path string, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(b, new(snapshotFile)); err != nil {
-		return fmt.Errorf("not a pogi snapshot: %w", err)
+	if _, err := parseSnapshot("this snapshot", b); err != nil {
+		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -240,6 +317,7 @@ type store struct {
 	j                *Journal   // wal mode, for services that journal
 	mu               sync.Mutex // one save at a time
 	sum              [32]byte   // of the file's bytes
+	failed           string     // the last save error, so one kind is logged once; st.mu held
 }
 
 // storageMode is memory, hybrid, persistent or wal; --persist means hybrid.
@@ -267,21 +345,38 @@ func (h *Hub) OpenStorage() error {
 	if len(stores) == 0 {
 		return nil
 	}
+	if err := h.lockDataDir(); err != nil {
+		return err
+	}
+	fail := func(err error) error {
+		h.lock.Close()
+		h.lock = nil
+		return err
+	}
 	if err := migrate(h.Cfg.DataDir); err != nil {
-		return err // stay in memory and leave state.json alone
+		return fail(err) // state.json is left alone
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
+		return fail(fmt.Errorf("pogi can't use the data folder %s: %w — fix its permissions or use another --data-dir", h.Cfg.DataDir, err))
 	}
 	h.stores = stores
 	var errs []error
 	for _, st := range stores {
 		b, err := os.ReadFile(st.path)
-		if err == nil {
+		if errors.Is(err, os.ErrNotExist) {
+			err = nil
+		} else if err != nil {
+			return fail(fmt.Errorf("pogi can't read the saved state of %s: %w", st.name, err))
+		} else {
 			st.sum = sha256.Sum256(b)
-			err = st.svc.Load(b)
+			if err = st.svc.Load(b); err != nil {
+				if _, qerr := h.quarantine(st, err); qerr != nil {
+					return fail(qerr)
+				}
+				err = nil
+			}
 		}
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
+		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", st.name, err))
 		}
 		jr, ok := st.svc.(Journaled)
@@ -312,6 +407,49 @@ func (h *Hub) OpenStorage() error {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+// lockDataDir takes an exclusive lock on DataDir/.lock, so two pogis never
+// write the same state files. The file holds the pid of the owner.
+func (h *Hub) lockDataDir() error {
+	dir := h.Cfg.DataDir
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return fmt.Errorf("pogi can't use the data folder %s: %w — fix its permissions or use another --data-dir", dir, err)
+	}
+	path := filepath.Join(dir, ".lock")
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600)
+	if err != nil {
+		return fmt.Errorf("pogi can't use the data folder %s: %w — fix its permissions or use another --data-dir", dir, err)
+	}
+	if err := lockFile(f); err != nil {
+		pid, _ := os.ReadFile(path)
+		f.Close()
+		if p := strings.TrimSpace(string(pid)); p != "" {
+			return fmt.Errorf("another pogi (pid %s) is using %s; stop it or use another --data-dir", p, dir)
+		}
+		return fmt.Errorf("another pogi is using %s; stop it or use another --data-dir", dir)
+	}
+	f.Truncate(0)
+	f.WriteAt([]byte(strconv.Itoa(os.Getpid())+"\n"), 0)
+	h.lock = f
+	return nil
+}
+
+// quarantine keeps a state file that will not load as <name>.corrupt-<time>,
+// empties the service and tells the user. It returns the new name. An error
+// means the file could not be moved: then pogi must not start, or the next
+// save would overwrite it.
+func (h *Hub) quarantine(st *store, loadErr error) (string, error) {
+	kept := st.path + ".corrupt-" + time.Now().Format("20060102-150405")
+	if err := os.Rename(st.path, kept); err != nil {
+		return "", fmt.Errorf("could not read the saved state of %s (%v) and could not move it aside: %w", st.name, loadErr, err)
+	}
+	st.svc.Reset()
+	st.sum = [32]byte{}
+	msg := fmt.Sprintf("could not read the saved state of %s (kept as %s); it starts empty", st.name, kept)
+	h.Log.Error(msg, "err", loadErr)
+	h.probs.set("corrupt:"+st.name, "state", msg)
+	return kept, nil
 }
 
 // migrate splits DataDir/state.json into per-service files, once.
@@ -384,15 +522,74 @@ func (h *Hub) sync(st *store, force bool) {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	var err error
+	tried := true
 	switch {
 	case st.j == nil:
 		err = st.save()
 	case force || st.j.Size() > 8<<20:
 		err = st.j.Compact(st.save)
+	default:
+		tried = false
 	}
-	if err != nil {
-		h.Log.Error("save state", "service", st.name, "err", err)
+	switch {
+	case err != nil:
+		if err.Error() != st.failed { // one line per kind of error, not one per tick
+			h.Log.Error("save state", "service", st.name, "err", err)
+		}
+		st.failed = err.Error()
+		h.probs.set("save:"+st.name, "state", fmt.Sprintf("pogi can't save its state: %v. Changes made now are lost if it stops.", err))
+	case tried && st.failed != "":
+		h.Log.Info("saving state works again", "service", st.name)
+		st.failed = ""
+		h.probs.clear("save:" + st.name)
 	}
+}
+
+// Problem is something wrong with pogi as a whole, shown in status, the
+// console banner and the bell.
+type Problem struct {
+	Time time.Time `json:"time"`
+	Kind string    `json:"kind"` // state: saved state can't be read or written; port: a port pogi could not open
+	Text string    `json:"text"`
+}
+
+type problems struct {
+	mu   sync.Mutex
+	list map[string]Problem
+}
+
+func (p *problems) set(key, kind, text string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if old, ok := p.list[key]; ok && old.Text == text {
+		return
+	}
+	if p.list == nil {
+		p.list = map[string]Problem{}
+	}
+	p.list[key] = Problem{time.Now(), kind, text}
+}
+
+// PortProblem records that a service's own port could not be opened, so that part of pogi is off.
+// It stays for as long as pogi runs: the port is not tried again.
+func (h *Hub) PortProblem(service, text string) { h.probs.set("port:"+service, "port", text) }
+
+func (p *problems) clear(key string) {
+	p.mu.Lock()
+	delete(p.list, key)
+	p.mu.Unlock()
+}
+
+// Problems lists what is wrong with pogi now, oldest first.
+func (h *Hub) Problems() []Problem {
+	h.probs.mu.Lock()
+	defer h.probs.mu.Unlock()
+	var out []Problem
+	for _, p := range h.probs.list {
+		out = append(out, p)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Time.Before(out[j].Time) })
+	return out
 }
 
 // syncAll syncs the named services (all when none given), compacting

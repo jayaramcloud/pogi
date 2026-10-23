@@ -13,7 +13,7 @@
 {{range .Rules}}<tr><td><span class="name">{{or .Service "any service"}}</span> <span class="faint">· {{if .Op}}{{.Op}}{{else}}any operation{{end}}</span></td>
   <td>{{if .Status}}<span class="st bad">{{.Status}} {{.Code}}</span>{{end}}{{if .LatencyMs}} <span class="st warn">+{{.LatencyMs}} ms</span>{{end}}</td>
   <td class="num">{{if .Probability}}{{printf "%.0f%%" (mul100 .Probability)}}{{else}}100%{{end}}</td><td class="num">{{.Hits}}</td>
-  <td class="num"><form method="post" action="/_pogi/chaos/{{.ID}}/delete" class="inline"><button class="btn sm ghost danger">{{icon "trash"}}Remove</button></form></td></tr>
+  <td class="num"><form method="post" action="/_pogi/chaos/{{.ID}}/delete" class="inline" hx-confirm="Remove the chaos rule for {{or .Service "any service"}}?"><button class="btn sm ghost danger">{{icon "trash"}}Remove</button></form></td></tr>
 {{else}}<tr><td colspan="5"><div class="empty"><h2>No rules: everything behaves</h2><p>Start from a preset above, or add your own rule.</p></div></td></tr>{{end}}
 </tbody></table></div>
 {{end}}{{end}}

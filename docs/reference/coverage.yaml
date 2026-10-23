@@ -10,33 +10,93 @@
 intro: |
   # Coverage
 
-  Every service is tested with the official SDK for its cloud. Terraform (hashicorp/aws 6.x, google and azurerm) and the CDK CLI run against pogi in
+  pogi emulates the services below. Each row says what a service does today and what it does not do yet. Every service is tested with the official SDK for its cloud.
+  Terraform (hashicorp/aws 6.x, google and azurerm) and the CDK CLI also run against pogi in
   [`scripts/conformance.sh`](../../scripts/conformance.sh).
 
-  Depth:
+  Each service has a depth:
 
-  - **Deep:** real behavior, plus wiring to other services.
-  - **Core:** the main API, with real semantics.
-  - **Thin:** create, describe and delete. That is enough for infrastructure tools such as Terraform.
+  - **Deep:** real behavior, plus links to other services. A queue can trigger a function, for example.
+  - **Core:** the main API, with real behavior.
+  - **Thin:** pogi stores your resources and reads them back, but nothing runs behind them. That is enough for tools such as Terraform.
 
-  ARNs use the right prefix for the region (`aws`, `aws-cn` for China, `aws-us-gov` for GovCloud). The Terraform run also passes
-  with `REGION=us-gov-west-1` and `REGION=cn-north-1`.
+  ARNs (the IDs AWS gives resources) use the right prefix for the region: `aws`, `aws-cn` for China, and `aws-us-gov` for GovCloud.
+  The Terraform run also passes with `REGION=us-gov-west-1` and `REGION=cn-north-1`.
 
-  Names that end in `.localhost` (virtual-host S3, `execute-api`, `lambda-url`) resolve on macOS and on most Linux systems. They don't resolve in
-  Alpine Linux containers, which use a small C library without that rule. `pogi doctor` tells you which case you are in.
+  Names that end in `.localhost` (virtual-host S3, `execute-api`, `lambda-url`) resolve on macOS and on most Linux systems.
+  They don't resolve in Alpine Linux containers, which use a small C library without that rule. `pogi doctor` tells you which case you are in.
+
+# Counting (the owner's rule): pogi counts products, as each cloud lists them on its products page, each with
+# its own API. A product counts once, however many registry ids pogi has for it.
+#   parts: a registry id that is part of another product (id: that product's id); it doesn't count on its own.
+#   bundles: one registry id that serves several products (id: their names); each of them counts.
+#   uncounted: registry ids that are not a product at all.
+parts:
+  # Google Cloud
+  iamcredentials: gcpiam     # IAM Service Account Credentials API, part of IAM
+  gcpoauth: gcpiam           # Google's OAuth 2.0 and STS endpoints, part of IAM
+  datastore: firestore       # Firestore in Datastore mode
+  gcplb: compute             # Cloud Load Balancing is on the Compute Engine API
+  cloudarmor: compute        # so is Cloud Armor
+  serviceusage: resourcemanager # Service Usage is not a product on Google's products page
+  # Azure
+  graph: entra               # Microsoft Graph's directory, part of Entra ID
+  # AWS
+  bedrock-runtime: bedrock
+  bedrock-agent: bedrock
+  bedrock-agent-runtime: bedrock
+  bedrock-agentcore-control: bedrock-agentcore
+  sagemaker-runtime: sagemaker
+  cognito-identity: cognito-idp # Amazon Cognito: user pools and identity pools
+  sso-admin: sso             # IAM Identity Center
+  sso-oidc: sso
+  identitystore: sso
+  sts: iam
+  accessanalyzer: iam        # IAM Access Analyzer
+  iotdata: iot               # IoT Core's data plane
+  rds-data: rds              # the RDS Data API
+  redshift-data: redshift
+  redshift-serverless: redshift
+  emr-serverless: emr
+  elb: elbv2                 # Elastic Load Balancing: Classic beside the v2 API
+  scheduler: events          # EventBridge Scheduler
+  pipes: events              # EventBridge Pipes
+  logs: cloudwatch           # CloudWatch Logs
+  rum: cloudwatch            # CloudWatch RUM
+  oam: cloudwatch            # CloudWatch cross-account observability
+  s3tables: s3
+  s3vectors: s3
+  marketplace-entitlement: marketplace-catalog # AWS Marketplace
+  meteringmarketplace: marketplace-catalog
+  cur: bcm-data-exports      # AWS Data Exports, which the Cost and Usage Report is part of
+  account: organizations     # account settings, managed with Organizations
+  resourcegroupstaggingapi: resource-groups # Resource Groups and Tag Editor
+  controlcatalog: controltower
+  route53resolver: route53
+  codestar-connections: codepipeline # AWS CodeConnections, a part of the developer tools
+  appintegrations: connect   # Amazon Connect's integrations
+  dax: dynamodb              # DynamoDB Accelerator
+  dlm: ec2                   # Data Lifecycle Manager, for EBS snapshots
+  lambda-microvms: lambda
+bundles:
+  azdatabases: [Azure SQL Database, Azure Database for PostgreSQL, Azure Database for MySQL, Azure Cache for Redis]
+  rds: [Amazon RDS, Amazon DocumentDB, Amazon Neptune]
+uncounted:
+  - operations               # Google's shared long-running operations service
+  - pricing                  # the AWS Price List API, part of Billing and Cost Management
 
 categories:
-  "Storage": [s3, s3vectors, s3tables, efs, gcs, azblob, datasync, transfer, backup, dlm]
-  "Databases": [dynamodb, rds, rds-data, elasticache, memorydb, redshift, redshift-data, redshift-serverless, opensearch, timestream-influxdb, datastore, firestore, sqladmin, cosmos, aztable, azdatabases, dms]
-  "Messaging & events": [sqs, sns, mq, kinesis, firehose, events, scheduler, pipes, kafka, managedkafka, pubsub, eventarc, eventgrid, eventhubs, servicebus, azqueue, signalr, azemail, ses, iot, iotdata]
-  "Compute & containers": [lambda, lambda-microvms, ecs, eks, ec2, autoscaling, application-autoscaling, batch, elasticbeanstalk, lightsail, container, compute, run, cloudfunctions, azfunctions, azaks, azaci, azcontainerapps, azcompute]
-  "Networking": [route53, route53resolver, elb, elbv2, globalaccelerator, network-firewall, aznetwork, servicediscovery, cloudfront]
-  "Security & identity": [iam, sts, kms, cloudkms, keyvault, secretsmanager, secretmanager, acm, cognito-idp, cognito-identity, identitystore, sso, sso-admin, sso-oidc, verifiedpermissions, gcpiam, iamcredentials, gcpoauth, firebaseauth, entra, graph, guardduty, securityhub, detective, inspector2, macie2, accessanalyzer, wafv2, cloudhsmv2]
-  "Observability": [logs, cloudwatch, cloudtrail, amp, rum, oam, logging, monitoring, azmonitor]
-  "Integration & workflow": [stepfunctions, swf, apigateway, apim, appsync, appintegrations, connect, cloudtasks, cloudscheduler, mwaa]
-  "Analytics & AI": [athena, glue, emr, emr-serverless, kinesisanalyticsv2, lakeformation, bigquery, sagemaker, sagemaker-runtime, bedrock, bedrock-agent, bedrock-agent-runtime, bedrock-agentcore, bedrock-agentcore-control, bedrock-runtime, comprehend, translate, textract, transcribe, rekognition]
-  "Developer tools": [codebuild, codeartifact, codeguru-reviewer, codedeploy, codepipeline, ecr, artifactregistry, azacr, azappconfig]
-  "Management & governance": [organizations, cloudformation, arm, resourcemanager, serviceusage, operations, cloudcontrol, resource-explorer-2, resourcegroupstaggingapi, config, controltower, controlcatalog, service-quotas, servicecatalog, ssm, appconfig, fis, ram, account, budgets, ce, cur, pricing, bcm-data-exports, bcm-pricing-calculator, meteringmarketplace, marketplace-catalog, marketplace-entitlement]
+  "Storage": [file, s3, s3vectors, s3tables, efs, gcs, azblob, azfiles, azdatalake, datasync, transfer, backup, dlm, fsx, storagetransfer, backupdr, netapp, parallelstore, lustre, storagegateway, aznetapp, azmanagedlustre, azelasticsan, azstoragemover, azfilesync]
+  "Databases": [dynamodb, rds, rds-data, elasticache, memorydb, redis, redshift, redshift-data, redshift-serverless, opensearch, timestream-influxdb, datastore, firestore, sqladmin, cosmos, aztable, azdatabases, dms, keyspaces, dax, spanner, bigtable, memcache, alloydb, datamigration, oracledatabase, memorystore, firebasedataconnect, odb, dsql, azmanagedredis, azoracle]
+  "Messaging & events": [sqs, sns, mq, kinesis, firehose, events, scheduler, pipes, kafka, managedkafka, pubsub, eventarc, eventgrid, eventhubs, servicebus, azqueue, signalr, azemail, ses, iot, iotdata, azwebpubsub, aznotificationhubs, azrelay, aziothub, kinesisvideo, medialive, mediapackagev2, notifications, pinpoint-sms-voice-v2, aziotdps]
+  "Compute & containers": [lambda, lambda-microvms, ecs, eks, ec2, autoscaling, application-autoscaling, batch, elasticbeanstalk, lightsail, container, compute, run, cloudfunctions, azfunctions, azaks, azaci, azcontainerapps, azcompute, azappservice, azbatch, azstaticwebapps, blockchainnodeengine, vmwareengine, edgecontainer, gkemulticloud, gkebackup, appengine, workstations, hypercomputecluster, azarc, azlocal, azavs, azopenshift, azfleet, azservicefabric, azavd, azsapworkloads, gamelift, workspaces, workspaces-web, appstream]
+  "Networking": [dns, route53, route53resolver, elb, elbv2, globalaccelerator, network-firewall, aznetwork, servicediscovery, cloudfront, azdns, vpcaccess, networkconnectivity, gcplb, cloudarmor, azfrontdoor, azappgateway, azloadbalancer, azfirewall, azbastion, aztrafficmanager, azprivatelink, azvirtualwan, vpc-lattice, networkmanagement, networksecurity, networkservices, domains, route53-recovery-control-config, aznetworkwatcher, azddos, aznetworkmanager, azrouteserver, azexpressroute, azvpngateway, azwaf, azappgwcontainers, directconnect, networkmanager]
+  "Security & identity": [certificatemanager, iam, sts, kms, cloudkms, keyvault, secretsmanager, secretmanager, acm, cognito-idp, cognito-identity, identitystore, sso, sso-admin, sso-oidc, verifiedpermissions, gcpiam, iamcredentials, gcpoauth, firebaseauth, entra, graph, guardduty, securityhub, detective, inspector2, macie2, accessanalyzer, wafv2, cloudhsmv2, shield, privateca, apikeys, binaryauthorization, containeranalysis, essentialcontacts, orgpolicy, securitylake, parametermanager, firebaseappcheck, accesscontextmanager, managedidentities, assuredworkloads, beyondcorp, chronicle, cloudidentity, ids, cloudsecuritycompliance, dlp, iap, privilegedaccessmanager, recaptchaenterprise, securitycenter, publicca, payment-cryptography, acm-pca, fms, ds, signer, azdomainservices, azsecurity, azsentinel, azconfidentialledger, aztrustedsigning]
+  "Observability": [logs, cloudwatch, cloudtrail, amp, rum, oam, logging, monitoring, azmonitor, xray, cloudasset, grafana]
+  "Integration & workflow": [stepfunctions, workflows, swf, apigateway, apim, appsync, appintegrations, connect, cloudtasks, cloudscheduler, mwaa, azlogic, servicedirectory, composer, appflow, apigee, apihub, apphub, integrations, connectors, servicemanagement]
+  "Analytics & AI": [athena, glue, emr, emr-serverless, kinesisanalyticsv2, lakeformation, bigquery, sagemaker, sagemaker-runtime, bedrock, bedrock-agent, bedrock-agent-runtime, bedrock-agentcore, bedrock-agentcore-control, bedrock-runtime, comprehend, translate, textract, transcribe, rekognition, polly, location, looker, healthcare, dataplex, bigquerydatatransfer, dataproc, dataflow, datastream, azdatafactory, azgrafana, azcognitive, azdatabricks, azsearch, azsynapse, azkusto, azstreamanalytics, azmaps, mediaconvert, ivs, quicksight, analyticshub, biglake, datafusion, dataform, metastore, transcoder, datazone, dataexchange, cleanrooms, azdatashare, azanalysisservices, azhdinsight, azpowerbiembedded, azfabric, azhealthcare, azdigitaltwins]
+  "Developer tools": [codebuild, codeartifact, codedeploy, codepipeline, ecr, artifactregistry, azacr, azappconfig, amplify, codecommit, codestar-connections, cloudbuild, clouddeploy, developerconnect, securesourcemanager, firebaseapphosting, azdevtestlabs, azdevbox, azloadtesting, azdevopspools, imagebuilder, serverlessrepo, devicefarm]
+  "Management & governance": [organizations, cloudformation, arm, resourcemanager, serviceusage, operations, cloudcontrol, resource-explorer-2, resourcegroupstaggingapi, config, controltower, controlcatalog, service-quotas, servicecatalog, ssm, appconfig, fis, ram, account, budgets, ce, cur, pricing, bcm-data-exports, bcm-pricing-calculator, meteringmarketplace, marketplace-catalog, marketplace-entitlement, resource-groups, azpolicy, azautomation, azrecoveryservices, billingbudgets, migrationcenter, licensemanager, osconfig, cloudquotas, gcpconfig, resiliencehub, compute-optimizer, cost-optimization-hub, license-manager, drs, azlighthouse, azadvisor, azcostmanagement, azmanagedapps, azpurview, azchaos]
 
 rows:
 - title: "S3"
@@ -50,7 +110,7 @@ rows:
   cloud: aws
   depth: Deep
   services: [sqs]
-  covered: "standard and FIFO, JSON and Query protocols, visibility, long polling, delays, DLQs and redrive (incl. message move tasks), batches, tags, attribute MD5s"
+  covered: "standard and FIFO, JSON and Query protocols, visibility, long polling, delays, dead-letter queues and redrive (including message move tasks), batches, tags, attribute MD5s"
   not_yet: ""
 
 - title: "SNS"
@@ -64,15 +124,15 @@ rows:
   cloud: aws
   depth: Deep
   services: [dynamodb]
-  covered: "every expression type, GSI/LSI (GSI keys with up to four HASH and four RANGE attributes), Query/Scan with paging, transactions, batches, TTL, streams with Lambda triggers, exact numbers, on-demand backups and restore (also to a point in time, from the current items), global table replicas that copy writes between regions"
+  covered: "every expression type, global and local secondary indexes (global index keys with up to four HASH and four RANGE attributes), Query/Scan with paging, transactions, batches, TTL, streams with Lambda triggers, exact numbers, on-demand backups and restore (also to a point in time, from the current items), global table replicas that copy writes between regions"
   not_yet: "PartiQL, import/export; redundant parentheses in an expression are accepted (AWS refuses some)"
 
 - title: "Lambda"
   cloud: aws
   depth: Deep
   services: [lambda]
-  covered: "CRUD, versions, aliases, layers, sync/async invoke, native Python/Node.js/custom runtimes or Docker, container images with ImageConfig, warm pool, reserved and provisioned concurrency with throttling, event source mappings (SQS, Kinesis, DynamoDB, and Amazon MSK clusters by ARN, and self-managed Kafka on any reachable broker) with batching windows, partial batch responses, bisecting and S3, SQS or SNS failure destinations, function URLs, hot reload, logs to CloudWatch, execution-role credentials, the Extensions API (INVOKE and SHUTDOWN events; extensions in a layer's `extensions/` folder start with native and Docker runtimes)"
-  not_yet: "Java/.NET/Ruby run only in Docker, code signing, SnapStart; Kafka and MSK mappings use plain or SASL connections (no TLS settings), and an MSK mapping needs its cluster ACTIVE with Docker; extensions do not delay an invocation and the Logs and Telemetry APIs are not served, and a container image's own `/opt/extensions` do not start; `Architectures` is stored but native functions run on the host architecture; failed async invokes retry after 1 and 2 seconds, where AWS waits 1 and 2 minutes, so tests stay fast; `ListLayers` refuses a `CompatibleRuntime` of an unknown family but accepts a mistyped version such as `python3.99`"
+  covered: "create, read, update and delete, versions, aliases, layers, synchronous and asynchronous invoke, native Python/Node.js/custom runtimes or Docker, container images with ImageConfig, warm pool, reserved and provisioned concurrency with throttling, event source mappings (SQS, Kinesis, DynamoDB, and Amazon MSK clusters by ARN, and self-managed Kafka on any reachable broker) with batching windows, partial batch responses, bisecting and S3, SQS or SNS failure destinations, function URLs, hot reload, logs to CloudWatch, execution-role credentials, the Extensions API (INVOKE and SHUTDOWN events; extensions in a layer's `extensions/` folder start with native and Docker runtimes)"
+  not_yet: "Java/.NET/Ruby run only in Docker, code signing, SnapStart; Kafka and MSK mappings use plain or SASL connections (no TLS settings), and an MSK mapping needs its cluster ACTIVE with Docker; extensions do not delay an invocation and the Logs and Telemetry APIs are not served, and a container image's own `/opt/extensions` do not start; `Architectures` is stored but native functions run on the host architecture; failed asynchronous invokes retry after 1 and 2 seconds, where AWS waits 1 and 2 minutes, so tests stay fast; `ListLayers` refuses a `CompatibleRuntime` of an unknown family but accepts a mistyped version such as `python3.99`"
 
 - title: "API Gateway v1 + v2"
   cloud: aws
@@ -127,7 +187,7 @@ rows:
   cloud: aws
   depth: Core
   services: [kms]
-  covered: "symmetric, RSA, ECC (incl. secp256k1 and Ed25519), ML-DSA and HMAC keys, aliases, encrypt/decrypt with context, data keys, sign/verify, MAC, rotation"
+  covered: "symmetric, RSA, ECC (including secp256k1 and Ed25519), ML-DSA and HMAC keys, aliases, encrypt/decrypt with context, data keys, sign/verify, MAC, rotation"
   not_yet: "grants, imported key material, multi-region keys"
 
 - title: "Secrets Manager"
@@ -305,7 +365,7 @@ rows:
   depth: Core
   services: [redshift, redshift-data, redshift-serverless]
   docker: true
-  covered: "clusters and serverless workgroups on Postgres, the Data API (async statements, typed results, batches, catalog listing) with Redshift DDL clauses rewritten, temporary credentials that really log in; snapshot copy settings, copy grants and snapshot schedules as settings (nothing is copied or taken on a schedule)"
+  covered: "clusters and serverless workgroups on Postgres, the Data API (asynchronous statements, typed results, batches, catalog listing) with Redshift DDL clauses rewritten, temporary credentials that really log in; snapshot copy settings, copy grants and snapshot schedules as settings (nothing is copied or taken on a schedule)"
   not_yet: "parameters not applied, snapshots as metadata"
 
 - title: "Timestream for InfluxDB"
@@ -327,8 +387,8 @@ rows:
   cloud: aws
   depth: Deep
   services: [pipes]
-  covered: "SQS, Kinesis and DynamoDB Streams sources with filters, Lambda/Step Functions/API destination enrichment, every async target, input templates, retries of failed batches"
-  not_yet: "stream DLQs and partial batch failures, `HttpParameters`"
+  covered: "SQS, Kinesis and DynamoDB Streams sources with filters, Lambda/Step Functions/API destination enrichment, every asynchronous target, input templates, retries of failed batches"
+  not_yet: "stream dead-letter queues and partial batch failures, `HttpParameters`"
 
 - title: "API Gateway WebSockets"
   cloud: aws
@@ -414,9 +474,86 @@ rows:
   covered: "an SMTP server on port 2525 with SES SMTP credentials, mail into the console inbox, optional relay to Mailpit/MailHog"
   not_yet: "no retries or bounces"
 
-- title: "Long tail (generated)"
+- title: "Amplify"
+  cloud: aws
+  depth: Thin
+  services: [amplify]
+  covered: "apps (with a default domain) and branches, tags, and the checks that a branch has an app"
+  not_yet: "nothing is built, deployed or hosted; no jobs run"
+
+- title: "Polly"
+  cloud: aws
+  depth: Thin
+  services: [polly]
+  covered: "lexicons (the alphabet, language and lexeme count are read from the PLS file), `DescribeVoices` for four voices (Joanna, Matthew, Amy, Brian), and `SynthesizeSpeech`, which returns the right content type and the character count (SSML tags are not counted)"
+  not_yet: "the audio is empty, with no sound in it; the voice list is four voices, not the full set; speech synthesis tasks are not tested"
+
+- title: "Shield"
+  cloud: aws
+  depth: Thin
+  services: [shield]
+  covered: "the account's Shield Advanced subscription (one year, auto renew), protections with the rule that a resource has one protection, tags"
+  not_yet: "nothing is defended and there are no attacks; the subscription cannot be deleted, as in AWS (the commitment is a year), so use `skip_destroy` in Terraform; protected resource types are not checked"
+
+- title: "CodeCommit"
+  cloud: aws
+  depth: Thin
+  services: [codecommit]
+  covered: "repositories with their clone URLs, rename, description, tags, name checks; deleting a missing repository answers with no id, as AWS does"
+  not_yet: "there is no git server, so the clone URLs do not work; only repositories are tested: branches, commits, files and pull requests are not"
+
+- title: "Location"
+  cloud: aws
+  depth: Thin
+  services: [location]
+  covered: "maps, place indexes, route calculators, trackers, geofence collections with their ARNs and name checks; tracker consumers (`aws_location_tracker_association`)"
+  not_yet: "no map tiles, searches, routes or position tracking: only the resources are kept; calls need a host that resolves `cp.maps.<host>` (use `localhost`)"
+
+- title: "Keyspaces"
+  cloud: aws
+  depth: Thin
+  services: [keyspaces]
+  covered: "keyspaces and tables (ACTIVE at once, with the usual defaults for capacity, encryption and point-in-time recovery), table updates, tags; deleting a keyspace deletes its tables"
+  not_yet: "there is no CQL endpoint, so no data can be written or read; no point-in-time restore"
+
+- title: "FSx"
+  cloud: aws
+  depth: Thin
+  services: [fsx]
+  covered: "Lustre and OpenZFS file systems (AVAILABLE at once, with a `DNSName`, a Lustre mount name or an OpenZFS root volume, and the VPC of the first subnet when pogi's EC2 knows it), tags; Windows and ONTAP file systems are stored as sent"
+  not_yet: "nothing can be mounted; only file systems are tested: backups, volumes, snapshots and data repository associations are not; the subnet is not checked"
+
+- title: "Resource Groups"
+  cloud: aws
+  depth: Thin
+  services: [resource-groups]
+  covered: "groups with a tag or CloudFormation query, `GetGroupQuery`, `UpdateGroupQuery`, tags (`GetTags`, `Tag`, `Untag`), the duplicate-name error"
+  not_yet: "a group is never matched to resources: only groups, their queries and tags are tested"
+
+- title: "CodeStar Connections"
+  cloud: aws
+  depth: Thin
+  services: [codestar-connections]
+  covered: "connections, filtered by provider, tags"
+  not_yet: "a connection is AVAILABLE at once, because there is no console handshake here; real AWS starts it as PENDING; no calls to GitHub, Bitbucket or GitLab"
+
+- title: "X-Ray"
   cloud: aws
   depth: Core
+  services: [xray]
+  covered: "`PutTraceSegments` checks each segment and reports bad ones in `UnprocessedTraceSegments`; traces are kept 30 days (at most 1,000 per account and region, oldest dropped first) and found again with `GetTraceSummaries` (time window, paging, errors, faults, HTTP details) and `BatchGetTraces`; sampling rules with the built-in Default rule, which can be changed but not deleted; `GetSamplingTargets`; groups, the encryption config and tags"
+  not_yet: "no UDP daemon on port 2000, so send segments with the API or an OpenTelemetry collector's `awsxray` exporter; no service or trace graph; no insights; a `FilterExpression` is refused with a clear error rather than ignored"
+
+- title: "DAX"
+  cloud: aws
+  depth: Core
+  services: [dax]
+  covered: "clusters (available at once, one node per replica, scaling up and down, node reboot), subnet groups, parameter groups with DAX's two TTL parameters, tags; a cluster's endpoint is pogi's own DynamoDB, so a plain DynamoDB client pointed at it reads and writes your tables"
+  not_yet: "the DAX client's own protocol (`dax://`, port 8111) is not spoken, so use the plain DynamoDB client locally; nothing is cached; no events; subnet IDs that pogi's EC2 does not know are accepted"
+
+- title: "Long tail (generated)"
+  cloud: aws
+  depth: Thin
   rest: true # every AWS service no other row names
   covered: "{n} more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above"
   not_yet: "per-service behavior beyond the services named in the other rows is bookkeeping"
@@ -490,6 +627,200 @@ rows:
   services: [acm, route53, ec2, resourcegroupstaggingapi]
   covered: "certificates, hosted zones and records, VPCs/subnets/security groups with a default VPC, route tables and routes, internet and egress-only gateways, Elastic IPs, NAT gateways (with their Elastic IP and network interface), network interfaces (instances show theirs), VPC endpoints (gateway routes, interface addresses), AWS and managed prefix lists, network ACLs and entries, tagging across services (queues, log groups, rules, API keys, functions, tables and more)"
   not_yet: "ACM certificates are issued at once, also with EMAIL validation (no approval step); network ACL and route rules do not filter traffic; DescribeVpcEndpointServices, peering connections as resources"
+
+- title: "AppFlow"
+  cloud: aws
+  depth: Thin
+  services: [appflow]
+  covered: "flows (an S3 to S3 flow with its tasks and trigger, ACTIVE at once), connector profiles (the properties read back, the credentials are kept and never returned), a registered custom connector, tags; `aws_appflow_flow` and `aws_appflow_connector_profile` apply, plan without drift and destroy"
+  not_yet: "no flow runs and no data moves: starting a flow records nothing, and there are no execution records, schedules or field checks against a real source; one custom connector can be registered per account and region"
+
+- title: "MediaConvert"
+  cloud: aws
+  depth: Thin
+  services: [mediaconvert]
+  covered: "queues (ACTIVE, with `queues/<name>` ARNs), create, get, update, list, delete and tags; `aws_media_convert_queue` applies, plans without drift and destroys"
+  not_yet: "no job runs: there are no jobs, job templates, presets or output files, and a queue's pricing plan and reservation are stored and not used"
+
+- title: "IVS"
+  cloud: aws
+  depth: Thin
+  services: [ivs]
+  covered: "channels (with the defaults type STANDARD and latency LOW, an ingest endpoint, a playback URL and a first stream key), recording configurations (ACTIVE at once), stream keys, tags; `aws_ivs_channel` and `aws_ivs_recording_configuration` apply, plan without drift and destroy"
+  not_yet: "nothing can be streamed or played: the endpoints answer nothing, no stream or recording exists, and deleting a channel leaves its stream keys"
+
+- title: "Security Lake"
+  cloud: aws
+  depth: Thin
+  services: [securitylake]
+  covered: "one data lake per region (COMPLETED at once, with a named S3 bucket ARN, the lifecycle and encryption settings you send, and tags); create, update, list and delete; `aws_securitylake_data_lake` applies, plans without drift and destroys"
+  not_yet: "no logs are collected and the S3 bucket is not made: sources, subscribers and the other settings are stored by the engine without checks"
+
+- title: "QuickSight"
+  cloud: aws
+  depth: Thin
+  services: [quicksight]
+  covered: "data sources (CREATION_SUCCESSFUL at once), groups and users, create, describe, update, list and delete; `aws_quicksight_data_source` (S3) and `aws_quicksight_group` apply, plan without drift and destroy"
+  not_yet: "no data is read and no dashboard renders: a data source's connection is never tested, and datasets, analyses, dashboards and embedding are only stored; users need no real identity"
+
+- title: "Amazon Managed Grafana"
+  cloud: aws
+  depth: Thin
+  services: [grafana]
+  covered: "workspaces (ACTIVE at once, with an endpoint host name, the name and authentication providers you send, and `/workspaces/<id>` ARNs), update, list, delete and tags; `aws_grafana_workspace` applies, plans without drift and destroys"
+  not_yet: "no Grafana runs: the endpoint answers nothing, and API keys, service accounts, licenses and SAML or IAM Identity Center sign-in are stored and not used"
+
+- title: "VPC Lattice"
+  cloud: aws
+  depth: Thin
+  services: [vpc-lattice]
+  covered: "service networks, services and resource gateways (with ids such as `sn-...`, `svc-...`, real-style ARNs, and a conflict on a name that exists), the other types through the engine, tags; `aws_vpclattice_service_network` and `aws_vpclattice_service` apply, plan without drift and destroy"
+  not_yet: "no traffic is routed: listeners, rules, target groups and associations are stored and not used, and names are not checked against Lattice's character rules"
+- title: "MediaLive"
+  cloud: aws
+  depth: Thin
+  services: [medialive]
+  covered: "channels (IDLE a moment after the create call), inputs (DETACHED) and input security groups, with tags; `aws_medialive_input_security_group` and `aws_medialive_input` apply, plan without drift and destroy"
+  not_yet: "no video is received or encoded: a channel never starts or runs, and start, stop and schedules only store settings; no multiplexes running, no input devices, no monitoring"
+
+- title: "MediaPackage"
+  cloud: aws
+  depth: Thin
+  services: [mediapackagev2]
+  covered: "channel groups, channels and origin endpoints (the v2 API), with tags; `aws_media_packagev2_channel_group` applies, plans without drift and destroys"
+  not_yet: "nothing is packaged or served: no ingest endpoint takes video and an origin endpoint has no playback URL that answers; harvest jobs only store settings"
+
+- title: "GameLift"
+  cloud: aws
+  depth: Thin
+  services: [gamelift]
+  covered: "fleets (ACTIVE at once, read with `DescribeFleetAttributes`), builds, scripts, aliases, game session queues, matchmaking configurations and rule sets, with tags"
+  not_yet: "no game server runs: no game session, player session or instance exists to connect to, and scaling policies only store settings"
+
+- title: "Kinesis Video Streams"
+  cloud: aws
+  depth: Thin
+  services: [kinesisvideo]
+  covered: "video streams (unique names, ACTIVE, retention hours, media type) and signaling channels, with tags; `aws_kinesis_video_stream` applies, plans without drift and destroys"
+  not_yet: "no video is stored or played: the data endpoints, `PutMedia`, `GetMedia`, HLS and WebRTC signaling answer nothing"
+
+- title: "DataZone"
+  cloud: aws
+  depth: Thin
+  services: [datazone]
+  covered: "domains (AVAILABLE at once) and the projects in them, with tags"
+  not_yet: "no data is cataloged, shared or governed: assets, data sources, subscriptions and environments only store settings, and nothing connects to a data source"
+
+- title: "Data Exchange"
+  cloud: aws
+  depth: Thin
+  services: [dataexchange]
+  covered: "data sets and their revisions, with tags; `aws_dataexchange_data_set` and `aws_dataexchange_revision` apply, plan without drift and destroy"
+  not_yet: "no data moves: a job imports and exports nothing, assets hold no files, and no one can subscribe to a data set or receive a data grant"
+
+- title: "Clean Rooms"
+  cloud: aws
+  depth: Thin
+  services: [cleanrooms]
+  covered: "collaborations (with a UUID identifier), memberships and configured tables, with tags"
+  not_yet: "nothing is queried: no analysis runs, no table is read, and rules and privacy budgets only store settings"
+
+- title: "Resilience Hub"
+  cloud: aws
+  depth: Thin
+  services: [resiliencehub]
+  covered: "apps and resiliency policies (the failure targets are returned as sent), with tags; `aws_resiliencehub_resiliency_policy` applies, plans without drift and destroys"
+  not_yet: "no assessment runs: an app is never scored, no resources are discovered and no recommendations are made"
+
+- title: "Application Recovery Controller"
+  cloud: aws
+  depth: Thin
+  services: [route53-recovery-control-config]
+  covered: "recovery control configuration: clusters, control panels, routing controls and safety rules, with tags; `aws_route53recoverycontrolconfig_cluster`, `_control_panel` and `_routing_control` apply, plan without drift and destroy"
+  not_yet: "the recovery cluster endpoints and routing control states (the data plane) are not served, so a routing control cannot be switched; readiness checks are not part of this row"
+
+- title: "Payment Cryptography"
+  cloud: aws
+  depth: Thin
+  services: [payment-cryptography]
+  covered: "keys (CREATE_COMPLETE, with the attributes you send) and aliases; `DeleteKey` moves a key to DELETE_PENDING and disabled for 3 to 180 days (7 by default), as in AWS; `aws_paymentcryptography_key` and `aws_paymentcryptography_key_alias` apply, plan without drift and destroy"
+  not_yet: "there is no key material and nothing is encrypted, decrypted or verified: the data plane (`payment-cryptography-data`) is not served; keys are not removed when the waiting period ends, and import, export and replication only store settings"
+
+- title: "Private CA"
+  cloud: aws
+  depth: Thin
+  services: [acm-pca]
+  covered: "certificate authorities (root or subordinate, always PENDING_CERTIFICATE) with a real PEM certificate signing request, tags and the settings you send; `aws_acmpca_certificate_authority` applies, plans without drift and destroys"
+  not_yet: "no certificate is issued or signed: `IssueCertificate`, `ImportCertificateAuthorityCertificate` and revocation lists are not served, so an authority never becomes ACTIVE; a deleted authority is removed at once, not kept until its restore period ends"
+- title: "AWS Direct Connect"
+  cloud: aws
+  depth: Thin
+  services: [directconnect]
+  covered: "connections and Direct Connect gateways (ids like `dxcon-…`, a state, tags, the name, bandwidth and location as sent), `DescribeTags` by ARN; `aws_dx_connection` and `aws_dx_gateway` apply, plan without drift and destroy"
+  not_yet: "no link exists: a connection never leaves its first state, nothing carries traffic; virtual interfaces, LAGs, gateway associations and attachments, and locations are not tested; names and bandwidth are not checked against what the real service allows"
+
+- title: "Amazon WorkSpaces"
+  cloud: aws
+  depth: Thin
+  services: [workspaces]
+  covered: "IP access control groups with their rules (`CreateIpGroup`, `UpdateRulesOfIpGroup`, `DescribeIpGroups`, delete), tags; `aws_workspaces_ip_group` applies, plans without drift and destroys"
+  not_yet: "no desktop is ever created or runs: workspaces, bundles, directories registration and connection aliases are not tested; a group is not matched to a directory"
+
+- title: "Amazon WorkSpaces Secure Browser"
+  cloud: aws
+  depth: Thin
+  services: [workspaces-web]
+  covered: "portals (create, get, update, list, delete, tags); `aws_workspacesweb_portal` applies, plans without drift and destroys"
+  not_yet: "no browser session runs and no portal endpoint answers; browser settings, network settings, identity providers, user settings and associations are not tested"
+
+- title: "Amazon AppStream 2.0"
+  cloud: aws
+  depth: Thin
+  services: [appstream]
+  covered: "stacks (create, describe, update, delete, tags) over the CBOR protocol; `aws_appstream_stack` applies, plans without drift and destroys"
+  not_yet: "no streaming session runs: fleets, image builders, images, users and entitlements are not tested; a stack is not checked against a fleet"
+
+- title: "AWS Directory Service"
+  cloud: aws
+  depth: Thin
+  services: [ds]
+  covered: "directories made with `CreateDirectory` (Simple AD, Active at once, with the VPC settings and tags as sent); `aws_directory_service_directory` of type `SimpleAD` applies, plans without drift and destroys"
+  not_yet: "nothing runs behind a directory: it has no domain controller and no DNS addresses, and nobody can join or sign in; Microsoft AD, AD Connector, trusts, shares and conditional forwarders are not tested"
+
+- title: "AWS Signer"
+  cloud: aws
+  depth: Thin
+  services: [signer]
+  covered: "signing profiles (put, get, list, cancel, tags, the validity period); `aws_signer_signing_profile` applies, plans without drift and destroys"
+  not_yet: "nothing is signed: signing jobs, signing platforms and permissions are not tested; a profile's platform is not checked"
+
+- title: "AWS Elastic Disaster Recovery"
+  cloud: aws
+  depth: Thin
+  services: [drs]
+  covered: "replication configuration templates (create, describe, update, delete, with their tags and staging area tags kept apart); `aws_drs_replication_configuration_template` applies, plans without drift and destroys"
+  not_yet: "nothing is replicated: source servers, agents, jobs, recovery instances and launch configurations are not tested; subnets and security groups are not checked"
+
+- title: "AWS Cloud WAN and Network Manager"
+  cloud: aws
+  depth: Thin
+  services: [networkmanager]
+  covered: "global networks (create, describe, delete, tags) and sites; `aws_networkmanager_global_network` applies, plans without drift and destroys"
+  not_yet: "no network is built: core networks and their policies, links, devices, attachments and Transit Gateway registrations are not tested"
+
+- title: "AWS Device Farm"
+  cloud: aws
+  depth: Thin
+  services: [devicefarm]
+  covered: "projects (create, get, update, list, delete, tags); `aws_devicefarm_project` applies, plans without drift and destroys"
+  not_yet: "no device runs a test: uploads, device pools, runs and remote access sessions are not tested; the service lives in us-west-2 for real, pogi answers in any region"
+
+- title: "AWS License Manager"
+  cloud: aws
+  depth: Thin
+  services: [license-manager]
+  covered: "license configurations (create, get, update, list, delete, with the counting type, limits and tags); `aws_licensemanager_license_configuration` applies, plans without drift and destroys"
+  not_yet: "licenses are not counted or enforced: associations, licenses, grants and reports are not tested; no usage is ever reported"
 
 - title: "Cloud Storage"
   cloud: gcp
@@ -711,7 +1042,7 @@ rows:
   cloud: azure
   depth: Core
   services: [arm, entra, graph]
-  covered: "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, async operations, deployments as metadata, generic resources); Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups"
+  covered: "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, asynchronous operations, deployments as metadata, generic resources); Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups"
   not_yet: "templates are not run (a deployment whose template holds an unknown resource type ends Failed), a PUT of a resource type pogi does not know is refused (`InvalidResourceType`, or `NoRegisteredProviderFound` for an unknown namespace), Graph covers what `azuread` and `az ad` use"
 
 - title: "Management planes (ARM)"
@@ -721,7 +1052,7 @@ rows:
   covered: "ARM resources for storage accounts, Key Vault, Cosmos DB, Service Bus, Event Hubs, Event Grid, Functions, App Configuration, SignalR and Communication Services, wired to their data planes; the azurerm Terraform provider applies, plans clean and destroys (run in Docker on macOS)"
   not_yet: "storage `regenerateKey`, function app config sub-resources"
 
-- title: "Azure SQL, PostgreSQL, MySQL, MariaDB, Cache for Redis"
+- title: "Azure SQL, PostgreSQL, MySQL, Cache for Redis"
   cloud: azure
   depth: Core
   services: [azdatabases]
@@ -773,6 +1104,525 @@ rows:
   covered: "the shared `google.longrunning.Operations` service every GCP method that returns an Operation uses: get, list, wait, cancel and delete, over gRPC and REST (`/v1|v2/projects/p/locations/l/operations/o`)"
   not_yet: "operations are in memory only and never expire"
 
+- title: "Memorystore for Redis"
+  cloud: gcp
+  depth: Core
+  services: [redis]
+  docker: true
+  covered: "v1 (gRPC and REST, REST under `/redis/`): instances (create, get, list, update with `updateMask`, delete, `getAuthString`), each a real Redis container: `host` and `port` on the instance work for a Redis client, `authEnabled` sets a real password, `memorySizeGb` is the memory limit and the documented `redisConfigs` reach the server; without Docker, READY at once with the address 127.0.0.1:6379 and nothing behind it"
+  not_yet: "the container is always Redis 7 whatever `redisVersion` says, STANDARD_HA and read replicas run as one server, TLS, persistence, import, export, failover and upgrade, `redisConfigs` other than the documented seven are refused, a key removed from `redisConfigs` keeps its value until the instance is made again"
+- title: "Workflows"
+  cloud: gcp
+  depth: Core
+  services: [workflows]
+  covered: "Workflows v1 and Workflow Executions v1 (gRPC and REST, hosts `workflows` and `workflowexecutions`): workflows (create, get, list, patch with `updateMask`, delete, revisions with `revisionId` and `listRevisions`) and executions (create with an `argument`, get with BASIC or FULL view, list, cancel). An execution really runs the YAML: `main` and subworkflows with `params`; `assign`; `call` of `http.get`, `http.post`, `http.put`, `http.patch`, `http.delete`, `http.request`, `sys.log`, `sys.sleep`, `sys.get_env` and subworkflows; `switch`, `for` (`in`, `range`, `index`, `value`), `try`/`except`/`retry` (predicate, `max_retries`, backoff, `http.default_retry`), `return`, `raise` and `next`; `${...}` expressions with operators, list and map literals and access, and `len`, `keys`, `default`, `map.get`, `json.*`, `text.*` basics, `time.format`, `sys.now`. A `*.googleapis.com` URL in an HTTP call reaches pogi itself; other URLs are called for real (default timeout 300 s). State is ACTIVE while running, then SUCCEEDED with `result` or FAILED with the error and its step. An unsupported step, connector or function fails the execution with an error that names it and cannot be caught. Caps: 100,000 steps per execution, 100,000 iterations per loop, 20 nested calls"
+  not_yet: "`parallel` steps, connectors (`googleapis.*`), callbacks and `events.*`, the long tail of standard library functions (bytes, `base64`, `uuid`, `hash`, most `text.*`), `sys.log` output (it is checked and dropped, nothing reaches Cloud Logging), `GOOGLE_CLOUD_PROJECT_NUMBER`, `auth` on HTTP calls is ignored, filters and ordering when listing, execution step history, CMEK, call logging and Terraform has no execution resource"
+- title: "Cloud DNS"
+  cloud: gcp
+  depth: Thin
+  services: [dns]
+  covered: "v1 REST (`google.golang.org/api/dns/v1`, Terraform `google_dns_managed_zone` and `google_dns_record_set`): managed zones (with name servers, id and creation time; get, list, patch, delete) and record sets (through `changes`, and the `rrsets` methods), with paging and the name and type filters of the record set list; an update returns a finished operation that `managedZoneOperations.get` reads back"
+  not_yet: "nothing runs behind a zone: no DNS server answers. A zone has no default NS and SOA record sets, a deletion in a change is matched by name and type only, and policies, response policies and DNSSEC keys are only stored (policies and response policies must carry a `name`)"
+
+- title: "Filestore"
+  cloud: gcp
+  depth: Thin
+  services: [file]
+  covered: "v1 REST at `/file/v1/` (`google.golang.org/api/file/v1`, Terraform `google_filestore_instance`): instances (create, get, list, patch with `updateMask`, delete) and backups, with a finished operation to poll at `projects/p/locations/l/operations/<id>`, `READY` at once, labels, paging and `filter`"
+  not_yet: "nothing runs behind an instance: no NFS share exists, and the IP address in `networks` is made up. Restore, revert and replica calls answer UNIMPLEMENTED; snapshots are stored only. Without the `/file/` prefix (or a `file.googleapis.com` host) the paths are not told apart from Memorystore's"
+
+- title: "Certificate Manager"
+  cloud: gcp
+  depth: Thin
+  services: [certificatemanager]
+  covered: "v1 REST at `/certificatemanager/v1/` (`google.golang.org/api/certificatemanager/v1`, Terraform `google_certificate_manager_certificate`, `_dns_authorization` and `_certificate_map`): certificates, DNS authorizations (with the CNAME record to add), certificate maps and their entries, issuance configs and trust configs, with finished operations, labels, paging and `filter`"
+  not_yet: "nothing is issued or validated: a managed certificate is `ACTIVE` at once and holds no PEM, and nothing is served"
+- title: "Cloud Spanner"
+  cloud: gcp
+  depth: Core
+  services: [spanner]
+  docker: true
+  covered: "Google's own Cloud Spanner emulator in Docker behind pogi's port, started on the first call: set `SPANNER_EMULATOR_HOST=localhost:7644` for the official clients (data, instance admin and database admin over gRPC, with operations found through the shared operations service) and use `/spanner/v1/` for REST and Terraform (`google_spanner_instance`, `google_spanner_database` with DDL); instance configs such as `regional-us-central1` are answered by pogi; without Docker every call fails and says Docker is needed"
+  not_yet: "whatever the emulator lacks (updating an instance, backups, IAM policies, only the `emulator-config` in config lists), data and databases are lost on restart (the emulator keeps no files), one emulator for all projects"
+
+- title: "Cloud Bigtable"
+  cloud: gcp
+  depth: Core
+  services: [bigtable]
+  covered: "the official emulator (`bttest`) in pogi's own process, so no Docker: table admin and the data API (rows, mutations, reads, filters, check-and-mutate) over gRPC, started on the first call; pogi serves instance admin itself: instances, clusters and app profiles (with a `default` one) over gRPC and at `/bigtableadmin/v2/`, with long-running operations; set `BIGTABLE_EMULATOR_HOST=localhost:7644` for the clients and Terraform (`google_bigtable_instance`, `google_bigtable_table` with column families); a request for an instance that does not exist is refused"
+  not_yet: "IAM policies, backups, authorized and materialized views, SQL queries (bttest lacks them), table admin over REST, autoscaling is stored but never changes the nodes, data and instances are lost on restart"
+
+- title: "Looker"
+  cloud: gcp
+  depth: Thin
+  services: [looker]
+  covered: "v1 REST at `/looker/v1/` (`google.golang.org/api/looker/v1`, Terraform `google_looker_instance`): instances (create, get, list, patch with `updateMask`, delete), with a finished operation to poll, `ACTIVE` at once, labels, paging and `filter`"
+  not_yet: "nothing runs behind an instance: no Looker server exists, and no URI or IP address is set. Import, export, restart and other custom calls answer UNIMPLEMENTED"
+
+- title: "Certificate Authority Service"
+  cloud: gcp
+  depth: Thin
+  services: [privateca]
+  covered: "v1 REST at `/privateca/v1/` (`google.golang.org/api/privateca/v1`, Terraform `google_privateca_ca_pool` and `google_privateca_certificate_authority`): CA pools and certificate authorities (create, get, list, patch, delete, enable and disable), with finished operations, labels, paging and `filter`; a new authority is `STAGED`, and enable and disable change the stored state"
+  not_yet: "nothing is signed: no CA certificate or key exists, and certificates are stored as plain records with no PEM. Custom calls (activate, fetch, revoke) answer UNIMPLEMENTED"
+
+- title: "Cloud Healthcare"
+  cloud: gcp
+  depth: Thin
+  services: [healthcare]
+  covered: "v1 REST at `/healthcare/v1/` (`google.golang.org/api/healthcare/v1`, Terraform `google_healthcare_dataset`): datasets (create, get, list, patch, delete), with a finished operation for create and delete, labels, paging and `filter`"
+  not_yet: "FHIR, HL7v2, DICOM and consent stores are stored as plain records like the dataset: no resource, message or image can be sent to them, and nothing is de-identified"
+
+- title: "Dataplex"
+  cloud: gcp
+  depth: Thin
+  services: [dataplex]
+  covered: "v1 REST at `/dataplex/v1/` (`google.golang.org/api/dataplex/v1`, Terraform `google_dataplex_lake`): lakes and entry groups (create, get, list, patch, delete); the other resources of the API (zones, assets, tasks) are stored the same way, with finished operations, `ACTIVE` at once, labels, paging and `filter`"
+  not_yet: "nothing runs: no zone is scanned, no data is discovered and no quality or profile job executes. Custom calls such as `:search` answer UNIMPLEMENTED"
+
+- title: "BigQuery Data Transfer"
+  cloud: gcp
+  depth: Thin
+  services: [bigquerydatatransfer]
+  covered: "v1 REST at `/bigquerydatatransfer/v1/` (`google.golang.org/api/bigquerydatatransfer/v1`, Terraform `google_bigquery_data_transfer_config`): transfer configs (create with a server-chosen id, get, list, patch, delete), under `projects/p` or `projects/p/locations/l`"
+  not_yet: "no transfer runs: the schedule is stored, no query or copy executes and no run history exists. The list of data sources is empty, and starting runs answers UNIMPLEMENTED"
+
+- title: "Storage Transfer"
+  cloud: gcp
+  depth: Thin
+  services: [storagetransfer]
+  covered: "v1 REST at `/storagetransfer/v1/` (`google.golang.org/api/storagetransfer/v1`, Terraform `google_storage_transfer_job`): transfer jobs at `transferJobs/<name>` (create with a made-up or chosen name, get and delete with `projectId`, list with the JSON `filter`, patch with the field mask; status `DELETED` keeps the job); agent pools are stored the same way"
+  not_yet: "no data moves: a job never runs, no transfer operation exists, and nothing is read from or written to a bucket. `:run` answers UNIMPLEMENTED"
+- title: "Cloud Build"
+  cloud: gcp
+  depth: Thin
+  services: [cloudbuild]
+  covered: "v1 REST at `/cloudbuild/v1/` (`google.golang.org/api/cloudbuild/v1`, Terraform `google_cloudbuild_trigger` and `google_cloudbuild_worker_pool`): build triggers (global and per location, with a server-made id and `resourceName`; create, get, list, patch, delete) and worker pools (finished operations, `RUNNING` at once, labels, paging)"
+  not_yet: "nothing runs behind a trigger or a pool: no build is started (`run` and `webhook` answer UNIMPLEMENTED, and a build you create is only stored), no repository event fires, and no worker exists"
+
+- title: "Cloud Deploy"
+  cloud: gcp
+  depth: Thin
+  services: [clouddeploy]
+  covered: "v1 REST at `/clouddeploy/v1/` (`google.golang.org/api/clouddeploy/v1`, Terraform `google_clouddeploy_target` and `google_clouddeploy_delivery_pipeline`): targets and delivery pipelines (create, get, list, patch, delete) with finished operations, labels, paging and `filter`"
+  not_yet: "nothing is deployed: releases and rollouts are only stored, never rendered or rolled out, a pipeline is not checked against its targets, and no cluster is contacted"
+
+- title: "API Keys"
+  cloud: gcp
+  depth: Thin
+  services: [apikeys]
+  covered: "v2 REST at `/apikeys/v2/` (`google.golang.org/api/apikeys/v2`, Terraform `google_apikeys_key`): keys (create with `keyId`, get, list, patch, delete) with finished operations, restrictions stored, and `getKeyString` returning a made-up `AIza...` string that is the same on every read"
+  not_yet: "keys are not checked anywhere: no API call is allowed or refused by a key or its restrictions. A deleted key is gone at once (the real service keeps it for 30 days), and `undelete` and `lookupKey` answer UNIMPLEMENTED"
+
+- title: "Service Directory"
+  cloud: gcp
+  depth: Thin
+  services: [servicedirectory]
+  covered: "v1 REST at `/servicedirectory/v1/` (`google.golang.org/api/servicedirectory/v1`, Terraform `google_service_directory_namespace`, `_service` and `_endpoint`): namespaces, services and endpoints (create with `namespaceId`, `serviceId` and `endpointId`, get, list, patch with `updateMask`, delete; deleting a parent removes what is in it), labels and annotations, paging and `filter`"
+  not_yet: "`resolve` answers UNIMPLEMENTED, no DNS zone or private DNS name is made, and nothing checks that an endpoint's address or network exists"
+
+- title: "Binary Authorization"
+  cloud: gcp
+  depth: Thin
+  services: [binaryauthorization]
+  covered: "v1 REST at `/binaryauthorization/v1/` (`google.golang.org/api/binaryauthorization/v1`, Terraform `google_binary_authorization_policy` and `google_binary_authorization_attestor`): the project policy (it exists from the start and admits everything until it is replaced) and attestors (create with `attestorId`, get, list, replace, delete)"
+  not_yet: "no deploy is admitted or refused: the policy is stored, never evaluated, and attestors check nothing (an attestor's note is not looked up). Platform policies, `evaluate` and `validateAttestationOccurrence` answer UNIMPLEMENTED"
+
+- title: "Container Analysis"
+  cloud: gcp
+  depth: Thin
+  services: [containeranalysis]
+  covered: "v1 REST at `/containeranalysis/v1/` (`google.golang.org/api/containeranalysis/v1`, Terraform `google_container_analysis_note` and `_occurrence`): notes (create with `noteId`) and occurrences (server-made id, `noteName` and `resourceUri` required) at project and location level, with `kind` taken from the field you set, get, list, patch, delete"
+  not_yet: "nothing scans an image: no vulnerability or package occurrence is ever made, an occurrence's note is not looked up, and `batchCreate`, `getVulnerabilitySummary` and `exportSBOM` answer UNIMPLEMENTED"
+
+- title: "Essential Contacts"
+  cloud: gcp
+  depth: Thin
+  services: [essentialcontacts]
+  covered: "v1 REST at `/essentialcontacts/v1/` (`google.golang.org/api/essentialcontacts/v1`, Terraform `google_essential_contacts_contact`): contacts of a project, folder or organization (create with a server-made numeric id, `email`, `languageTag` and `notificationCategorySubscriptions` required, get, list, patch, delete)"
+  not_yet: "no mail is sent and no address is verified: `sendTestMessage` answers UNIMPLEMENTED, and so does `compute`; parents are not checked against a real folder or organization"
+
+- title: "Organization Policy"
+  cloud: gcp
+  depth: Thin
+  services: [orgpolicy]
+  covered: "v2 REST at `/orgpolicy/v2/` (`google.golang.org/api/orgpolicy/v2`, Terraform `google_org_policy_policy`): policies of a project, folder or organization (create with the whole name, get, list, patch, delete), with the spec's `etag` and `updateTime` set on every change"
+  not_yet: "no policy is enforced: other pogi services ignore it. Constraints are not listed or checked (a policy for any name is accepted), and `getEffectivePolicy` answers UNIMPLEMENTED"
+
+- title: "Cloud Asset Inventory"
+  cloud: gcp
+  depth: Thin
+  services: [cloudasset]
+  covered: "v1 REST at `/cloudasset/v1/` (`google.golang.org/api/cloudasset/v1`, Terraform `google_cloud_asset_project_feed`): feeds of a project, folder or organization (create with `feedId` and a `feedOutputConfig`, get, list, patch with `updateMask`, delete) and saved queries"
+  not_yet: "no asset is tracked and no message is published to the feed's topic; asset lists are empty, and history, search, export and analysis calls answer UNIMPLEMENTED"
+- title: "Dataproc"
+  cloud: gcp
+  depth: Thin
+  services: [dataproc]
+  covered: "v1 REST at `/dataproc/v1/` (`google.golang.org/api/dataproc/v1`, Terraform `google_dataproc_cluster`): clusters under `projects/p/regions/r` (create, get, list, patch, delete) with `RUNNING` at once, the config a client reads back (software config, bucket names, machine names) and a finished operation to poll at `projects/p/regions/r/operations/<id>`; labels, paging and `filter`"
+  not_yet: "nothing runs behind a cluster: no machines, no Spark or Hadoop, and the bucket names and machine names are made up. no job runs (submit answers UNIMPLEMENTED), workflow templates and autoscaling policies are stored only, and start, stop, repair and diagnose answer UNIMPLEMENTED"
+
+- title: "Cloud Composer"
+  cloud: gcp
+  depth: Thin
+  services: [composer]
+  covered: "v1 REST at `/composer/v1/` (`google.golang.org/api/composer/v1`, Terraform `google_composer_environment`): environments (create with the name in the body, get, list, patch with `updateMask`, delete) with `RUNNING` at once and a finished operation to poll; labels and paging"
+  not_yet: "nothing runs behind an environment: no Airflow, no GKE cluster and no DAG bucket, and the fields Google fills in (`airflowUri`, `dagGcsPrefix`, `gkeCluster`) stay empty. User workloads, database failover and snapshots answer UNIMPLEMENTED"
+
+- title: "Dataflow"
+  cloud: gcp
+  depth: Thin
+  services: [dataflow]
+  covered: "v1b3 REST at `/dataflow/v1b3/` (`google.golang.org/api/dataflow/v1b3`, Terraform `google_dataflow_job` from a template): `templates.create` makes a job that is `JOB_STATE_RUNNING` at once, `jobs.get` and `jobs.list` read it back, and a job update that asks for `JOB_STATE_CANCELLED` or `JOB_STATE_DRAINED` ends it; a name in use by a running job is refused"
+  not_yet: "nothing runs: the template is not read, no pipeline starts, and a job never finishes by itself. The template's parameters are not kept. Flex templates, metrics, messages, snapshots and work items answer UNIMPLEMENTED"
+
+- title: "Memorystore for Memcached"
+  cloud: gcp
+  depth: Thin
+  services: [memcache]
+  covered: "v1 REST at `/memcache/v1/` (`google.golang.org/api/memcache/v1`, Terraform `google_memcache_instance`): instances (create, get, list, patch, delete) with `READY` at once and a finished operation to poll; labels, paging and `filter`"
+  not_yet: "nothing runs behind an instance: no Memcached server answers, and no node hosts or ports are reported. Applying parameters, updating parameters and rescheduling maintenance answer UNIMPLEMENTED"
+
+- title: "Serverless VPC Access"
+  cloud: gcp
+  depth: Thin
+  services: [vpcaccess]
+  covered: "v1 REST at `/vpcaccess/v1/` (`google.golang.org/api/vpcaccess/v1`, Terraform `google_vpc_access_connector`): connectors (create, get, list, patch, delete) with `READY` at once and a finished operation to poll; paging"
+  not_yet: "a connector joins no network: nothing is checked about the network or the IP range, and no traffic is routed"
+
+- title: "Network Connectivity Center"
+  cloud: gcp
+  depth: Thin
+  services: [networkconnectivity]
+  covered: "v1 REST at `/networkconnectivity/v1/` (`google.golang.org/api/networkconnectivity/v1`, Terraform `google_network_connectivity_hub` and `_spoke`): hubs and spokes (create, get, list, patch, delete) with `ACTIVE` at once and a finished operation to poll; labels, paging and `filter`"
+  not_yet: "nothing is connected: a spoke's VPC network or tunnel is not looked up, no routes or route tables are made, and accepting or rejecting spokes answers UNIMPLEMENTED"
+
+- title: "AlloyDB"
+  cloud: gcp
+  depth: Thin
+  services: [alloydb]
+  covered: "v1 REST at `/alloydb/v1/` (`google.golang.org/api/alloydb/v1`, Terraform `google_alloydb_cluster` and `google_alloydb_instance`): clusters and the instances in them (create, get, list, patch, delete) with `READY` at once, cluster type `PRIMARY` and a finished operation to poll; labels, paging and `filter`"
+  not_yet: "nothing runs behind an instance: no PostgreSQL server answers, and no IP address is reported. Backups, restore, failover, promote, read pool resizing and users answer UNIMPLEMENTED or are not stored"
+
+- title: "Datastream"
+  cloud: gcp
+  depth: Thin
+  services: [datastream]
+  covered: "v1 REST at `/datastream/v1/` (`google.golang.org/api/datastream/v1`, Terraform `google_datastream_connection_profile`): connection profiles (create, get, list, patch, delete), private connections and streams stored, with a finished operation to poll; labels, paging and `filter`"
+  not_yet: "nothing is connected: the source and destination are not contacted, and a stream never moves data. Discover and the other custom actions answer UNIMPLEMENTED"
+- title: "Cloud Load Balancing"
+  cloud: gcp
+  depth: Thin
+  services: [gcplb]
+  covered: "the Compute API (`google.golang.org/api/compute/v1`, Terraform) for health checks, backend services, URL maps, target HTTP and HTTPS proxies, SSL certificates (self-managed with a PEM check, or managed) and forwarding rules, in their global and regional forms; they are stored and read back with the links between them checked (a missing health check, backend service, URL map or certificate is a 404, and deleting one that is in use is refused), operations are DONE when returned, and `setUrlMap`, `setSslCertificates`, `setTarget` and `setSecurityPolicy` work"
+  not_yet: "nothing carries traffic: no request reaches a backend, health checks never probe, a forwarding rule's address is made up and answers nothing, and certificates are not served or renewed; instance groups and network endpoint groups are not stored, so a backend's group is kept as given"
+
+- title: "Cloud Armor"
+  cloud: gcp
+  depth: Thin
+  services: [cloudarmor]
+  covered: "the Compute API for security policies, global and regional: rules with `addRule`, `patchRule`, `removeRule` and `getRule`, the default rule at priority 2147483647 made when a policy has none, duplicate priorities, a bad action or a rule without a match refused, and a backend service that names a policy (`terraform apply` of `google_compute_security_policy` plans clean)"
+  not_yet: "no traffic is filtered: rules are stored and never evaluated, and preconfigured WAF expressions, rate limiting and adaptive protection are accepted but do nothing"
+
+- title: "Analytics Hub"
+  cloud: gcp
+  depth: Thin
+  services: [analyticshub]
+  covered: "v1 REST at `/analyticshub/v1/`, Terraform `google_bigquery_analytics_hub_data_exchange`: data exchanges and their listings, and query templates (create, get, list, patch, delete), with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "nobody can subscribe: subscribe and the other custom actions answer UNIMPLEMENTED, no BigQuery dataset is shared, and the IAM policy of an exchange is not stored"
+
+- title: "BigLake"
+  cloud: gcp
+  depth: Thin
+  services: [biglake]
+  covered: "v1 REST at `/biglake/v1/`, Terraform `google_biglake_catalog`: catalogs, and the databases and tables in them (create, get, list, patch, delete), with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "no table data is read or written, and the Iceberg REST catalog is not served; only the v1 metastore API is"
+
+- title: "Cloud Data Fusion"
+  cloud: gcp
+  depth: Thin
+  services: [datafusion]
+  covered: "v1 REST at `/datafusion/v1/`, Terraform `google_data_fusion_instance`: instances (create, get, list, patch, delete) with state `ACTIVE` at once, and DNS peerings, with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "no pipeline studio runs: the instance has no API endpoint to open and no pipeline runs; restart answers UNIMPLEMENTED"
+
+- title: "Dataform"
+  cloud: gcp
+  depth: Thin
+  services: [dataform]
+  covered: "v1 REST at `/dataform/v1/`, Terraform `google_dataform_repository`: repositories, workspaces, release configs, workflow configs, compilation results and workflow invocations, kept as sent, with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "no Git repository is cloned and no SQL runs: a compilation never compiles, a workflow invocation never executes, and file actions in a workspace answer UNIMPLEMENTED"
+
+- title: "Dataproc Metastore"
+  cloud: gcp
+  depth: Thin
+  services: [metastore]
+  covered: "v1 REST at `/metastore/v1/`, Terraform `google_dataproc_metastore_service`: services (state `ACTIVE` at once), federations, backups and metadata imports, with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "no Hive metastore answers on the service's endpoint, and backup restore, metadata export and migration answer UNIMPLEMENTED"
+
+- title: "Database Migration Service"
+  cloud: gcp
+  depth: Thin
+  services: [datamigration]
+  covered: "v1 REST at `/datamigration/v1/`, Terraform `google_database_migration_service_connection_profile`: connection profiles (state `READY`), private connections, migration jobs and conversion workspaces, kept as sent, with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "no database is contacted and nothing migrates: starting, verifying, promoting or converting answers UNIMPLEMENTED"
+
+- title: "Memorystore for Valkey"
+  cloud: gcp
+  depth: Thin
+  services: [memorystore]
+  covered: "v1 REST at `/memorystore/v1/`, Terraform `google_memorystore_instance`: instances (create, get, list, patch, delete) with state `ACTIVE` at once; Google publishes no discovery document for it, so pogi serves a small hand-written subset, with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "no Valkey server runs and no discovery endpoint answers an address; backups, certificate authority and maintenance rescheduling are not served"
+
+- title: "Oracle Database@Google Cloud"
+  cloud: gcp
+  depth: Thin
+  services: [oracledatabase]
+  covered: "v1 REST at `/oracledatabase/v1/`, Terraform `google_oracle_database_cloud_exadata_infrastructure`: Exadata infrastructures, VM clusters, Autonomous Databases, DB systems, ODB networks and subnets, kept as sent, with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "no Oracle database runs: start, stop, restart, failover, switchover, wallet and refresh answer UNIMPLEMENTED"
+
+- title: "Backup and DR Service"
+  cloud: gcp
+  depth: Thin
+  services: [backupdr]
+  covered: "v1 REST at `/backupdr/v1/`, Terraform `google_backup_dr_backup_vault`: backup vaults (state `ACTIVE`), backup plans, plan associations and management servers, kept as sent, with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "nothing is backed up: no backup is taken, no data source is found and restores answer UNIMPLEMENTED"
+
+- title: "NetApp Volumes"
+  cloud: gcp
+  depth: Thin
+  services: [netapp]
+  covered: "v1 REST at `/netapp/v1/`, Terraform `google_netapp_storage_pool`: storage pools, volumes, snapshots, replications, backup vaults and policies, KMS configs and active directories, kept as sent, with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "no volume can be mounted: there is no NFS or SMB server, and replication, restore and encryption checks answer UNIMPLEMENTED"
+
+- title: "Parallelstore"
+  cloud: gcp
+  depth: Thin
+  services: [parallelstore]
+  covered: "v1 REST at `/parallelstore/v1/`, Terraform `google_parallelstore_instance`: instances (create, get, list, patch, delete) with state `ACTIVE` and a finished operation, with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "no file system is served: nothing can mount it, and import and export of data answer UNIMPLEMENTED"
+
+- title: "Managed Lustre"
+  cloud: gcp
+  depth: Thin
+  services: [lustre]
+  covered: "v1 REST at `/lustre/v1/`, Terraform `google_lustre_instance`: instances, directory policies and mirrors (create, get, list, patch, delete) with state `ACTIVE`; the document is fetched from Google and kept in the repository, with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "no Lustre file system is served and no mount point answers; import, export and maintenance rescheduling answer UNIMPLEMENTED"
+
+- title: "Transcoder API"
+  cloud: gcp
+  depth: Thin
+  services: [transcoder]
+  covered: "v1 REST at `/transcoder/v1/`, Terraform `google_transcoder_job_template`: job templates and jobs (create, get, list, delete), with a finished operation to poll where the API has one; labels, paging and `filter`"
+  not_yet: "no video is transcoded: a job is stored and reported `SUCCEEDED` at once, never runs and has no output"
+- title: "Apigee"
+  cloud: gcp
+  depth: Thin
+  services: [apigee]
+  covered: "v1 REST at `/apigee/v1/` (`google.golang.org/api/apigee/v1`, Terraform `google_apigee_organization`, `_environment`, `_envgroup`, `_developer` and `_api_product`): an organization named after its project (`POST /organizations?parent=projects/<p>`), environments, environment groups, API products, developers (named by email), app groups, target servers, key stores, key-value maps, spaces and instances as the API sends them, create, read, update, delete and lists, as finished long-running operations where the API has them"
+  not_yet: "no API proxy runs: proxy bundles, deployments, traffic, analytics, keys, quotas and security checks are not served, and an organization has no runtime or network. Calls the engine does not know answer UNIMPLEMENTED"
+
+- title: "API hub"
+  cloud: gcp
+  depth: Thin
+  services: [apihub]
+  covered: "v1 REST at `/apihub/v1/` (`google.golang.org/api/apihub/v1`, Terraform `google_apihub_api_hub_instance`): the API hub instance, APIs, versions, operations, specs, deployments, dependencies, attributes, plugins and runtime project attachments, create with the id in the `<x>Id` parameter, get, list, patch and delete"
+  not_yet: "nothing is parsed or synced: specs are stored as sent, there is no search, lint or plugin run, and a runtime project is not looked at"
+
+- title: "App Hub"
+  cloud: gcp
+  depth: Thin
+  services: [apphub]
+  covered: "v1 REST at `/apphub/v1/` (`google.golang.org/api/apphub/v1`, Terraform `google_apphub_application`): applications with their services and workloads, and service project attachments, as finished long-running operations, with the state `ACTIVE`"
+  not_yet: "no resource is discovered: the lists of discovered services and workloads are empty, and what an application holds is not checked against real resources"
+
+- title: "Application Integration"
+  cloud: gcp
+  depth: Thin
+  services: [integrations]
+  covered: "v1 REST at `/integrations/v1/` (`google.golang.org/api/integrations/v1`, Terraform `google_integrations_auth_config`): auth configs and certificates, made with a server-chosen id, and the other resources of the document stored the same way"
+  not_yet: "no integration runs: versions, triggers, executions, tasks and the client provisioning are not served, and stored credentials are never used"
+
+- title: "Integration Connectors"
+  cloud: gcp
+  depth: Thin
+  services: [connectors]
+  covered: "v1 REST at `/connectors/v1/` (`google.golang.org/api/connectors/v1`, Terraform `google_integration_connectors_connection` and `_managed_zone`): connections (with the status `ACTIVE`), endpoint attachments, managed zones, custom connectors, event subscriptions and end-user authentications, as finished long-running operations"
+  not_yet: "nothing connects: a connection never reaches the system it names, and its entities, actions and schemas are not served; the list of connectors and their versions is empty"
+
+- title: "Cloud Endpoints"
+  cloud: gcp
+  depth: Thin
+  services: [servicemanagement]
+  covered: "v1 REST at `/servicemanagement/v1/` (`google.golang.org/api/servicemanagement/v1`, Terraform `google_endpoints_service`): managed services, the configs you submit (`configs:submit`, with an id like `2026-10-21r00`), rollouts of them and `getConfig` for the newest or a named config"
+  not_yet: "the OpenAPI or gRPC files are stored and never read: the config holds the service name and its endpoint only. Nothing serves traffic, there is no generated config report, and IAM policies on a service are not served"
+
+- title: "Developer Connect"
+  cloud: gcp
+  depth: Thin
+  services: [developerconnect]
+  covered: "v1 REST at `/developerconnect/v1/` (`google.golang.org/api/developerconnect/v1`, Terraform `google_developer_connect_connection`): connections, git repository links, account connectors and insights configs, as finished long-running operations"
+  not_yet: "nothing reaches a source host: no OAuth handshake, installation, webhook or repository listing happens, and the installation state is not changed"
+
+- title: "Secure Source Manager"
+  cloud: gcp
+  depth: Thin
+  services: [securesourcemanager]
+  covered: "v1 REST at `/securesourcemanager/v1/` (`google.golang.org/api/securesourcemanager/v1`, Terraform `google_secure_source_manager_instance` and `_repository`): instances (state `ACTIVE`), repositories, branch rules, hooks, issues and pull requests, as finished long-running operations"
+  not_yet: "no git server runs: the instance has no host names that answer, a repository holds no commits, and clone, push and review do nothing"
+
+- title: "Parameter Manager"
+  cloud: gcp
+  depth: Thin
+  services: [parametermanager]
+  covered: "v1 REST at `/parametermanager/v1/` (`google.golang.org/api/parametermanager/v1`, Terraform `google_parameter_manager_parameter` and `_parameter_version`): parameters and their versions, and templates with their versions, create, get, list, patch and delete under `projects/p/locations/global`; a parameter takes its versions with it"
+  not_yet: "payloads are stored as sent: references to Secret Manager are not resolved, nothing is rendered, and the regional hosts (`parametermanager.<region>.rep.googleapis.com`) are not served"
+
+- title: "Cloud Billing budgets"
+  cloud: gcp
+  depth: Thin
+  services: [billingbudgets]
+  covered: "v1 REST at `/billingbudgets/v1/` (`google.golang.org/api/billingbudgets/v1`, Terraform `google_billing_budget`): budgets under `billingAccounts/<id>`, made with a server-chosen id, with create, get, list, patch and delete"
+  not_yet: "no spend is measured: a budget never triggers, no notification is sent, and the billing account is not checked"
+
+- title: "Migration Center"
+  cloud: gcp
+  depth: Thin
+  services: [migrationcenter]
+  covered: "v1 REST at `/migrationcenter/v1/` (`google.golang.org/api/migrationcenter/v1`, Terraform `google_migration_center_group` and the other `google_migration_center_*` resources): groups, sources, preference sets, import jobs and files, discovery clients, report configs and reports, as finished long-running operations"
+  not_yet: "nothing is discovered or assessed: assets are not imported, there are no cost estimates, and reports and exports hold no data"
+
+- title: "Blockchain Node Engine"
+  cloud: gcp
+  depth: Thin
+  services: [blockchainnodeengine]
+  covered: "v1 REST at `/blockchainnodeengine/v1/` (`google.golang.org/api/blockchainnodeengine/v1`, Terraform `google_blockchain_node_engine_blockchain_nodes`): blockchain nodes with the state `RUNNING`, as finished long-running operations"
+  not_yet: "no node runs: the endpoints in the node's connection info answer nothing and no chain is synced"
+
+- title: "License Manager"
+  cloud: gcp
+  depth: Thin
+  services: [licensemanager]
+  covered: "v1 REST at `/licensemanager/v1/` (`cloud.google.com/go/licensemanager`'s REST client, Terraform `google_license_manager_configuration`): configurations under `projects/p/locations/l` with the state `STATE_ACTIVE`, create (a finished long-running operation), get, list, patch and delete. The API's document is written by hand, since the public one needs an API key"
+  not_yet: "nothing is billed or counted: instances, products, usage queries and the activation calls are not served"
+
+- title: "Firebase App Check"
+  cloud: gcp
+  depth: Thin
+  services: [firebaseappcheck]
+  covered: "v1 REST at `/firebaseappcheck/v1/` (`google.golang.org/api/firebaseappcheck/v1`, Terraform `google_firebase_app_check_debug_token`): debug tokens under an app, and resource policies under a service. The app and the service are taken as given: the Firebase and Service Usage APIs own them"
+  not_yet: "no token is exchanged or checked: no app attestation, reCAPTCHA or Play Integrity call happens, and the service configs and provider configs are not served"
+
+- title: "Firebase App Hosting"
+  cloud: gcp
+  depth: Thin
+  services: [firebaseapphosting]
+  covered: "v1 REST at `/firebaseapphosting/v1/` (`google.golang.org/api/firebaseapphosting/v1`, Terraform `google_firebase_app_hosting_backend`): backends, builds, rollouts and domains, as finished long-running operations"
+  not_yet: "nothing is built or served: a build does not run, a rollout deploys nothing, and the URI of a backend answers nothing"
+
+- title: "Firebase Data Connect"
+  cloud: gcp
+  depth: Thin
+  services: [firebasedataconnect]
+  covered: "v1 REST at `/firebasedataconnect/v1/` (`google.golang.org/api/firebasedataconnect/v1`, Terraform `google_firebase_data_connect_service`): services, schemas and connectors, as finished long-running operations"
+  not_yet: "no database is attached and no GraphQL runs: a schema and its queries are stored as sent, and executing them is not served"
+- title: "Network Intelligence Center"
+  cloud: gcp
+  depth: Thin
+  services: [networkmanagement]
+  covered: "v1 REST at `/networkmanagement/v1/` (`google.golang.org/api/networkmanagement/v1`, Terraform `google_network_management_connectivity_test`): connectivity tests (create, get, list, patch, delete) with finished operations, labels, paging and `filter`; `source` and `destination` are required"
+  not_yet: "no test runs: `rerun` answers UNIMPLEMENTED, a test has no `reachabilityDetails` or probing result, and no network is analyzed"
+
+- title: "Cloud NGFW"
+  cloud: gcp
+  depth: Thin
+  services: [networksecurity]
+  covered: "v1 REST at `/networksecurity/v1/` (`google.golang.org/api/networksecurity/v1`, Terraform `google_network_security_firewall_endpoint`): firewall endpoints under an organization and location, and the other Network Security resources the API lists (address groups, security profiles and groups, TLS policies, authorization policies, URL lists), each with create, get, list, patch and delete, finished operations, labels, paging and `filter`"
+  not_yet: "no traffic is inspected: a firewall endpoint is `ACTIVE` at once and does nothing, an association is stored and not enforced, and threat prevention, TLS inspection and IPS have no effect; custom verbs such as `:setIamPolicy` answer UNIMPLEMENTED"
+
+- title: "Cloud Service Mesh"
+  cloud: gcp
+  depth: Thin
+  services: [networkservices]
+  covered: "v1 REST at `/networkservices/v1/` (`google.golang.org/api/networkservices/v1`, Terraform `google_network_services_mesh`): meshes, gateways, HTTP, gRPC, TCP and TLS routes, endpoint policies, service bindings, WASM plugins and the other Network Services resources, each with create, get, list, patch and delete, finished operations, labels, paging and `filter`"
+  not_yet: "no proxy or gateway runs: a mesh and its routes are stored and never applied, no traffic is routed, and a route's references are not checked against the resources they name; custom verbs answer UNIMPLEMENTED"
+
+- title: "Cloud Domains"
+  cloud: gcp
+  depth: Thin
+  services: [domains]
+  covered: "v1 REST at `/domains/v1/` (`google.golang.org/api/domains/v1`, Terraform `google_clouddomains_registration`): a registration is made by `registrations:register` (the domain is its name in lower case; `registration`, its `contactSettings` and a `yearlyPrice` are required, and the domain needs a dot), then get, list, patch and delete; the state is `ACTIVE` at once, with an expiry one year ahead, `LOCKED` transfer lock and `AUTOMATIC_RENEWAL`"
+  not_yet: "no domain is bought: nothing is charged, no registry or registrar is contacted, and availability is not checked (`searchDomains` and `retrieveRegisterParameters` answer UNIMPLEMENTED); `transfer`, `export`, contact and DNS setting changes by custom verb, and authorization codes are not served, and the name servers are only what you send"
+
+- title: "VMware Engine"
+  cloud: gcp
+  depth: Thin
+  services: [vmwareengine]
+  covered: "v1 REST at `/vmwareengine/v1/` (`google.golang.org/api/vmwareengine/v1`, Terraform `google_vmwareengine_network`): VMware Engine networks (`type` is required), and the other resources of the API (private clouds, clusters, network policies, peerings, subnets, external addresses and access rules, datastores), each with create, get, list, patch and delete, finished operations, `ACTIVE` at once, paging and `filter`"
+  not_yet: "no vSphere, vCenter or NSX exists behind a private cloud: it is stored and nothing runs, no node is allocated, no credentials are made (`showNsxCredentials` and the other custom verbs answer UNIMPLEMENTED), and a private cloud is not checked against its network or capacity"
+
+- title: "Google Distributed Cloud"
+  cloud: gcp
+  depth: Thin
+  services: [edgecontainer]
+  covered: "v1 REST at `/edgecontainer/v1/` (`cloud.google.com/go/edgecontainer/apiv1`, Terraform `google_edgecontainer_cluster`): clusters (`authorization`, `networking` and `fleet` are required), node pools under a cluster, VPN connections, with create (`clusterId` in the query, in either spelling), get, list, patch and delete, finished operations and paging; deleting a cluster deletes its node pools. Its discovery document is made from the client's protobuf definitions, as Google serves none"
+  not_yet: "no Kubernetes runs: no API server, node or machine exists, `generateAccessToken`, `generateOfflineCredential` and `upgrade` answer UNIMPLEMENTED, and no machine exists"
+
+- title: "GKE Multi-Cloud"
+  cloud: gcp
+  depth: Thin
+  services: [gkemulticloud]
+  covered: "v1 REST at `/gkemulticloud/v1/` (`cloud.google.com/go/gkemulticloud/apiv1` types, Terraform `google_container_azure_client`): Azure clients (`tenantId` and `applicationId` are required), AWS and Azure clusters with their node pools, and attached clusters, each with create, get, list, patch and delete, finished operations and paging. Its discovery document is made from the client's protobuf definitions, as Google serves none"
+  not_yet: "no cluster runs in AWS or Azure: nothing is created in those clouds and no credentials are checked, tokens, agent tokens and the server config answer UNIMPLEMENTED, `import` and install manifests are not served, and the Go client of this API speaks gRPC only, which pogi does not serve for it"
+
+- title: "Backup for GKE"
+  cloud: gcp
+  depth: Thin
+  services: [gkebackup]
+  covered: "v1 REST at `/gkebackup/v1/` (`google.golang.org/api/gkebackup/v1`, Terraform `google_gke_backup_backup_plan`): backup plans (`cluster` is required) with their backups, restore plans with their restores, and backup and restore channels, each with create, get, list, patch and delete, finished operations, paging and `filter`"
+  not_yet: "nothing is backed up or restored: a backup is stored with no data, no cluster is contacted and `cluster` is not checked, and `getBackupIndexDownloadUrl` and the other custom verbs answer UNIMPLEMENTED"
+
+- title: "App Engine"
+  cloud: gcp
+  depth: Thin
+  services: [appengine]
+  covered: "v1 REST at `/appengine/v1/` (`google.golang.org/api/appengine/v1`, Terraform `google_app_engine_application`): the application of a project (`apps.create` with the project as `id` and a `locationId`, then get and patch), served at `apps/<project>`, with its finished operation at `apps/<project>/operations/<id>`, a `defaultHostname` and `SERVING` status"
+  not_yet: "no code runs and nothing answers at `<project>.appspot.com`: services, versions, instances, firewall rules, domain mappings and certificates are not served (a version needs code to deploy), and `apps.repair` and traffic splitting have no effect"
+
+- title: "Cloud Workstations"
+  cloud: gcp
+  depth: Thin
+  services: [workstations]
+  covered: "v1 REST at `/workstations/v1/` (`google.golang.org/api/workstations/v1`, Terraform `google_workstations_workstation_cluster` and `google_workstations_workstation_config`): workstation clusters (`network` and `subnetwork` are required), configs under a cluster and workstations under a config, with create, get, list, patch and delete, finished operations and paging"
+  not_yet: "no workstation runs: `start`, `stop` and `generateAccessToken` answer UNIMPLEMENTED, no VM exists, a workstation is never reachable, and the network is not checked"
+
+- title: "Cluster Director"
+  cloud: gcp
+  depth: Thin
+  services: [hypercomputecluster]
+  covered: "v1 REST at `/hypercomputecluster/v1/` (`google.golang.org/api/hypercomputecluster/v1`, Terraform `google_hypercomputecluster_cluster`): clusters, with their compute, network and storage resource lists, create, get, list, patch and delete, finished operations and paging"
+  not_yet: "no cluster is built: no Slurm, VM, network or storage resource is created from the lists you send, and they are not checked"
+
+- title: "VM Manager"
+  cloud: gcp
+  depth: Thin
+  services: [osconfig]
+  covered: "v1 REST at `/osconfig/v1/` (`google.golang.org/api/osconfig/v1`, Terraform `google_os_config_patch_deployment`): patch deployments (`instanceFilter` is required) and OS policy assignments, each with create, get, list, patch and delete, finished operations and paging; `pause`, `resume` and the other custom verbs answer UNIMPLEMENTED"
+  not_yet: "no patch is applied: no job is scheduled or run, nothing reaches a VM, and inventories, vulnerability reports and OS policy compliance are not served"
+
+- title: "Cloud Quotas"
+  cloud: gcp
+  depth: Thin
+  services: [cloudquotas]
+  covered: "v1 REST at `/cloudquotas/v1/` (`cloud.google.com/go/cloudquotas/apiv1`, Terraform `google_cloud_quotas_quota_preference` and `google_cloud_quotas_quota_adjuster_settings`): quota preferences under a project, folder or organization (`service`, `quotaId` and `quotaConfig` are required; the granted value is the preferred one at once), and the quota adjuster settings, which exist from the start with `enablement` `DISABLED` and change with a PATCH (`ENABLED` or `DISABLED`)"
+  not_yet: "no real quota is read or changed: `quotaId` and `service` are not checked, quota infos are not served, nothing is limited, and a preference is granted without review"
+
+- title: "Infrastructure Manager"
+  cloud: gcp
+  depth: Thin
+  services: [gcpconfig]
+  covered: "v1 REST at `/config/v1/` (`google.golang.org/api/config/v1`, Terraform `google_config_deployment`): deployments (`serviceAccount` is required) and previews, with create, get, list, patch and delete, finished operations, `ACTIVE` at once, paging and `filter`. The service id is `gcpconfig`, as `config` is AWS Config's"
+  not_yet: "nothing is applied: the blueprint is not fetched or run, no resource is created, no revision, log or state file exists, and `lock`, `unlock`, `export` and the other custom verbs answer UNIMPLEMENTED"
+
 - title: "API Management"
   cloud: azure
   depth: Core
@@ -795,6 +1645,104 @@ rows:
   docker: true
   covered: "ARM `Microsoft.ContainerRegistry/registries` on ECR's OCI registry: `<name>.azurecr.localhost:4510` or `localhost:4510/<name>/…`, `docker push` and `pull`, `listCredentials`, and the sign-in endpoints of `az acr login` and `/oauth2/exchange`; ACI and Container Apps pull images from it; without ECR, metadata only"
   not_yet: "credentials are issued but never checked (the registry accepts any, anonymous included)"
+
+- title: "VPC Service Controls"
+  cloud: gcp
+  depth: Thin
+  services: [accesscontextmanager]
+  covered: "v1 REST at `/accesscontextmanager/v1/` (`google.golang.org/api/accesscontextmanager/v1`, Terraform `google_access_context_manager_access_policy` and `google_access_context_manager_service_perimeter`): access policies (a server-made numeric id, `parent` and `title` required) and service perimeters under them, with finished operations, get, patch and delete"
+  not_yet: "no perimeter is enforced: no request is ever blocked, and dry-run results, access levels, ingress and egress rules and IAM on a policy are not served; the organization id is not checked"
+
+- title: "Managed Microsoft AD"
+  cloud: gcp
+  depth: Thin
+  services: [managedidentities]
+  covered: "v1 REST at `/managedidentities/v1/` (`google.golang.org/api/managedidentities/v1`, Terraform `google_active_directory_domain`): domains at `projects/p/locations/global/domains/<domain name>` (`locations` and `reservedIpRange` required, `READY` at once, `fqdn`), finished operations, get, patch and delete"
+  not_yet: "no directory runs: there is no domain controller, LDAP or Kerberos, and trusts, password resets, backups and domain joins are not served"
+
+- title: "Assured Workloads"
+  cloud: gcp
+  depth: Thin
+  services: [assuredworkloads]
+  covered: "v1 REST at `/assuredworkloads/v1/` (`google.golang.org/api/assuredworkloads/v1`, Terraform `google_assured_workloads_workload`): workloads under an organization and location (`displayName` and `complianceRegime` required, a server-made id), finished operations, get, patch and delete"
+  not_yet: "no folder, project or key is made for a workload and no compliance rule is applied; violations, acknowledgements and `restrictAllowedResources` are not served"
+
+- title: "Chrome Enterprise Premium"
+  cloud: gcp
+  depth: Thin
+  services: [beyondcorp]
+  covered: "v1 REST at `/beyondcorp/v1/` (`google.golang.org/api/beyondcorp/v1`, Terraform `google_beyondcorp_security_gateway`): security gateways with finished operations, labels, get, list, patch and delete"
+  not_yet: "no connection is proxied, no access is decided from a device or user, and the gateway's hub addresses answer nothing"
+
+- title: "Google Security Operations"
+  cloud: gcp
+  depth: Thin
+  services: [chronicle]
+  covered: "v1 REST at `/chronicle/v1/` (the REST clients of `cloud.google.com/go/chronicle/apiv1`, Terraform `google_chronicle_reference_list`): reference lists (`description`, `entries` and `syntaxType` required, an id you choose), with get, list, patch and delete. The instance itself always exists, as for an onboarded customer. The API description is generated from the client's protobuf definitions (Google does not publish a discovery document)"
+  not_yet: "no log is ingested and no rule runs: there is no search, detection, alert or parsing, and rules, feeds and the other resources of an instance are not tested; a list's entries are not validated against its syntax type"
+
+- title: "Cloud Identity"
+  cloud: gcp
+  depth: Thin
+  services: [cloudidentity]
+  covered: "v1 REST at `/cloudidentity/v1/` (`google.golang.org/api/cloudidentity/v1`, Terraform `google_cloud_identity_group`): groups at `groups/<id>` (`parent`, `groupKey` and `labels` required, a server-made id), create answering with a finished operation that holds the group, get, patch and delete"
+  not_yet: "no directory is behind the groups: members get no mail or access, the customer in `parent` is not checked, and a list does not filter by parent; devices, SSO profiles and policies are not served"
+
+- title: "Cloud IDS"
+  cloud: gcp
+  depth: Thin
+  services: [ids]
+  covered: "v1 REST at `/ids/v1/` (`google.golang.org/api/ids/v1`, Terraform `google_cloud_ids_endpoint`): endpoints with finished operations, `READY` at once, labels, get, list, patch and delete"
+  not_yet: "no traffic is mirrored or inspected and no threat is ever found; the endpoint's forwarding rule and IP address are made-up values that answer nothing"
+
+- title: "Compliance Manager"
+  cloud: gcp
+  depth: Thin
+  services: [cloudsecuritycompliance]
+  covered: "v1 REST at `/cloudsecuritycompliance/v1/` (the REST clients of `cloud.google.com/go/cloudsecuritycompliance/apiv1`, Terraform `google_cloud_security_compliance_cloud_control`): cloud controls (an id you choose), with get, list, patch and delete. The API description is generated from the client's protobuf definitions"
+  not_yet: "nothing is evaluated: no control runs, no framework is audited, and there are no findings, reports or monitoring"
+
+- title: "Sensitive Data Protection"
+  cloud: gcp
+  depth: Thin
+  services: [dlp]
+  covered: "v2 REST at `/dlp/v2/` (`google.golang.org/api/dlp/v2`, Terraform `google_data_loss_prevention_inspect_template`): inspect templates and job triggers at project and organization level, with and without a location, a chosen or server-made id, get, list, patch and delete (de-identify templates are served the same way, without a test)"
+  not_yet: "nothing is inspected: `content:inspect`, `deidentify`, `reidentify` and `redact` and discovery or inspection jobs are not run, and a template's detectors are not checked"
+
+- title: "Identity-Aware Proxy"
+  cloud: gcp
+  depth: Thin
+  services: [iap]
+  covered: "v1 REST at `/iap/v1/` (`google.golang.org/api/iap/v1`, Terraform `google_iap_tunnel_dest_group`): tunnel destination groups at `projects/p/iap_tunnel/locations/l/destGroups/<id>` (create, get, list, patch, delete)"
+  not_yet: "no request is proxied and no tunnel opens: nothing checks identity, and OAuth clients and the IAM policies of IAP-secured resources are not served"
+
+- title: "Privileged Access Manager"
+  cloud: gcp
+  depth: Thin
+  services: [privilegedaccessmanager]
+  covered: "v1 REST at `/privilegedaccessmanager/v1/` (the REST client of `cloud.google.com/go/privilegedaccessmanager/apiv1`, Terraform `google_privileged_access_manager_entitlement`): entitlements under a project, folder or organization (the fields the API requires, `AVAILABLE` at once, a delete that returns the entitlement), with finished operations"
+  not_yet: "no access is granted: nothing creates an IAM binding when a grant is approved, and approvals, expiry and the audit trail are not served"
+
+- title: "reCAPTCHA"
+  cloud: gcp
+  depth: Thin
+  services: [recaptchaenterprise]
+  covered: "v1 REST at `/recaptchaenterprise/v1/` (`google.golang.org/api/recaptchaenterprise/v1`, Terraform `google_recaptcha_enterprise_key`): keys at `projects/p/keys/<40-character id>` (a server-made id, `displayName` required), get, list, patch and delete"
+  not_yet: "no token is assessed: `assessments:create` and the score, annotation and firewall policy methods are not served, and a key's platform settings are not checked"
+
+- title: "Security Command Center"
+  cloud: gcp
+  depth: Thin
+  services: [securitycenter]
+  covered: "v1 REST at `/securitycenter/v1/` (`google.golang.org/api/securitycenter/v1`, Terraform `google_scc_source` and `google_scc_notification_config`): sources (a server-made numeric id; the API has no delete for them) and notification configs (`pubsubTopic` required), stored and read back"
+  not_yet: "nothing is scanned: there are no findings, assets or scores, no notification is published, and the Pub/Sub topic is not checked; the v2 API is not served"
+
+- title: "Public CA"
+  cloud: gcp
+  depth: Thin
+  services: [publicca]
+  covered: "v1 REST at `/publicca/v1/` (`google.golang.org/api/publicca/v1`, Terraform `google_public_ca_external_account_key`): external account keys, made with a key id and a random MAC key shown at create"
+  not_yet: "no certificate is issued: the key opens nothing, and there is no ACME server behind it"
 
 - title: "Container Instances"
   cloud: azure
@@ -819,3 +1767,612 @@ rows:
   docker: true
   covered: "ARM `Microsoft.Compute/virtualMachines`, `disks`, `availabilitySets` and `sshPublicKeys`: VMs as containers of the base image their image reference names (Ubuntu, Debian), `customData` run at first boot (a cloud-config `runcmd` subset or a script), `instanceView` power state, `start`, `powerOff`, `deallocate` and `restart`, NIC private IPs from the Virtual Network service, and the instance metadata service (`/metadata/instance` and identity tokens) reachable from inside; Windows and other images, and Docker-less runs, are metadata only"
   not_yet: "extensions, scale sets, images, snapshots, run commands, ssh into the VM, other cloud-config modules, `GET …/instanceView` (the view is part of every GET)"
+
+- title: "Cosmos DB for MongoDB"
+  cloud: azure
+  depth: Core
+  services: [cosmos]
+  docker: true
+  covered: "ARM `Microsoft.DocumentDB/databaseAccounts` of kind `MongoDB` on the same MongoDB container DocumentDB uses, with `apiProperties.serverVersion` and capabilities stored; `mongodbDatabases` and `collections` (shard key, indexes, throughput) stored and created in the real MongoDB; `listConnectionStrings` returns a `mongodb://<account>:<primary key>@localhost:<port>` string a Mongo driver connects with; without Docker, the account and its children are metadata and `listConnectionStrings` answers that Docker is needed"
+  not_yet: "only the primary key logs in (the account name is the user), the string has no TLS or replica set, a database with no collection exists in the ARM API only, shard keys are stored but not used, indexes other than key list, `unique` and `expireAfterSeconds` are not applied, and the Mongo wire API has no RU accounting, throughput limits or Cosmos-only commands"
+- title: "Azure Files"
+  cloud: azure
+  depth: Core
+  services: [azfiles]
+  covered: "shares (quota, access tier, metadata, ACL, stats), directories and files at `<account>.file.localhost:7644`: create, get properties, list, set metadata and properties, resize, put and clear range, list ranges, download with a range, delete; ARM `fileServices/shares` (`azurerm_storage_share`); the account's `primaryEndpoints.file`"
+  not_yet: "SMB and NFS (the share is REST only), snapshots, leases, copy, rename, open handles, share permissions and security descriptors, soft delete"
+
+- title: "Data Lake Storage Gen2"
+  cloud: azure
+  depth: Core
+  services: [azdatalake]
+  covered: "the `<account>.dfs.localhost:7644` endpoint of an account with `isHnsEnabled`: file systems (they are Blob containers), directories and files (create, append, flush, read, properties, delete, recursive delete), rename of a file or of a directory with everything below it, list paths with continuation, owner, group, permissions and ACL stored and read back; the Blob API sees the same files; the account's `primaryEndpoints.dfs`"
+  not_yet: "ACL checks (they are stored, not enforced), recursive ACL changes, leases on paths, path expiry, soft delete and undelete, an account without a hierarchical namespace (calls fail with `HierarchicalNamespaceNotEnabled`)"
+- title: "App Service"
+  cloud: azure
+  depth: Core
+  services: [azappservice]
+  docker: true
+  covered: "ARM `Microsoft.Web/serverfarms` and `sites` for web apps (`azurerm_service_plan`, `azurerm_linux_web_app`, `azurerm_windows_web_app`), with the site configuration, app settings, connection strings, publishing credentials and the other configuration `azurerm` reads. A Linux web app runs in Docker, at `<app>.azurewebsites.localhost:7644`: a container image (`DOCKER|<image>`, `WEBSITES_PORT`, app settings as environment), or Node and Python code from a zip deploy to `<app>.scm.azurewebsites.localhost/api/zipdeploy`; it starts on create and on change, `start`, `stop` and `restart` work, and it is removed on delete or shutdown; without Docker, metadata only"
+  not_yet: "Windows web apps are metadata only (they do not run), no .NET, Java or PHP stacks, deployment slots, custom domains and certificates, authentication, backups, scaling (one container per app), startup commands are split on spaces without quoting, Kudu beyond zip deploy"
+- title: "DNS"
+  cloud: azure
+  depth: Thin
+  services: [azdns]
+  covered: "ARM `Microsoft.Network/dnsZones` and the A, AAAA, CAA, CNAME, MX, NS, PTR, SOA, SRV and TXT record sets, from Microsoft's API spec: create, read, update and delete, lists by group, subscription, type and zone, a zone's four name servers, its starting NS and SOA record sets, `fqdn`, and delete as a long-running operation; the `azurerm_dns_*` resources apply, plan without drift and destroy"
+  not_yet: "nothing answers DNS queries: records are stored and read back; the properties of a record are not checked, and ETag conditions are ignored"
+
+- title: "Policy"
+  cloud: azure
+  depth: Thin
+  services: [azpolicy]
+  covered: "ARM `Microsoft.Authorization/policyDefinitions` at subscription scope and `policyAssignments` at subscription, resource group, resource and management group scope, from Microsoft's API spec: create, read, update, delete and lists, the spec's name rules, a definition's `policyType` and `mode` and an assignment's `scope` and `enforcementMode`; `azurerm_policy_definition` and `azurerm_resource_group_policy_assignment` apply, plan without drift and destroy"
+  not_yet: "nothing is evaluated: no resource is ever denied, audited or reported non-compliant, and there are no remediation tasks, exemptions, initiatives or built-in definitions"
+
+- title: "Logic Apps"
+  cloud: azure
+  depth: Thin
+  services: [azlogic]
+  covered: "ARM `Microsoft.Logic/workflows`, from Microsoft's API spec: create, read, update, delete and lists by group and subscription, the workflow definition and parameters as sent, `state`, a new `version` for each change, creation and change times; `azurerm_logic_app_workflow` applies, plans without drift and destroys"
+  not_yet: "nothing runs: triggers never fire, no runs or histories exist, and there are no callback URLs; actions on a workflow (`enable`, `disable`, `listCallbackUrl`) and integration accounts are not served"
+
+- title: "Front Door"
+  cloud: azure
+  depth: Thin
+  services: [azfrontdoor]
+  covered: "ARM `Microsoft.Cdn/profiles` (Standard and Premium Front Door) and its `afdEndpoints`, `originGroups`, `origins`, `routes`, `ruleSets`, `rules`, `customDomains` and `secrets`, from Microsoft's API spec: create, read, update, delete and lists, a profile's `frontDoorId`, an endpoint's host name (`<name>-<id>.z01.azurefd.net`, the same on every read) and a custom domain's validation token; the `azurerm_cdn_frontdoor_profile`, `_endpoint`, `_origin_group`, `_origin` and `_route` resources apply, plan without drift and destroy"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; nothing is served at the endpoint host name, custom domains are never validated, no certificates are issued, and web application firewall policies, purge and cache settings are not served"
+
+- title: "Application Gateway"
+  cloud: azure
+  depth: Thin
+  services: [azappgateway]
+  covered: "ARM `Microsoft.Network/applicationGateways`, from Microsoft's API spec: create, read, update, delete and lists, ids for the parts sent inline (frontend ports, listeners, pools, rules and the others), `operationalState` Running; `azurerm_application_gateway` applies, plans without drift and destroys"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; no request is routed or probed, the properties are not checked against each other (a rule that names a missing listener is accepted), and backend health and web application firewall rules are not served"
+
+- title: "Load Balancer"
+  cloud: azure
+  depth: Thin
+  services: [azloadbalancer]
+  covered: "ARM `Microsoft.Network/loadBalancers` with `backendAddressPools` and `inboundNatRules`, from Microsoft's API spec: create, read, update, delete and lists; the frontends, probes and rules sent inline get their ids, and a pool sent inline is also a resource of its own, as `azurerm_lb_backend_address_pool` makes it; `azurerm_lb`, `azurerm_lb_backend_address_pool`, `azurerm_lb_probe` and `azurerm_lb_rule` apply, plan without drift and destroy"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; no connection is balanced, probes never run, and a pool's backend IP configurations and the rules that use it are not filled in"
+
+- title: "Firewall"
+  cloud: azure
+  depth: Thin
+  services: [azfirewall]
+  covered: "ARM `Microsoft.Network/azureFirewalls`, `firewallPolicies` and the policies' `ruleCollectionGroups`, from Microsoft's API spec: create, read, update, delete and lists, ids for inline parts, a private address for each firewall IP configuration; `azurerm_firewall`, `azurerm_firewall_policy` and `azurerm_firewall_policy_rule_collection_group` apply, plan without drift and destroy"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; no rule is applied, a firewall's private address is not taken from its subnet, and the policy's list of groups and its parent and child policies are not filled in"
+
+- title: "Bastion"
+  cloud: azure
+  depth: Thin
+  services: [azbastion]
+  covered: "ARM `Microsoft.Network/bastionHosts`, from Microsoft's API spec: create, read, update, delete and lists, ids for the IP configurations and the host's DNS name; `azurerm_bastion_host` applies, plans without drift and destroys"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; no session can be opened, and the subnet and public IP are not checked"
+
+- title: "Traffic Manager"
+  cloud: azure
+  depth: Thin
+  services: [aztrafficmanager]
+  covered: "ARM `Microsoft.Network/trafficManagerProfiles` and their Azure, external and nested endpoints, from Microsoft's API spec: create, read, update, delete and lists, `location: global`, the profile's FQDN (`<name>.trafficmanager.net`) and the endpoints it lists, an endpoint's status; `azurerm_traffic_manager_profile` and `azurerm_traffic_manager_external_endpoint` apply, plan without drift and destroy"
+  not_yet: "nothing answers DNS queries and nothing is monitored: endpoints always report Online, and a name is not checked for being free"
+
+- title: "Private Link"
+  cloud: azure
+  depth: Thin
+  services: [azprivatelink]
+  covered: "ARM `Microsoft.Network/privateEndpoints` (with `privateDnsZoneGroups`) and `privateLinkServices`, from Microsoft's API spec: create, read, update, delete and lists, an automatic connection is Approved and a manual one Pending, a service's alias; `azurerm_private_endpoint` and `azurerm_private_link_service` apply, plan without drift and destroy"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; an endpoint gets no network interface or private IP address, no DNS records are made, and a manual connection is never approved or rejected"
+
+- title: "Virtual WAN"
+  cloud: azure
+  depth: Thin
+  services: [azvirtualwan]
+  covered: "ARM `Microsoft.Network/virtualWans` and `virtualHubs`, from Microsoft's API spec: create, read, update, delete and lists, a hub's routing state is Provisioned and its router ASN is 65515; `azurerm_virtual_wan` and `azurerm_virtual_hub` apply, plan without drift and destroy (Terraform itself waits about 30 seconds on the hub)"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; hubs have no router IP addresses, and gateways, connections, route tables, VPN sites and peering are not served"
+- title: "Data Factory"
+  cloud: azure
+  depth: Thin
+  services: [azdatafactory]
+  covered: "ARM `Microsoft.DataFactory/factories` and its pipelines, linked services and datasets, from Microsoft's API spec: create, read, update, delete and lists; the pipeline, linked service or dataset as sent; `azurerm_data_factory`, `azurerm_data_factory_pipeline`, `azurerm_data_factory_linked_service_web` and `azurerm_data_factory_dataset_http` apply, plan without drift and destroy"
+  not_yet: "nothing runs: pipelines never start, no runs, triggers or activity results exist, and there are no integration runtimes or data flows; what a linked service or dataset holds is not checked"
+
+- title: "Azure Batch"
+  cloud: azure
+  depth: Thin
+  services: [azbatch]
+  covered: "ARM `Microsoft.Batch/batchAccounts` and `pools`, from Microsoft's API spec: create, read, update, delete and lists, the account's endpoint and quotas, and its primary and secondary keys from `listKeys`; `azurerm_batch_account` and `azurerm_batch_pool` apply, plan without drift and destroy"
+  not_yet: "no node ever starts: pools have no nodes (always `Steady`, zero nodes), and jobs, tasks, applications and certificates are not served; the Batch data plane does not exist"
+
+- title: "Azure Managed Grafana"
+  cloud: azure
+  depth: Thin
+  services: [azgrafana]
+  covered: "ARM `Microsoft.Dashboard/grafana`, from Microsoft's API spec: create, read, update, delete and lists, an `endpoint` address, a system-assigned identity with its principal and tenant, and the defaults Azure fills in; `azurerm_dashboard_grafana` applies, plans without drift and destroys"
+  not_yet: "the `endpoint` address answers nothing: there is no Grafana behind it, and no dashboards, data sources or API keys; managed private endpoints are not served"
+
+- title: "Cognitive Services"
+  cloud: azure
+  depth: Thin
+  services: [azcognitive]
+  covered: "ARM `Microsoft.CognitiveServices/accounts`, from Microsoft's API spec: create, read, update, delete and lists, an `endpoint` (the custom sub-domain's when there is one), and two keys from `listKeys` that stay the same; `azurerm_cognitive_account` applies, plans without drift and destroys. An account of kind `OpenAI` or `AIServices` is refused with a 400, because pogi does not emulate Azure OpenAI"
+  not_yet: "the endpoint answers nothing: no text, vision or speech call works; deployments, models, commitment plans and `regenerateKey` are not served"
+
+- title: "Databricks"
+  cloud: azure
+  depth: Thin
+  services: [azdatabricks]
+  covered: "ARM `Microsoft.Databricks/workspaces`, from Microsoft's API spec: create, read, update, delete and lists, a `workspaceUrl`, a `workspaceId`, and the managed resource group id as sent; `azurerm_databricks_workspace` applies, plans without drift and destroys"
+  not_yet: "the workspace URL answers nothing: no clusters, notebooks or jobs, and the managed resource group is not created; access connectors and virtual network peerings are not served"
+
+- title: "AI Search"
+  cloud: azure
+  depth: Thin
+  services: [azsearch]
+  covered: "ARM `Microsoft.Search/searchServices`, from Microsoft's API spec: create, read, update, delete and lists, replica and partition counts, status `running`, and the admin keys (`listAdminKeys`) and query keys (`listQueryKeys`), which stay the same; `azurerm_search_service` applies, plans without drift and destroys"
+  not_yet: "the service answers no search: there are no indexes, documents or indexers; `regenerateAdminKey`, query key creation and shared private links are not served"
+
+- title: "Synapse"
+  cloud: azure
+  depth: Thin
+  services: [azsynapse]
+  covered: "ARM `Microsoft.Synapse/workspaces`, with its SQL pools (a new pool starts with transparent data encryption and a geo backup policy), firewall rules and the administrator settings Terraform reads, from Microsoft's API spec: create, read, update, delete and lists; `azurerm_synapse_workspace`, `azurerm_synapse_sql_pool` and `azurerm_synapse_firewall_rule` apply, plan without drift and destroy"
+  not_yet: "nothing runs: no SQL pool, Spark pool or pipeline starts, there is no SQL endpoint or development endpoint behind the workspace addresses, and Spark pools, integration runtimes and the other child types are not served"
+
+- title: "Data Explorer"
+  cloud: azure
+  depth: Thin
+  services: [azkusto]
+  covered: "ARM `Microsoft.Kusto/clusters` and their databases, from Microsoft's API spec: create, read, update, delete and lists, a cluster that is `Running` at once with its query and ingestion addresses; `azurerm_kusto_cluster` and `azurerm_kusto_database` apply, plan without drift and destroy"
+  not_yet: "no query runs: the cluster addresses answer nothing, and there are no tables, data connections, scripts or principal assignments; start and stop are not served"
+
+- title: "Stream Analytics"
+  cloud: azure
+  depth: Thin
+  services: [azstreamanalytics]
+  covered: "ARM `Microsoft.StreamAnalytics/streamingjobs`, from Microsoft's API spec: create, read, update, delete and lists; `azurerm_stream_analytics_job` applies, plans without drift and destroys"
+  not_yet: "a job never runs: it has no inputs, outputs or functions, `start` and `stop` are not served, and the query is stored without being parsed"
+- title: "Static Web Apps"
+  cloud: azure
+  depth: Thin
+  services: [azstaticwebapps]
+  covered: "ARM `Microsoft.Web/staticSites` with its custom domains and app settings, from Microsoft's API spec: create (a long-running operation), read, update, delete and lists, a default host name that stays the same, `listSecrets` with an API key (the deployment token), `listAppSettings` and `listFunctionAppSettings`; `azurerm_static_web_app` applies, plans without drift and destroys"
+  not_yet: "nothing is served or built: no site answers at the host name, no repository is cloned and no deployment runs; builds, staging environments, linked backends and users are not served"
+
+- title: "Web PubSub"
+  cloud: azure
+  depth: Thin
+  services: [azwebpubsub]
+  covered: "ARM `Microsoft.SignalRService/webPubSub` and its hubs, from Microsoft's API spec: create, read, update and delete as long-running operations, lists, a host name, and `listKeys` with two keys and connection strings that stay the same; `azurerm_web_pubsub` and `azurerm_web_pubsub_hub` apply, plan without drift and destroy"
+  not_yet: "no client can connect and no message flows: the service has no endpoint behind its host name; event handlers are stored but never called, and custom domains, certificates, private links and key regeneration are not served"
+
+- title: "Notification Hubs"
+  cloud: azure
+  depth: Thin
+  services: [aznotificationhubs]
+  covered: "ARM `Microsoft.NotificationHubs` namespaces and hubs, with authorization rules at both levels, from Microsoft's API spec: create, read, update, delete and lists, a namespace's endpoint and its starting RootManageSharedAccessKey rule, `listKeys` with keys and connection strings that stay the same, and an empty `pnsCredentials`; `azurerm_notification_hub_namespace` and `azurerm_notification_hub` apply, plan without drift and destroy (the provider itself waits about five minutes for the two)"
+  not_yet: "no notification is sent: push service credentials (APNs, FCM and the others) are not stored, and there are no registrations, installations, templates or send APIs; key regeneration is not served"
+
+- title: "Relay"
+  cloud: azure
+  depth: Thin
+  services: [azrelay]
+  covered: "ARM `Microsoft.Relay` namespaces and hybrid connections, with authorization rules at both levels, from Microsoft's API spec: create, read, update, delete and lists, a namespace's endpoint and its starting RootManageSharedAccessKey rule, and `listKeys` with keys and connection strings that stay the same; `azurerm_relay_namespace` and `azurerm_relay_hybrid_connection` apply, plan without drift and destroy"
+  not_yet: "no listener or sender can connect: there is no relay endpoint behind the namespace; the listener count stays 0, and WCF relays, network rule sets, private links and key regeneration are not served"
+
+- title: "IoT Hub"
+  cloud: azure
+  depth: Thin
+  services: [aziothub]
+  covered: "ARM `Microsoft.Devices/IotHubs` and its event hub consumer groups, from Microsoft's API spec: create (a long-running operation), read, update, delete and lists, a host name, the five default shared access policies (or the ones you send) with keys that stay the same, `listkeys` on the hub and on one policy, the Event Hubs-compatible endpoint (`sb://` name, path and partition ids) and a `$Default` consumer group; `azurerm_iothub` and `azurerm_iothub_consumer_group` apply, plan without drift and destroy"
+  not_yet: "no device can connect and no message is kept: the Event Hubs-compatible endpoint answers nothing, and there is no device registry, twins, jobs, routing or file upload; certificates, private links and key regeneration are not served"
+
+- title: "Azure Maps"
+  cloud: azure
+  depth: Thin
+  services: [azmaps]
+  covered: "ARM `Microsoft.Maps/accounts` and creators, from Microsoft's API spec: create, read, update, delete and lists, a client id (`uniqueId`), and `listKeys` with two keys that stay the same; `azurerm_maps_account` applies, plans without drift and destroys"
+  not_yet: "no map, search, route or render API answers: the keys open nothing; key regeneration, SAS tokens and Creator data are not served"
+
+- title: "Automation"
+  cloud: azure
+  depth: Thin
+  services: [azautomation]
+  covered: "ARM `Microsoft.Automation/automationAccounts` and runbooks, from Microsoft's API spec: create, read, update, delete and lists, a runbook's script kept as text (`PUT .../draft/content`, `publish`, `GET .../content`) with its state (`New`, then `Published`); `azurerm_automation_account` and `azurerm_automation_runbook` apply, plan without drift and destroy"
+  not_yet: "nothing runs: no job starts, a script is never parsed, and there are no schedules, modules, variables, credentials, webhooks, DSC, hybrid workers or registration keys; runbooks made with a content link are not downloaded"
+
+- title: "Recovery Services"
+  cloud: azure
+  depth: Thin
+  services: [azrecoveryservices]
+  covered: "ARM `Microsoft.RecoveryServices/vaults` and backup policies, from Microsoft's API spec: create, read, update, delete and lists, the vault's backup and storage settings that Terraform reads, and policies as sent; `azurerm_recovery_services_vault` and `azurerm_backup_policy_vm` apply, plan without drift and destroy"
+  not_yet: "nothing is backed up or replicated: there are no protected items, backup jobs, recovery points, restores or Site Recovery; the settings are stored and not enforced, and a policy's schedule is not checked"
+
+- title: "Azure Arc"
+  cloud: azure
+  depth: Thin
+  services: [azarc]
+  covered: "ARM `Microsoft.HybridCompute` private link scopes, machines and machine extensions, from Microsoft's API spec: create, read, update, delete and lists, a scope's id and its public network access (`Disabled` unless sent); `azurerm_arc_private_link_scope` applies, plans without drift and destroys"
+  not_yet: "no agent connects: there are no connected machines unless you create the resource yourself, no extension runs, and licenses, run commands, gateways and the guest-configuration or update services are not served; private endpoint connections are not served"
+
+- title: "Azure Local"
+  cloud: azure
+  depth: Thin
+  services: [azlocal]
+  covered: "ARM `Microsoft.AzureStackHCI` clusters, Arc settings, their extensions and deployment settings, from Microsoft's API spec: create, read, update, delete and lists, with a cloud id, a service endpoint and the `NotYetRegistered` status; `azurerm_stack_hci_cluster` applies, plans without drift and destroys"
+  not_yet: "no hardware is managed: a cluster never registers, no node reports, and updates, logical networks, virtual machines, images, security settings and the cluster actions (`createIdentity`, log collection, certificate upload) are not served"
+
+- title: "Azure VMware Solution"
+  cloud: azure
+  depth: Thin
+  services: [azavs]
+  covered: "ARM `Microsoft.AVS` private clouds, clusters, authorizations, global reach connections, HCX enterprise sites and add-ons, from Microsoft's API spec: create (a long-running operation), read, update, delete and lists, the vCenter, NSX-T and HCX addresses, the ExpressRoute circuit and an authorization's id and key; `azurerm_vmware_private_cloud`, `azurerm_vmware_cluster` and `azurerm_vmware_express_route_authorization` apply, plan without drift and destroy"
+  not_yet: "no vSphere runs: the addresses and thumbprints are made up and answer nothing, hosts are never listed, and datastores, workload networking, scripts, placement policies, password rotation and admin credentials are not served"
+
+- title: "Azure Red Hat OpenShift"
+  cloud: azure
+  depth: Thin
+  services: [azopenshift]
+  covered: "ARM `Microsoft.RedHatOpenShift/openShiftClusters`, from Microsoft's API spec: create (a long-running operation), read, update, delete and lists, the API server and console addresses and the ingress addresses, and `listCredentials` and `listAdminCredentials` (a kubeadmin password and a kubeconfig that stay the same); `azurerm_redhat_openshift_cluster` applies, plans without drift and destroys"
+  not_yet: "no cluster runs: the API server and console addresses answer nothing and the kubeconfig opens nothing; the subnets and service principal are not checked, and machine pools, secrets and identity providers are not served"
+
+- title: "Kubernetes Fleet Manager"
+  cloud: azure
+  depth: Thin
+  services: [azfleet]
+  covered: "ARM `Microsoft.ContainerService` fleets, members, update runs and update strategies, from Microsoft's API spec: create, read, update, delete and lists, with the fleet and its children as sent; `azurerm_kubernetes_fleet_manager` and `azurerm_kubernetes_fleet_update_strategy` apply, plan without drift and destroy"
+  not_yet: "nothing is orchestrated: a member's cluster is not looked up, an update run never starts or moves, and the fleet's hub cluster, credentials and namespaces are not served"
+
+- title: "Service Fabric"
+  cloud: azure
+  depth: Thin
+  services: [azservicefabric]
+  covered: "ARM `Microsoft.ServiceFabric` clusters, application types and applications, from Microsoft's API spec: create, read, update, delete and lists, the cluster endpoint, the cluster id and the `Ready` state; `azurerm_service_fabric_cluster` applies, plans without drift and destroys"
+  not_yet: "no nodes run: the management endpoint answers nothing and applications are stored, never deployed; managed clusters (`Microsoft.ServiceFabric/managedClusters`), certificates and upgrades are not served"
+
+- title: "Azure Virtual Desktop"
+  cloud: azure
+  depth: Thin
+  services: [azavd]
+  covered: "ARM `Microsoft.DesktopVirtualization` host pools, application groups, applications, workspaces and scaling plans, from Microsoft's API spec: create, read, update, delete and lists, as sent; `azurerm_virtual_desktop_host_pool`, `azurerm_virtual_desktop_application_group`, `azurerm_virtual_desktop_application`, `azurerm_virtual_desktop_workspace` and the workspace and application group association apply, plan without drift and destroy"
+  not_yet: "no session host registers and no user connects: session hosts, user sessions, registration tokens, MSIX and app attach packages and private endpoint connections are not served, and a desktop application group has no `default` desktop"
+
+- title: "DevTest Labs"
+  cloud: azure
+  depth: Thin
+  services: [azdevtestlabs]
+  covered: "ARM `Microsoft.DevTestLab` labs, the lab's virtual networks and schedules, and the global schedules, from Microsoft's API spec: create, read, update, delete and lists, with the lab's unique id and the storage accounts and key vault ids it reports; `azurerm_dev_test_lab`, `azurerm_dev_test_virtual_network` and `azurerm_dev_test_schedule` apply, plan without drift and destroy"
+  not_yet: "no virtual machine is made and no schedule fires; the storage accounts and key vault ids the lab reports do not exist, and virtual machines, policies, artifact sources, formulas, custom images, environments and users are not served"
+
+- title: "Dev Box"
+  cloud: azure
+  depth: Thin
+  services: [azdevbox]
+  covered: "ARM `Microsoft.DevCenter` dev centers, projects, dev box definitions, attached networks, galleries, network connections and project pools with their schedules, from Microsoft's API spec: create, read, update, delete and lists, with the dev center address and a `Passed` health check; `azurerm_dev_center`, `azurerm_dev_center_project`, `azurerm_dev_center_dev_box_definition`, `azurerm_dev_center_network_connection`, `azurerm_dev_center_attached_network` and `azurerm_dev_center_project_pool` apply, plan without drift and destroy"
+  not_yet: "no dev box is made and the dev center address answers nothing: the data plane is not served, the subnet and image of a definition are not checked, and catalogs, environment types and Deployment Environments are not served"
+
+- title: "Azure Load Testing"
+  cloud: azure
+  depth: Thin
+  services: [azloadtesting]
+  covered: "ARM `Microsoft.LoadTestService/loadTests`, from Microsoft's API spec: create, read, update, delete and lists, with the data plane address; `azurerm_load_test` applies, plans without drift and destroys"
+  not_yet: "no test runs: the data plane address answers nothing, so no test, run or metric exists; encryption keys and managed identities are stored, not used"
+
+- title: "Managed DevOps Pools"
+  cloud: azure
+  depth: Thin
+  services: [azdevopspools]
+  covered: "ARM `Microsoft.DevOpsInfrastructure/pools`, from Microsoft's API spec: create, read, update, delete and lists, with the agent, fabric and organization profiles as sent; `azurerm_managed_devops_pool` applies, plans without drift and destroys"
+  not_yet: "no agent starts: the Azure DevOps organization and the dev center project are not contacted or checked, and images, quotas and resource details are not served"
+
+- title: "Center for SAP solutions"
+  cloud: azure
+  depth: Thin
+  services: [azsapworkloads]
+  covered: "ARM `Microsoft.Workloads/sapVirtualInstances` and its central, application and database instances, from Microsoft's API spec: create, read, update, delete and lists, with names held to the three-character SAP system id; `azurerm_workloads_sap_discovery_virtual_instance` applies, plans without drift and destroys"
+  not_yet: "nothing is discovered or deployed: the central server virtual machine is not looked up, the instances are not made by the service, and start, stop, sizing and disk recommendations, monitors and connectors are not served"
+- title: "Firewall Manager"
+  cloud: aws
+  depth: Thin
+  services: [fms]
+  covered: "the administrator account, policies (with an id and an update token), apps lists, protocols lists, resource sets and tags; `aws_fms_admin_account` and `aws_fms_policy` apply, plan without drift and destroy"
+  not_yet: "nothing is enforced: a policy is stored and never applied to any account or resource, and there are no compliance results, member accounts or third-party firewalls"
+
+- title: "User Notifications"
+  cloud: aws
+  depth: Thin
+  services: [notifications]
+  covered: "notification configurations (names are unique) and event rules, the notification hub, and tags; `aws_notifications_notification_configuration` and `aws_notifications_event_rule` apply, plan without drift and destroy"
+  not_yet: "no event is matched and no notification is sent or listed; delivery channels, managed notifications and organization access are stored settings only"
+
+- title: "Compute Optimizer"
+  cloud: aws
+  depth: Thin
+  services: [compute-optimizer]
+  covered: "the opt-in status (Inactive until you set it Active, then Active at once) and recommendation preferences; `aws_computeoptimizer_enrollment_status` applies, plans without drift and destroys"
+  not_yet: "there are no recommendations, summaries or export jobs: no usage is measured"
+
+- title: "Cost Optimization Hub"
+  cloud: aws
+  depth: Thin
+  services: [cost-optimization-hub]
+  covered: "the enrollment status and the preferences (savings estimation mode and member account discount visibility, with AWS's defaults); `aws_costoptimizationhub_enrollment_status` and `aws_costoptimizationhub_preferences` apply, plan without drift and destroy"
+  not_yet: "there are no recommendations or summaries to list: nothing is analyzed"
+
+- title: "EC2 Image Builder"
+  cloud: aws
+  depth: Thin
+  services: [imagebuilder]
+  covered: "components, image and container recipes, infrastructure and distribution configurations, image pipelines, lifecycle policies and workflows, each with the ARN shape AWS gives it (`image-recipe/<name>/<version>`), and tags; `aws_imagebuilder_component`, `aws_imagebuilder_infrastructure_configuration`, `aws_imagebuilder_image_recipe` and `aws_imagebuilder_image_pipeline` apply, plan without drift and destroy"
+  not_yet: "no image is built: a pipeline never runs, no instance starts, and component documents are not parsed or checked"
+
+- title: "Storage Gateway"
+  cloud: aws
+  depth: Thin
+  services: [storagegateway]
+  covered: "gateways made with `ActivateGateway` and any activation key (an ARN like `gateway/sgw-<hex>`, RUNNING at once, type, time zone, name and tags read back, update and delete), and virtual tape pools; `aws_storagegateway_gateway` and `aws_storagegateway_tape_pool` apply, plan without drift and destroy"
+  not_yet: "no appliance is contacted and no data moves: file shares, volumes, tapes, disks and bandwidth settings are not served, and the activation key is not checked"
+
+- title: "End User Messaging SMS and voice"
+  cloud: aws
+  depth: Thin
+  services: [pinpoint-sms-voice-v2]
+  covered: "configuration sets, opt-out lists, event destinations, pools, keywords, protect configurations and tags; `aws_pinpointsmsvoicev2_configuration_set` and `aws_pinpointsmsvoicev2_opt_out_list` apply, plan without drift and destroy"
+  not_yet: "no message is sent: there is no carrier, and phone numbers, sender ids and registrations are stored without being checked"
+
+- title: "Serverless Application Repository"
+  cloud: aws
+  depth: Thin
+  services: [serverlessrepo]
+  covered: "applications (the id is an ARN ending in the name), versions, application policies and tags, and `CreateCloudFormationChangeSet`, which makes a real change set in pogi's CloudFormation from the version's template, with AWS's `serverlessrepo:applicationId` and `serverlessrepo:semanticVersion` stack tags; `aws_serverlessapplicationrepository_cloudformation_stack` applies, plans without drift and destroys (the application itself is made with one API call, as Terraform cannot publish one)"
+  not_yet: "there are no public AWS applications to deploy: only the ones you create; templates are not checked until a stack uses them, and parameter definitions, required capabilities, nested applications and sharing are not worked out"
+
+- title: "Oracle Database@AWS"
+  cloud: aws
+  depth: Thin
+  services: [odb]
+  covered: "ODB networks (AVAILABLE at once, with managed S3, STS, KMS and zero-ETL access ENABLED or DISABLED as asked), Exadata infrastructure, VM clusters, autonomous databases and tags; `aws_odb_network` applies, plans without drift and destroys"
+  not_yet: "no Oracle database runs: nothing is built in OCI or in your VPC, and addresses, DNS names and OCI ids are not made up"
+
+- title: "Aurora DSQL"
+  cloud: aws
+  depth: Thin
+  services: [dsql]
+  covered: "clusters (ACTIVE at once, with an endpoint name, AWS-owned or your KMS key, and tags), cluster policies, and the VPC endpoint service name; `aws_dsql_cluster` applies, plans without drift and destroys"
+  not_yet: "no SQL endpoint answers: you cannot connect or generate an auth token; multi-Region clusters are stored without a peer"
+- title: "Network Watcher"
+  cloud: azure
+  depth: Thin
+  services: [aznetworkwatcher]
+  covered: "ARM `Microsoft.Network/networkWatchers` with its flow logs, connection monitors and packet captures, from Microsoft's API spec: create, read, update, delete and lists; `azurerm_network_watcher` applies, plans without drift and destroys"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; no flow is logged, no packet is captured, and the diagnostic calls (next hop, IP flow verify, topology, connectivity check, troubleshoot) are not served"
+
+- title: "DDoS Protection"
+  cloud: azure
+  depth: Thin
+  services: [azddos]
+  covered: "ARM `Microsoft.Network/ddosProtectionPlans`, from Microsoft's API spec: create, read, update, delete and lists; `azurerm_network_ddos_protection_plan` applies, plans without drift and destroys"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; a plan protects nothing, its list of protected virtual networks and public IPs is not filled in, and DDoS custom policies are not served"
+
+- title: "Virtual Network Manager"
+  cloud: azure
+  depth: Thin
+  services: [aznetworkmanager]
+  covered: "ARM `Microsoft.Network/networkManagers` with network groups, static members and connectivity configurations, from Microsoft's API spec: create, read, update, delete and lists; `azurerm_network_manager` and `azurerm_network_manager_network_group` apply, plan without drift and destroy"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; configurations are never deployed (`commit` is not served), and security admin, routing and scope connection resources are not served"
+
+- title: "Route Server"
+  cloud: azure
+  depth: Thin
+  services: [azrouteserver]
+  covered: "ARM `Microsoft.Network/virtualHubs` used as a route server (the hub itself comes from the Virtual WAN service) with its IP configurations and BGP connections, from Microsoft's API spec: create, read, update, delete and lists; `azurerm_route_server` and `azurerm_route_server_bgp_connection` apply, plan without drift and destroy (Terraform itself waits about a minute on the server)"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; no BGP session starts, no routes are learned or advertised, and the server has no virtual router IP addresses"
+
+- title: "ExpressRoute"
+  cloud: azure
+  depth: Thin
+  services: [azexpressroute]
+  covered: "ARM `Microsoft.Network/expressRouteCircuits` with authorizations and peerings, and `ExpressRoutePorts`, from Microsoft's API spec: create, read, update, delete and lists, a circuit's service key and its provider state `NotProvisioned`; `azurerm_express_route_circuit` and `azurerm_express_route_circuit_authorization` apply, plan without drift and destroy"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; no provider ever provisions a circuit, route tables, ARP tables and statistics are not served, ports are stored and not allocated, and ExpressRoute gateways and cross connections are not served"
+
+- title: "VPN Gateway"
+  cloud: azure
+  depth: Thin
+  services: [azvpngateway]
+  covered: "ARM `Microsoft.Network/virtualNetworkGateways`, `localNetworkGateways` and `connections`, from Microsoft's API spec: create, read, update, delete and lists, ids for a gateway's IP configurations, and a connection's shared key read from `.../sharedkey`; `azurerm_virtual_network_gateway`, `azurerm_local_network_gateway` and `azurerm_virtual_network_gateway_connection` apply, plan without drift and destroy"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; no tunnel comes up, and point-to-site client packages, learned routes, BGP peer status and NAT rules are not served"
+
+- title: "Web Application Firewall"
+  cloud: azure
+  depth: Thin
+  services: [azwaf]
+  covered: "ARM `Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies`, from Microsoft's API spec: create, read, update, delete and lists, with the settings and managed rules as sent; `azurerm_web_application_firewall_policy` applies, plans without drift and destroys"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; no request is inspected and no rule is enforced, rule sets are not checked against Microsoft's lists, and Front Door firewall policies are not served"
+
+- title: "Application Gateway for Containers"
+  cloud: azure
+  depth: Thin
+  services: [azappgwcontainers]
+  covered: "ARM `Microsoft.ServiceNetworking/trafficControllers` with frontends and associations, from Microsoft's API spec: create, read, update, delete and lists, a frontend's host name; `azurerm_application_load_balancer`, `azurerm_application_load_balancer_frontend` and `azurerm_application_load_balancer_subnet_association` apply, plan without drift and destroy (the provider itself waits five minutes before it deletes a controller)"
+  not_yet: "nothing runs behind the resource: it is stored and read back, and no traffic flows; no Kubernetes cluster is connected, the subnet of an association is not checked, and security policies are not served"
+- title: "NetApp Files"
+  cloud: azure
+  depth: Thin
+  services: [aznetapp]
+  covered: "ARM `Microsoft.NetApp` accounts, capacity pools, volumes, snapshots, snapshot policies and backup policies, from Microsoft's API spec: create, read, update, delete and lists, a pool's id and defaults, and a volume's file system id and one mount target address; `azurerm_netapp_account` and `azurerm_netapp_pool` apply, plan without drift and destroy (`azurerm_netapp_volume` is covered by the SDK test only: the provider refuses to destroy a volume unless a provider setting that pogi's generated provider file does not carry is changed)"
+  not_yet: "nothing is mounted or served: the mount address answers no NFS or SMB, and there are no snapshots taken, replication, backups, Active Directory connections or quota rules; sizes and service levels are stored and not checked"
+
+- title: "Azure Managed Lustre"
+  cloud: azure
+  depth: Thin
+  services: [azmanagedlustre]
+  covered: "ARM `Microsoft.StorageCache/amlFilesystems` and import jobs, from Microsoft's API spec: create, read, update, delete and lists, a health state of `Available` and the client mount information; `azurerm_managed_lustre_file_system` applies, plans without drift and destroys"
+  not_yet: "no Lustre file system exists: the management server address answers nothing, and no import job runs; capacity, SKU and the maintenance window are stored and not checked"
+
+- title: "Elastic SAN"
+  cloud: azure
+  depth: Thin
+  services: [azelasticsan]
+  covered: "ARM `Microsoft.ElasticSan` SANs, volume groups, volumes and snapshots, from Microsoft's API spec: create, read, update, delete and lists, total size and IOPS from the base size, and a volume's iSCSI target name, portal host name and port; `azurerm_elastic_san`, `azurerm_elastic_san_volume_group` and `azurerm_elastic_san_volume` apply, plan without drift and destroy"
+  not_yet: "no iSCSI target answers and no data is stored; there are no private endpoint connections, network rules enforced or encryption keys, and sizes are not checked against the SAN's capacity"
+
+- title: "Storage Mover"
+  cloud: azure
+  depth: Thin
+  services: [azstoragemover]
+  covered: "ARM `Microsoft.StorageMover` movers, endpoints, projects and job definitions, from Microsoft's API spec: create, read, update, delete and lists; `azurerm_storage_mover`, `azurerm_storage_mover_project` and `azurerm_storage_mover_source_endpoint` apply, plan without drift and destroy"
+  not_yet: "nothing is moved: no agent registers, no job runs and no copy happens; endpoints and job definitions are stored and not checked against each other"
+
+- title: "Azure File Sync"
+  cloud: azure
+  depth: Thin
+  services: [azfilesync]
+  covered: "ARM `Microsoft.StorageSync` services and sync groups, from Microsoft's API spec: create, read, update, delete and lists, a service id and a sync group id; `azurerm_storage_sync` and `azurerm_storage_sync_group` apply, plan without drift and destroy"
+  not_yet: "nothing is synchronized: there are no registered servers, cloud endpoints or server endpoints, and no files move"
+
+- title: "Data Share"
+  cloud: azure
+  depth: Thin
+  services: [azdatashare]
+  covered: "ARM `Microsoft.DataShare` accounts, shares, data sets and synchronization settings, from Microsoft's API spec: create, read, update, delete and lists, and an account's system-assigned identity; `azurerm_data_share_account` and `azurerm_data_share` apply, plan without drift and destroy"
+  not_yet: "no data is shared: there are no invitations, share subscriptions or snapshots, and a data set is stored without being checked against its storage account"
+
+- title: "Analysis Services"
+  cloud: azure
+  depth: Thin
+  services: [azanalysisservices]
+  covered: "ARM `Microsoft.AnalysisServices/servers`, from Microsoft's API spec: create, read, update, delete and lists, a server name (`asazure://` address) and a state of `Succeeded`; `azurerm_analysis_services_server` applies, plans without drift and destroys"
+  not_yet: "no model can be deployed or queried: the server address answers nothing; suspend, resume, firewall rules and administrators are stored and not enforced"
+
+- title: "HDInsight"
+  cloud: azure
+  depth: Thin
+  services: [azhdinsight]
+  covered: "ARM `Microsoft.HDInsight/clusters`, from Microsoft's API spec: create, read, update, delete and lists, a state of `Running`, the HTTPS and SSH endpoint names, and the cluster's configurations (the gateway login and the default storage account) as `POST .../configurations` and `GET .../configurations/<name>` answer them, with passwords and keys kept out of the cluster itself; `azurerm_hdinsight_hadoop_cluster` applies, plans without drift and destroys"
+  not_yet: "no cluster runs: no Hadoop, Spark or Kafka service, SSH or gateway answers; applications, script actions, extensions (monitoring is reported off), resizing and private links are not served; only the Hadoop cluster type is run with Terraform"
+
+- title: "Power BI Embedded"
+  cloud: azure
+  depth: Thin
+  services: [azpowerbiembedded]
+  covered: "ARM `Microsoft.PowerBIDedicated/capacities`, from Microsoft's API spec: create, read, update, delete and lists, and a state of `Succeeded`; `azurerm_powerbi_embedded` applies, plans without drift and destroys"
+  not_yet: "no report or dataset can be embedded; suspend, resume and auto scale are not served, and administrators are stored and not checked"
+
+- title: "Fabric capacities"
+  cloud: azure
+  depth: Thin
+  services: [azfabric]
+  covered: "ARM `Microsoft.Fabric/capacities`, from Microsoft's API spec: create, read, update, delete and lists, and a state of `Active`; `azurerm_fabric_capacity` applies, plans without drift and destroys"
+  not_yet: "no Fabric workspace or item runs on a capacity; suspend and resume are not served, and administrators are stored and not checked"
+
+- title: "Managed Redis"
+  cloud: azure
+  depth: Thin
+  services: [azmanagedredis]
+  covered: "ARM `Microsoft.Cache/redisEnterprise` clusters, databases and access policy assignments, from Microsoft's API spec: create, read, update, delete and lists, a resource state of `Running`, a host name, a database's port with its defaults, and `listKeys` with two keys that stay the same; `azurerm_managed_redis` applies, plans without drift and destroys"
+  not_yet: "no Redis server answers on the host name or port, so the keys open nothing; key regeneration, import, export, flush, geo-replication and private links are not served, and a name's format is not checked"
+
+- title: "Oracle Database@Azure"
+  cloud: azure
+  depth: Thin
+  services: [azoracle]
+  covered: "ARM `Oracle.Database` Exadata infrastructures, VM clusters, Exascale storage vaults, autonomous databases, resource anchors and network anchors, from Microsoft's API spec: create, read, update, delete and lists, and a lifecycle state of `Available` on an Exadata infrastructure; `azurerm_oracle_exadata_infrastructure` applies, plans without drift and destroys"
+  not_yet: "no Oracle database exists: nothing runs in Oracle Cloud, there is no connection string, wallet or backup, and capacity, shape and network settings are stored and not checked; only the Exadata infrastructure is run with Terraform"
+
+- title: "Health Data Services"
+  cloud: azure
+  depth: Thin
+  services: [azhealthcare]
+  covered: "ARM `Microsoft.HealthcareApis` workspaces, FHIR services, DICOM services, MedTech services and their FHIR destinations, from Microsoft's API spec: create, read, update, delete and lists, and a DICOM service's URL; `azurerm_healthcare_workspace`, `azurerm_healthcare_fhir_service` and `azurerm_healthcare_dicom_service` apply, plan without drift and destroy"
+  not_yet: "no FHIR or DICOM API answers on any URL, so nothing can be stored or searched; the older Azure API for FHIR (retired) is not served, and authentication, CORS and export settings are stored and not enforced"
+
+- title: "Digital Twins"
+  cloud: azure
+  depth: Thin
+  services: [azdigitaltwins]
+  covered: "ARM `Microsoft.DigitalTwins` instances, endpoints and time series database connections, from Microsoft's API spec: create, read, update, delete and lists, and a host name; `azurerm_digital_twins_instance` applies, plans without drift and destroys"
+  not_yet: "the host name answers no model or twin request, and nothing is routed to an endpoint; endpoints and connections are stored and not checked"
+
+- title: "IoT Hub Device Provisioning"
+  cloud: azure
+  depth: Thin
+  services: [aziotdps]
+  covered: "ARM `Microsoft.Devices/provisioningServices` and certificates, from Microsoft's API spec: create, read, update, delete and lists, a service host name, an ID scope, a state of `Active`, and `listkeys` with the service owner's two keys that stay the same; `azurerm_iothub_dps` applies, plans without drift and destroys"
+  not_yet: "no device can register: there are no enrollments, allocation or linked IoT hubs at work, and the keys open nothing; key regeneration and private links are not served"
+- title: "Microsoft Entra Domain Services"
+  cloud: azure
+  depth: Thin
+  services: [azdomainservices]
+  covered: "ARM `Microsoft.AAD/domainServices`, from Microsoft's API spec: create (a long-running operation), read, update, delete and lists, with replica sets that are `Running` at once; `azurerm_active_directory_domain_service` applies, plans without drift and destroys"
+  not_yet: "no directory runs: the domain controller addresses are made up and answer nothing, there is no LDAP, Kerberos or sync, and organizational unit containers, trusts and the other child resources are not served"
+
+- title: "Microsoft Defender for Cloud"
+  cloud: azure
+  depth: Thin
+  services: [azsecurity]
+  covered: "ARM `Microsoft.Security` pricing plans, settings (MCAS, WDATP, Sentinel and the others every subscription has, switched off until you change them) and security contacts, from Microsoft's API spec: create, read, update and delete; `azurerm_security_center_subscription_pricing`, `azurerm_security_center_contact` and `azurerm_security_center_setting` apply, plan without drift and destroy"
+  not_yet: "nothing is scanned or scored: there are no alerts, assessments, secure score, recommendations, compliance results, auto-provisioning, workspace settings or security connectors; a plan you pick is stored and not enforced"
+
+- title: "Microsoft Sentinel"
+  cloud: azure
+  depth: Thin
+  services: [azsentinel]
+  covered: "ARM `Microsoft.SecurityInsights` alert rules, automation rules, watchlists and the onboarding state, on a Log Analytics workspace, from Microsoft's API spec: create, read, update, delete and lists; `azurerm_sentinel_log_analytics_workspace_onboarding`, `azurerm_sentinel_alert_rule_scheduled` and `azurerm_sentinel_watchlist` apply, plan without drift and destroy"
+  not_yet: "no rule ever runs: queries are stored and not parsed, and there are no incidents, data connectors, bookmarks, hunts, threat intelligence, watchlist items or content hub packages"
+
+- title: "Confidential Ledger"
+  cloud: azure
+  depth: Thin
+  services: [azconfidentialledger]
+  covered: "ARM `Microsoft.ConfidentialLedger/ledgers`, from Microsoft's API spec: create (a long-running operation), read, update, delete and lists, with the ledger and identity service addresses; `azurerm_confidential_ledger` applies, plans without drift and destroys"
+  not_yet: "no ledger runs: the addresses answer nothing, there are no entries, receipts or users, and managed CCF is not served"
+
+- title: "Trusted Signing"
+  cloud: azure
+  depth: Thin
+  services: [aztrustedsigning]
+  covered: "ARM `Microsoft.CodeSigning/codeSigningAccounts` and certificate profiles, from Microsoft's API spec: create (a long-running operation), read, update, delete and lists, with the account address; `azurerm_trusted_signing_account` applies, plans without drift and destroys"
+  not_yet: "nothing is signed: the account address answers nothing, no identity is validated and no certificate is issued; certificate profiles are stored but no Terraform resource of them was tried"
+
+- title: "Azure Lighthouse"
+  cloud: azure
+  depth: Thin
+  services: [azlighthouse]
+  covered: "ARM `Microsoft.ManagedServices` registration definitions and assignments, at a subscription or resource group, from Microsoft's API spec: create, read, delete and lists; `azurerm_lighthouse_definition` and `azurerm_lighthouse_assignment` apply, plan without drift and destroy"
+  not_yet: "nothing is delegated: a managing tenant gets no access and no role is checked; marketplace definitions and the expanded definition of an assignment are not served"
+
+- title: "Azure Advisor"
+  cloud: azure
+  depth: Thin
+  services: [azadvisor]
+  covered: "ARM `Microsoft.Advisor` configurations at a subscription or resource group, from Microsoft's API spec: create, read, update and lists; the recommendations list answers empty, so the `azurerm_advisor_recommendations` data source reads"
+  not_yet: "Advisor makes no recommendations, so there is nothing to suppress or act on: suppressions, scores and the metadata are not served, and `azurerm_advisor_suppression` cannot work"
+
+- title: "Cost Management"
+  cloud: azure
+  depth: Thin
+  services: [azcostmanagement]
+  covered: "ARM budgets (`Microsoft.Consumption/budgets`) and exports and scheduled actions (`Microsoft.CostManagement`), at any scope, from Microsoft's API specs: create, read, update, delete and lists; `azurerm_consumption_budget_subscription` and `azurerm_subscription_cost_management_export` apply, plan without drift and destroy"
+  not_yet: "no cost is counted: a budget's current spend is never filled, no notification is sent and no export file is written; queries, forecasts, views, alerts and cost allocation rules are not served"
+
+- title: "Azure Managed Applications"
+  cloud: azure
+  depth: Thin
+  services: [azmanagedapps]
+  covered: "ARM `Microsoft.Solutions` application definitions and applications, from Microsoft's API spec: create, read, update, delete and lists; `azurerm_managed_application_definition` and `azurerm_managed_application` apply, plan without drift and destroy"
+  not_yet: "nothing is deployed: the package and the template are never read, the managed resource group is not created, and just-in-time access requests are not served"
+
+- title: "Microsoft Purview"
+  cloud: azure
+  depth: Thin
+  services: [azpurview]
+  covered: "ARM `Microsoft.Purview/accounts`, from Microsoft's API spec: create (a long-running operation), read, update, delete and lists, with the catalog, guardian and scan addresses; `azurerm_purview_account` applies, plans without drift and destroys"
+  not_yet: "no catalog runs: the addresses answer nothing, nothing is scanned or classified, and the managed resource group is a name only; Kafka configurations and private endpoint connections are not served"
+
+- title: "Chaos Studio"
+  cloud: azure
+  depth: Thin
+  services: [azchaos]
+  covered: "ARM `Microsoft.Chaos` experiments, targets and capabilities, from Microsoft's API spec: create, read, update, delete and lists, on any resource, and a short list of target and capability types per region; `azurerm_chaos_studio_target`, `azurerm_chaos_studio_capability` and `azurerm_chaos_studio_experiment` apply, plan without drift and destroy"
+  not_yet: "no fault is injected: an experiment is stored and `start`, `cancel` and executions are not served; the target and capability types are only the common ones, and the target resource does not have to exist"

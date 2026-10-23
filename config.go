@@ -30,9 +30,9 @@ func ConfigFromFile(f *config.File) Config {
 		Port: s.Port, Host: s.Host, Region: s.Region, Hostname: s.Hostname, TLSCert: s.TLS.Cert, TLSKey: s.TLS.Key,
 		CORSOrigins: s.CORS.Origins, CORSHeaders: s.CORS.Headers, AllowExternal: s.AllowExternal, MaxUploadMB: s.MaxUploadMB,
 		Storage: f.Storage.Mode, DataDir: f.Storage.Dir, FlushInterval: f.Storage.FlushInterval, StorageModes: f.Storage.Services,
-		IAM: f.IAM.Mode, ValidateSigs: f.IAM.ValidateSignatures, Lambda: f.Lambda.Executor, WarmPool: f.Lambda.WarmPool,
+		IAM: f.IAM.Mode, ValidateSigs: f.IAM.ValidateSignatures, Lambda: f.Lambda.Executor, WarmPool: f.Lambda.WarmPool, LambdaInit: f.Lambda.InitTimeout,
 		DockerHost: f.Docker.Host, DockerNetwork: f.Docker.Network, DockerImages: f.Docker.Images,
-		AIEndpoint: f.AI.Endpoint, AIKey: f.AI.APIKey, AIModels: f.AI.Models, SMTPPort: f.Email.SMTPPort, SMTPRelay: f.Email.Relay, File: f,
+		AIEndpoint: f.AI.Endpoint, AIKey: f.AI.APIKey, AIModels: f.AI.Models, AITimeout: f.AI.Timeout, SMTPPort: f.Email.SMTPPort, SMTPRelay: f.Email.Relay, File: f,
 	}
 	if d := cfg.DataDir; d == "~" || strings.HasPrefix(d, "~/") {
 		home, _ := os.UserHomeDir()

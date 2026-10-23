@@ -85,3 +85,20 @@ func TestUnknownAPI(t *testing.T) {
 		}
 	}
 }
+
+// A /<label>/ prefix picks the API by host, so two APIs with the same paths stay apart.
+func TestGooglePrefix(t *testing.T) {
+	for _, tc := range []struct{ path, wantPath, wantHost string }{
+		{"/redis/v1/projects/p/locations/l/instances", "/v1/projects/p/locations/l/instances", "redis.googleapis.com"},
+		{"/workflowexecutions/v1/projects/p/locations/l/workflows/w/executions", "/v1/projects/p/locations/l/workflows/w/executions", "workflowexecutions.googleapis.com"},
+		{"/redis/notaversion/x", "/redis/notaversion/x", "localhost:7644"}, // not an API path: maybe an S3 bucket's
+		{"/storage/v1/b/bucket", "/storage/v1/b/bucket", "localhost:7644"}, // GCS's own path, not a prefix
+		{"/redis", "/redis", "localhost:7644"},
+	} {
+		r, _ := http.NewRequest("GET", "http://localhost:7644"+tc.path, nil)
+		googlePrefix(r)
+		if r.URL.Path != tc.wantPath || r.Host != tc.wantHost {
+			t.Errorf("%s: got %s on %s, want %s on %s", tc.path, r.URL.Path, r.Host, tc.wantPath, tc.wantHost)
+		}
+	}
+}

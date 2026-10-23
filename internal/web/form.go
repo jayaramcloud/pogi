@@ -351,7 +351,7 @@ func (ui *UI) newSubmit(w http.ResponseWriter, r *http.Request) {
 		ui.renderForm(w, r, svc, f, r.PostForm, errText(err)) // 200, not 4xx: htmx does not swap error statuses
 		return
 	}
-	done(w, r, "/_pogi/resources/"+svc, f.Title+": done", nil)
+	done(w, r, "/_pogi/resources/"+svc, doneText(f, in), nil)
 }
 
 // errText is an API error as the console shows it.
@@ -383,3 +383,32 @@ func (ui *UI) formItem(w http.ResponseWriter, r *http.Request) {
 
 // blank answers the remove buttons: htmx deletes the item whatever comes back.
 func blank(w http.ResponseWriter, r *http.Request) {}
+
+// doneText says what a finished form did to which resource: "Bucket photos created", "Rule saved".
+// A form whose verb or name it cannot tell gets "<title>: done".
+func doneText(f *core.Form, in map[string]any) string {
+	verb := ""
+	for prefix, v := range map[string]string{"Create": "created", "Delete": "deleted", "Remove": "removed", "Update": "updated",
+		"Put": "saved", "Set": "saved", "Modify": "updated", "Add": "added"} {
+		if strings.HasPrefix(f.Op, prefix) {
+			verb = v
+		}
+	}
+	if verb == "" {
+		return f.Title + ": done"
+	}
+	_, noun, _ := strings.Cut(f.Title, " ") // "Create bucket" -> "bucket"
+	name := ""
+	for _, fld := range f.Fields { // the first field that names the thing: Name, QueueName, Bucket...
+		if s, ok := in[fld.Name].(string); ok && s != "" && len(s) <= 80 && !strings.ContainsAny(s, "\n{[") &&
+			(strings.HasSuffix(strings.ToLower(fld.Name), "name") || strings.EqualFold(fld.Name, noun)) { // "Bucket" names a bucket
+			name = s
+			break
+		}
+	}
+	out := strings.TrimSpace(noun + " " + name)
+	if out == "" {
+		return f.Title + ": done"
+	}
+	return strings.ToUpper(out[:1]) + out[1:] + " " + verb
+}

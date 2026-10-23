@@ -45,7 +45,7 @@ var specials = map[string][]special{
 		Submit: func(ui *UI, sc scope, in map[string]any) error {
 			s, _ := ui.hub.Service("s3").(*s3.Service)
 			name := strings.TrimSpace(str1(in, "Bucket"))
-			err := s.CreateBucket(sc.acct(), sc.region(ui.hub.Cfg.Region), name)
+			err := ui.write("s3", "CreateBucket", name, func() error { return s.CreateBucket(sc.acct(), sc.region(ui.hub.Cfg.Region), name) })
 			if err != nil && core.AsError(err).Code == "InvalidBucketName" {
 				return fmt.Errorf("Bucket name is invalid: %q. %s", name, bucketNameHelp)
 			}
@@ -71,8 +71,10 @@ var specials = map[string][]special{
 		s, _ := ui.hub.Service("sns").(*sns.Service)
 		topic := str1(in, "TopicArn")
 		_, region, account, _, _ := core.ParseARN(topic)
-		_, err := s.PublishConsole(account, region, topic, str1(in, "Subject"), str1(in, "Message"))
-		return err
+		return ui.write("sns", "Publish", topic, func() error {
+			_, err := s.PublishConsole(account, region, topic, str1(in, "Subject"), str1(in, "Message"))
+			return err
+		})
 	}}},
 	"events": {{Op: "PutEvent", Title: "Send event", Fields: func(ui *UI) []core.Field {
 		buses := slices.DeleteFunc(ui.choices("events", "Buses"), func(b string) bool { return b == "default" })
@@ -88,8 +90,10 @@ var specials = map[string][]special{
 		if !json.Valid([]byte(detail)) {
 			return fmt.Errorf("Detail is not valid JSON")
 		}
-		_, err := e.PutEvent(sc.acct(), sc.region(ui.hub.Cfg.Region), str1(in, "EventBusName"), str1(in, "Source"), str1(in, "DetailType"), detail)
-		return err
+		return ui.write("events", "PutEvents", str1(in, "EventBusName"), func() error {
+			_, err := e.PutEvent(sc.acct(), sc.region(ui.hub.Cfg.Region), str1(in, "EventBusName"), str1(in, "Source"), str1(in, "DetailType"), detail)
+			return err
+		})
 	}, CLI: func(_ string, in map[string]any) string {
 		return "pogi aws events put-events --entries '[" + jsonOf(in) + "]'"
 	}}},
@@ -102,6 +106,7 @@ func (ui *UI) rest(sc scope, svc, verb, path string, body any) error {
 	b, _ := json.Marshal(body)
 	req, _ := http.NewRequest(verb, "http://localhost"+path, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(core.ConsoleHeader, "1")
 	if status, resp := ui.hub.DoServiceAs(svc, sc.acct(), sc.region(ui.hub.Cfg.Region), req); status >= 300 {
 		return fmt.Errorf("%d: %s", status, apiMessage(resp))
 	}

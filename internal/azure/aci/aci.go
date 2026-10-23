@@ -140,7 +140,7 @@ func parse(r map[string]any) (*group, error) {
 	b, _ := json.Marshal(r)
 	g := &group{}
 	if err := json.Unmarshal(b, g); err != nil {
-		return nil, core.Errorf(http.StatusBadRequest, "InvalidRequestContent", "The request content was invalid and could not be deserialized: %v", err)
+		return nil, core.Errorf(http.StatusBadRequest, "InvalidRequestContent", "The request content was invalid and could not be deserialized: %s", core.PlainJSON(err))
 	}
 	return g, nil
 }

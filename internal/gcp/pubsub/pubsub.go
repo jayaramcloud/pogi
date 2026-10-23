@@ -16,6 +16,7 @@ import (
 	"io"
 	"maps"
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"strconv"
@@ -1580,9 +1581,21 @@ func (p *fparser) unary() (pred, error) {
 
 // ---- REST mirror ----
 
+// pathSegments splits the path before unescaping each part, so a name with %2F stays one name (and is refused
+// as an invalid name) instead of becoming an extra path part that matches no route.
+func pathSegments(r *http.Request) []string {
+	seg := strings.Split(r.URL.EscapedPath(), "/")
+	for i, p := range seg {
+		if u, err := url.PathUnescape(p); err == nil {
+			seg[i] = u
+		}
+	}
+	return seg
+}
+
 // match claims /v1/projects/{p}/{topics,subscriptions,snapshots,schemas}…
 func match(r *http.Request) bool {
-	seg := strings.Split(r.URL.Path, "/")
+	seg := pathSegments(r)
 	if len(seg) < 5 || seg[1] != "v1" || seg[2] != "projects" {
 		return false
 	}
@@ -1648,7 +1661,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, c, status.Errorf(codes.Unimplemented, "pogi does not implement %s %s", r.Method, r.URL.Path))
 		return
 	}
-	seg := strings.Split(r.URL.Path, "/")
+	seg := pathSegments(r)
 	parts, verb := seg[4:], ""
 	if last, v, ok := strings.Cut(parts[len(parts)-1], ":"); ok {
 		parts[len(parts)-1], verb = last, ":"+v

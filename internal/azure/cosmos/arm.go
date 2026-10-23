@@ -37,6 +37,7 @@ func (s *Service) registerARM() {
 	for _, t := range []string{databases, containers} {
 		arm.Register(h, arm.Provider{Type: t + "/throughputSettings", Get: s.getThroughput, Put: s.putThroughput})
 	}
+	s.registerMongo()
 }
 
 // ---- accounts ----
@@ -96,9 +97,13 @@ func location(account, name, ep string, priority int, zones bool) map[string]any
 
 func (s *Service) putAccount(c *core.Ctx, id arm.ID, body map[string]any) (map[string]any, error) {
 	r := armres.Envelope(id, body)
+	docker := isMongo(r) && s.box.Available()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.st.ARM.Put(id, r)
+	if isMongo(r) {
+		s.startMongo(id, docker)
+	}
 	return s.accountView(c, armres.Clone(r)), nil
 }
 
@@ -117,6 +122,7 @@ func (s *Service) deleteAccount(c *core.Ctx, id arm.ID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.st.ARM.Delete(id)
+	s.stopMongo(id)
 	return nil
 }
 
@@ -156,6 +162,12 @@ func (s *Service) keys(all bool) func(*core.Ctx, arm.ID, map[string]any) (any, e
 func (s *Service) connectionStrings(c *core.Ctx, id arm.ID, _ map[string]any) (any, error) {
 	if err := s.known(id); err != nil {
 		return nil, err
+	}
+	s.mu.Lock()
+	m := s.st.Mongo[strings.ToLower(id.String())]
+	s.mu.Unlock()
+	if m != nil {
+		return s.mongoConnectionStrings(id, m)
 	}
 	conn := func(desc, key string) map[string]any {
 		return map[string]any{"description": desc, "connectionString": fmt.Sprintf("AccountEndpoint=%s/;AccountKey=%s;", armres.Base(c), armres.Key("cosmos/"+key+"/"+id.Name()))}

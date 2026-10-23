@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"slices"
 	"strings"
@@ -16,6 +17,8 @@ import (
 	"github.com/nrndev/pogi/internal/aws/sqs"
 	"github.com/nrndev/pogi/internal/azure/email"
 	"github.com/nrndev/pogi/internal/core"
+	"github.com/nrndev/pogi/internal/cost"
+	"github.com/nrndev/pogi/internal/terraform"
 )
 
 // Tool inputs. The jsonschema tags become the argument descriptions agents read.
@@ -76,6 +79,18 @@ type (
 		Name   string `json:"name" jsonschema:"Lambda function name"`
 		Limit  int    `json:"limit,omitempty" jsonschema:"how many of the latest lines to return (default 100)"`
 		Region string `json:"region,omitempty" jsonschema:"AWS region of the function (default: pogi's region)"`
+	}
+	tfCostArg struct {
+		Path      string   `json:"path" jsonschema:"a Terraform folder or a plan.json (terraform show -json), on the machine pogi runs on"`
+		VarFiles  []string `json:"var_files,omitempty" jsonschema:"extra .tfvars files, relative to the folder or absolute, applied in order"`
+		UsageFile string   `json:"usage_file,omitempty" jsonschema:"a usage.yaml with usage numbers by resource address, and os: windows for VMs"`
+	}
+	sizesArg struct {
+		ResourceType string  `json:"resource_type" jsonschema:"Terraform resource type, e.g. aws_instance, google_compute_instance, azurerm_linux_virtual_machine"`
+		Region       string  `json:"region,omitempty" jsonschema:"cloud region, e.g. eu-west-1 (default: the cloud's usual region)"`
+		OS           string  `json:"os,omitempty" jsonschema:"linux (default) or windows"`
+		MinVCPU      float64 `json:"min_vcpu,omitempty" jsonschema:"only sizes with at least this many vCPUs"`
+		MinMemoryGB  float64 `json:"min_memory_gb,omitempty" jsonschema:"only sizes with at least this much memory, in GB"`
 	}
 	seedArg struct {
 		YAML string `json:"yaml" jsonschema:"YAML shaped like the resources section of pogi.yaml, e.g. aws: {s3: {buckets: [uploads]}, sqs: {queues: [jobs]}}"`
@@ -239,13 +254,11 @@ func register(s *sdk.Server, h *core.Hub) {
 
 	add(s, "chaos_add", "Inject faults: calls matching service and op fail with status and code, and/or get latency_ms added, until chaos_clear. Each service answers in its own error format. Returns the rule with its id.", false,
 		func(in chaosArg) (any, error) {
-			if in.Status == 0 && in.LatencyMs == 0 {
-				return nil, errors.New("give status and/or latency_ms")
+			rule := core.Rule{Service: in.Service, Op: in.Op, Probability: in.Rate, Status: in.Status, Code: in.Code, LatencyMs: in.LatencyMs}
+			if err := rule.Check(); err != nil {
+				return nil, err
 			}
-			if in.Rate < 0 || in.Rate > 1 {
-				return nil, errors.New("rate is a probability between 0 and 1")
-			}
-			return h.Chaos.Add(core.Rule{Service: in.Service, Op: in.Op, Probability: in.Rate, Status: in.Status, Code: in.Code, LatencyMs: in.LatencyMs}), nil
+			return h.Chaos.Add(rule), nil
 		})
 
 	add(s, "chaos_list", "Active chaos rules and how often each has fired.", true,
@@ -351,6 +364,71 @@ func register(s *sdk.Server, h *core.Hub) {
 				lines = append(lines, time.UnixMilli(e.Timestamp).UTC().Format("2006-01-02T15:04:05.000Z ")+strings.TrimRight(e.Message, "\n"))
 			}
 			return obj{"logGroup": group, "lines": lines}, nil
+		})
+
+	add(s, "estimate_terraform_cost", "What Terraform code would cost a month on the real cloud (on-demand list prices, 730 h/month, USD). Give a folder of .tf files or a plan.json; a plan also shows the cost before, after and the change. Each row says how sure it is (known, assumed, usage, needs). Use it before you suggest or make a change that adds or resizes resources. The path must be on the machine pogi runs on.", true,
+		func(in tfCostArg) (any, error) {
+			if in.Path == "" {
+				return nil, errors.New("path is required: a Terraform folder or a plan.json")
+			}
+			_, dockerErr := os.Stat("/.dockerenv")
+			if h.Cfg.AllowExternal && dockerErr != nil {
+				// Other machines can reach this pogi, so it won't read files on this one for them.
+				return nil, errors.New("pogi accepts connections from other machines here (allow-external), so this tool doesn't read files on this machine. Run `pogi cost " + in.Path + "` in a terminal instead")
+			}
+			if _, err := os.Stat(in.Path); err != nil {
+				msg := fmt.Sprintf("path %q: %v", in.Path, err)
+				if dockerErr == nil {
+					msg += ". pogi runs in Docker here and cannot see your files: mount the folder (docker run -v ./infra:/srv/infra ...) and pass the path inside the container"
+				}
+				return nil, errors.New(msg)
+			}
+			opt := cost.Options{}
+			if in.UsageFile != "" {
+				f, err := os.Open(in.UsageFile)
+				if err != nil {
+					return nil, fmt.Errorf("usage_file: %w", err)
+				}
+				data, err := io.ReadAll(io.LimitReader(f, cost.MaxUsageFile+1))
+				f.Close()
+				if err != nil {
+					return nil, fmt.Errorf("usage_file: %w", err)
+				}
+				if opt.Usage, err = cost.ReadUsage(data); err != nil {
+					return nil, err
+				}
+			}
+			cfg, err := terraform.Load(in.Path, in.VarFiles)
+			if err != nil {
+				return nil, err
+			}
+			return cost.Price(cfg, opt)
+		})
+
+	add(s, "list_sizes", "The machine, database or cache sizes of a Terraform resource type in one region, cheapest first, with vCPU, memory, GPU and the price per hour and month. Use it to pick a size, or to see what a smaller one would cost. Older generations are left out.", true,
+		func(in sizesArg) (any, error) {
+			db, err := cost.Default()
+			if err != nil {
+				return nil, err
+			}
+			sizes, region, err := cost.ListSizes(db, cost.SizeQuery{Type: in.ResourceType, OS: in.OS, Region: in.Region, VCPU: in.MinVCPU, MemGB: in.MinMemoryGB})
+			if err != nil {
+				return nil, err
+			}
+			type size struct {
+				Name    string  `json:"name"`
+				Family  string  `json:"family,omitempty"`
+				VCPU    float64 `json:"vcpu"`
+				MemGB   float64 `json:"memoryGb"`
+				GPU     int     `json:"gpu,omitempty"`
+				Hourly  float64 `json:"hourly"`
+				Monthly float64 `json:"monthly"`
+			}
+			out := make([]size, len(sizes))
+			for i, z := range sizes {
+				out[i] = size{z.Name, z.Family, z.VCPU, z.MemGB, z.GPU, z.Price, z.Price * cost.HoursPerMonth}
+			}
+			return obj{"resourceType": in.ResourceType, "region": region, "sizes": out}, nil
 		})
 
 	add(s, "seed", "Create resources from YAML shaped like the resources section of pogi.yaml (top-level keys aws, gcp, azure, typed). Resources that already exist are skipped.", false,

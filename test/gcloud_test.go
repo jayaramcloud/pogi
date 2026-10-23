@@ -24,6 +24,12 @@ func TestEnvGcloud(t *testing.T) {
 			t.Errorf("%s override %q, want %q", api, got, srv.URL+"/")
 		}
 	}
+	for api, path := range map[string]string{"REDIS": "/redis/", "SPANNER": "/spanner/", "WORKFLOWEXECUTIONS": "/workflowexecutions/",
+		"FILE": "/file/", "DNS": "/"} { // APIs that share paths are told apart by a prefix; DNS's own paths have one
+		if got := env["CLOUDSDK_API_ENDPOINT_OVERRIDES_"+api]; got != srv.URL+path {
+			t.Errorf("%s override %q, want %q", api, got, srv.URL+path)
+		}
+	}
 	if env["CLOUDSDK_CORE_PROJECT"] != "pogi" || env["CLOUDSDK_AUTH_ACCESS_TOKEN"] == "" {
 		t.Errorf("project and token: %v", env)
 	}

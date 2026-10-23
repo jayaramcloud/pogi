@@ -30,11 +30,12 @@ type Gateway struct {
 	Key      string            // bearer token, optional
 	Models   map[string]string // model id glob -> local model name
 	HTTP     *http.Client
+	Timeout  time.Duration // longest one call may take; 0 means 5 minutes
 }
 
 // New builds a Gateway from the pogi.yaml `ai:` settings.
 func New(endpoint, key string, models map[string]string) *Gateway {
-	return &Gateway{Endpoint: strings.TrimRight(endpoint, "/"), Key: key, Models: models, HTTP: &http.Client{Timeout: 5 * time.Minute}}
+	return &Gateway{Endpoint: strings.TrimRight(endpoint, "/"), Key: key, Models: models, HTTP: &http.Client{}}
 }
 
 // Local returns the local model that serves a model id, or false when the answer is canned.
@@ -215,6 +216,13 @@ func (g *Gateway) chat(ctx context.Context, model string, req Request) (Response
 		body["tools"] = tools
 	}
 	b, _ := json.Marshal(body)
+	// The call ends when the caller leaves (ctx) or after the timeout, whichever comes first.
+	t := g.Timeout
+	if t <= 0 {
+		t = 5 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(ctx, t)
+	defer cancel()
 	hr, err := http.NewRequestWithContext(ctx, http.MethodPost, g.Endpoint+"/chat/completions", bytes.NewReader(b))
 	if err != nil {
 		return Response{}, err

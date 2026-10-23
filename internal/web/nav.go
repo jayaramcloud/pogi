@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/nrndev/pogi/internal/core"
 )
@@ -33,6 +32,7 @@ type covService struct {
 // coverage is coverage.json, decoded once.
 var coverage = sync.OnceValue(func() (c struct {
 	Categories []string
+	Counts     map[string]struct{ Total, Thin int } // products per cloud, as the README counts them
 	Services   map[string]covService
 }) {
 	if err := json.Unmarshal(coverageJSON, &c); err != nil {
@@ -41,19 +41,81 @@ var coverage = sync.OnceValue(func() (c struct {
 	return c
 })
 
+// serviceCount is how many services pogi covers, counted as products (the README's rule, from
+// coverage.json), for the cloud or for all three, and the same count with its depth split. When
+// pogi runs only some services, the products can't be counted, so it is the services that run.
+func serviceCount(cloud string, running []core.ServiceStatus) (n int, full string) {
+	cs, have, want := coverage().Counts, 0, 0
+	for _, s := range running {
+		if cloud == "" || s.Cloud == cloud {
+			have++
+		}
+	}
+	for _, c := range coverage().Services {
+		if cloud == "" || c.Cloud == cloud {
+			want++
+		}
+	}
+	if have != want {
+		return have, plural(have, "service") + " running"
+	}
+	one := func(c string) string {
+		return fmt.Sprintf("%d %s (%d with real behavior, %d Thin)", cs[c].Total, cloudNames[c], cs[c].Total-cs[c].Thin, cs[c].Thin)
+	}
+	if cloud != "" {
+		return cs[cloud].Total, strings.Replace(one(cloud), cloudNames[cloud], cloudNames[cloud]+" services", 1)
+	}
+	n = cs[core.AWS].Total + cs[core.GCP].Total + cs[core.Azure].Total
+	return n, fmt.Sprintf("%d services: %s, %s and %s", n, one(core.AWS), one(core.GCP), one(core.Azure))
+}
+
+// ServiceCount is serviceCount for all three clouds, for the start banner, so the banner and the
+// console show the same number.
+func ServiceCount(running []core.ServiceStatus) int {
+	n, _ := serviceCount("", running)
+	return n
+}
+
+// depthText says what a depth badge means, in the words of docs/reference/coverage.md.
+var depthText = map[string]string{
+	"Deep": "real behavior, plus wiring to other services",
+	"Core": "the main API, with real semantics",
+	"Thin": "create, describe and delete, which is enough for infrastructure tools such as Terraform",
+}
+
+const coverageURL = "https://pogi.nrnx.dev/docs/reference/coverage"
+
+// depthTag is the Deep, Core or Thin badge with its meaning: a tooltip, and text for screen readers.
+// link adds a link to the coverage page; leave it off inside a link, where a second one can't nest.
+func depthTag(depth string, link bool) template.HTML {
+	if depth == "" {
+		return ""
+	}
+	depth = strings.ToUpper(depth[:1]) + strings.ToLower(depth[1:]) // the home tiles keep it in lower case
+	d := template.HTMLEscapeString(depth)
+	say := d + ": " + depthText[depth]
+	cls := `tag ` + strings.ToLower(d)
+	inner := d + `<span class="sr">: ` + depthText[depth] + `</span>`
+	if link {
+		return template.HTML(`<a class="` + cls + `" href="` + coverageURL + `" target="_blank" rel="noopener" title="` + say + `. Open the coverage page.">` + inner + `</a>`)
+	}
+	return template.HTML(`<span class="` + cls + `" title="` + say + `">` + inner + `</span>`)
+}
+
 // nav is the sidebar: services in use, pinned services, and badges by key (a service name or a
 // tool: "requests", "chaos", "iam", "cost", "inbox").
 type nav struct {
 	InUse, Pinned []navSvc
 	Badges        map[string]badge
-	Total         int
+	Total         int    // services, counted as products
+	TotalFull     string // the same count with its depth split
 }
 
-// navSvc is one sidebar service. Title is its label, Abbr its rail label; when two services share
-// either, both carry the cloud. Full is the label with the cloud always, for the rail's title and aria-label.
+// navSvc is one sidebar service. Title is its label; when two services share it, both carry the
+// cloud. Full is the label with the cloud always, for the rail's title and aria-label.
 type navSvc struct {
-	Name, Title, Cloud, Abbr, Full string
-	Resources                      int
+	Name, Title, Cloud, Full string
+	Resources                int
 }
 
 // badge is a sidebar count; Kind "bad" or "warn" also puts a dot on the collapsed rail.
@@ -75,10 +137,11 @@ type note struct {
 	Time                          time.Time
 	Kind, Icon, Title, Text, Href string
 	Drawer                        bool
+	Quiet                         bool // listed in the bell, but never toasted: the console already told the user
 }
 
 func (ui *UI) nav(r *http.Request, st core.Status) nav {
-	n := nav{Badges: map[string]badge{}, Total: len(st.Services)}
+	n := nav{Badges: map[string]badge{}}
 	pins := map[string]bool{}
 	if c, err := r.Cookie("pogi-pins"); err == nil {
 		v, _ := url.QueryUnescape(c.Value)
@@ -87,15 +150,14 @@ func (ui *UI) nav(r *http.Request, st core.Status) nav {
 		}
 	}
 	cloud := ui.cloud(r)
+	n.Total, n.TotalFull = serviceCount(cloud, st.Services)
 	for _, s := range st.Services {
 		if cloud != "" && s.Cloud != cloud {
 			continue
 		}
-		ns := navSvc{Name: s.Name, Title: s.Title, Cloud: s.Cloud, Abbr: abbr(s.Title), Resources: s.Resources}
+		ns := navSvc{Name: s.Name, Title: s.Title, Cloud: s.Cloud, Resources: s.Resources}
 		ns.Full = ns.Title + " · " + cloudShort[s.Cloud]
-		// ponytail: "in use" needs traffic too, so built-in defaults (the default resource group,
-		// project and users) stay out; state loaded from disk shows once it is called again.
-		if s.Resources > 0 && s.Requests > 0 {
+		if ui.inUse(s) {
 			n.InUse = append(n.InUse, ns)
 		}
 		if pins[s.Name] {
@@ -116,35 +178,31 @@ func (ui *UI) nav(r *http.Request, st core.Status) nav {
 	return n
 }
 
-// cloudShort names a cloud in a label ("IAM · GCP"); cloudLetter ends its rail abbreviation ("IAMg").
-var (
-	cloudShort  = map[string]string{core.AWS: "AWS", core.GCP: "GCP", core.Azure: "Azure"}
-	cloudLetter = map[string]string{core.AWS: "a", core.GCP: "g", core.Azure: "z"} // z: "a" is taken by AWS
-)
+// inUse says whether a service shows under "In use": it has had requests, or it holds more
+// resources than it started with. A service filled only from the console shows up. The built-in
+// defaults (the default resource group, project and users) are there from the start, so they stay out.
+func (ui *UI) inUse(s core.ServiceStatus) bool {
+	return s.Requests > 0 || s.Resources > ui.base[s.Name]
+}
 
-// disambiguate gives the services in the lists that share a title or an abbreviation (IAM on AWS
-// and on Google Cloud) the cloud in both: "IAM · AWS" with the abbreviation "IAMa".
+// cloudShort names a cloud in a label ("IAM · GCP").
+var cloudShort = map[string]string{core.AWS: "AWS", core.GCP: "GCP", core.Azure: "Azure"}
+
+// disambiguate gives the services in the lists that share a title (IAM on AWS and on Google Cloud)
+// the cloud in it: "IAM · AWS".
 func disambiguate(lists ...[]navSvc) {
-	titles, abbrs := map[string]map[string]bool{}, map[string]map[string]bool{}
-	seen := func(m map[string]map[string]bool, k, name string) {
-		if m[k] == nil {
-			m[k] = map[string]bool{}
-		}
-		m[k][name] = true
-	}
+	titles := map[string]map[string]bool{}
 	for _, l := range lists {
 		for _, s := range l {
-			seen(titles, s.Title, s.Name)
-			seen(abbrs, s.Abbr, s.Name)
+			if titles[s.Title] == nil {
+				titles[s.Title] = map[string]bool{}
+			}
+			titles[s.Title][s.Name] = true
 		}
 	}
 	for _, l := range lists {
 		for i, s := range l {
-			dupTitle := len(titles[s.Title]) > 1
-			if dupTitle || len(abbrs[s.Abbr]) > 1 {
-				l[i].Abbr += cloudLetter[s.Cloud]
-			}
-			if dupTitle {
+			if len(titles[s.Title]) > 1 {
 				l[i].Title, l[i].Full = s.Full, s.Full
 			}
 		}
@@ -157,24 +215,6 @@ func plural(n int, noun string) string {
 		return "1 " + noun
 	}
 	return fmt.Sprintf("%d %ss", n, noun)
-}
-
-// abbr is a service's label on the collapsed rail: its capitals and digits (DDB for DynamoDB),
-// else its first two letters.
-func abbr(title string) string {
-	var b []rune
-	for _, r := range title {
-		if unicode.IsUpper(r) || unicode.IsDigit(r) {
-			b = append(b, r)
-		}
-	}
-	if len(b) < 2 {
-		b = []rune(title)
-		if len(b) > 2 {
-			b = b[:2]
-		}
-	}
-	return string(b[:min(3, len(b))])
 }
 
 type navLink struct {
@@ -230,8 +270,8 @@ func trigger(w http.ResponseWriter, event string, detail any) {
 // hit is one search result. Drawer opens Href in the drawer, JS runs a client action
 // (theme, side, keys, copy) and Post posts to Href.
 type hit struct {
-	Group, Label, Hint, Href, Icon, Cloud, JS string
-	Drawer, Post                              bool
+	Group, Label, Hint, Href, Icon, Cloud, Svc, JS string
+	Drawer, Post                                   bool
 }
 
 // pages are the console's pages and tools, always searchable.
@@ -239,7 +279,7 @@ var pages = []hit{
 	{Label: "Home", Href: "/_pogi/", Icon: "home"}, {Label: "Activity", Href: "/_pogi/requests", Icon: "pulse"},
 	{Label: "Flows", Href: "/_pogi/flows", Icon: "map"}, {Label: "Services", Href: "/_pogi/services", Icon: "grid"},
 	{Label: "Map", Href: "/_pogi/map", Icon: "map"}, {Label: "IAM policy", Href: "/_pogi/iam", Icon: "lock"},
-	{Label: "Cost estimate", Href: "/_pogi/cost", Icon: "dollar"}, {Label: "SQL editor", Href: "/_pogi/sql", Icon: "db"},
+	{Label: "Cost estimate", Href: "/_pogi/cost", Icon: "dollar"}, {Label: "Terraform", Href: "/_pogi/terraform", Icon: "box"}, {Label: "SQL editor", Href: "/_pogi/sql", Icon: "db"},
 	{Label: "Logs", Href: "/_pogi/logs", Icon: "logs"}, {Label: "Secrets", Href: "/_pogi/secrets", Icon: "key"},
 	{Label: "Inbox", Href: "/_pogi/inbox", Icon: "mail"}, {Label: "Chaos", Href: "/_pogi/chaos", Icon: "bolt"},
 	{Label: "Snapshots", Href: "/_pogi/snapshots", Icon: "camera"}, {Label: "Connect", Href: "/_pogi/connect", Icon: "plug"},
@@ -284,7 +324,7 @@ func (ui *UI) search(w http.ResponseWriter, r *http.Request) {
 		if cloud != "" && s.Cloud != cloud {
 			continue
 		}
-		inUse := s.Resources > 0 && s.Requests > 0
+		inUse := ui.inUse(s)
 		if q != "" {
 			for _, f := range ui.allFormOps()[s.Name] {
 				if match(f.Title, s.Title) {
@@ -300,7 +340,7 @@ func (ui *UI) search(w http.ResponseWriter, r *http.Request) {
 		if q == "" && !inUse || !match(s.Title, s.Name, cloudNames[s.Cloud], searchAliases[s.Name]) {
 			continue
 		}
-		h := hit{Label: s.Title, Hint: cloudNames[s.Cloud], Href: "/_pogi/resources/" + s.Name, Cloud: s.Cloud}
+		h := hit{Label: s.Title, Hint: cloudNames[s.Cloud], Href: "/_pogi/resources/" + s.Name, Cloud: s.Cloud, Svc: s.Name}
 		if inUse {
 			svcsUse = append(svcsUse, h)
 		} else {
@@ -374,5 +414,5 @@ func cmpBool(a, b bool) int {
 	return -1
 }
 
-var searchTmpl = template.Must(template.New("search").Funcs(funcs).Parse(`{{$g := ""}}{{range .}}{{if ne .Group $g}}{{$g = .Group}}<div class="grp">{{.Group}}</div>{{end}}<a class="it" {{with .Href}}href="{{.}}"{{end}} {{if .Drawer}}data-drawer{{end}} {{if .Post}}data-post{{end}} {{with .JS}}data-js="{{.}}"{{end}}><span class="ico">{{if .Cloud}}<span class="dot {{.Cloud}}"></span>{{else}}{{icon .Icon}}{{end}}</span>{{.Label}}<small>{{.Hint}}</small></a>
+var searchTmpl = template.Must(template.New("search").Funcs(funcs).Parse(`{{$g := ""}}{{range .}}{{if ne .Group $g}}{{$g = .Group}}<div class="grp">{{.Group}}</div>{{end}}<a class="it" {{with .Href}}href="{{.}}"{{end}} {{if .Drawer}}data-drawer{{end}} {{if .Post}}data-post{{end}} {{with .JS}}data-js="{{.}}"{{end}}><span class="ico">{{if .Svc}}{{svcIcon .Cloud .Svc}}{{else}}{{icon .Icon}}{{end}}</span>{{.Label}}<small>{{.Hint}}</small></a>
 {{else}}<div class="empty" style="padding:24px">No matches</div>{{end}}`))

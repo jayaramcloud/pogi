@@ -137,6 +137,9 @@ func (ui *UI) armPut(d armData) (string, error) {
 func (ui *UI) armDo(method, path string, body []byte) (int, []byte) {
 	req, _ := http.NewRequest(method, "http://localhost"+path+"?api-version="+armVersion, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	if method != http.MethodGet && method != http.MethodHead {
+		req.Header.Set(core.ConsoleHeader, "1")
+	}
 	return ui.hub.DoService("arm", req)
 }
 
