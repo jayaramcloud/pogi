@@ -19,5 +19,5 @@ Enter
 Sleep 9s
 Type "2"
 Sleep 4s
-Type "1"
-Sleep 2s
+Type "7"
+Sleep 5s

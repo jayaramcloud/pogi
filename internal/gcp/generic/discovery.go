@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
-	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -52,11 +51,12 @@ type schema struct {
 	Items        *schema
 }
 
-// entry is one line of apis.txt with its document.
+// entry is one line of apis.txt. Its document is decoded on first use: decoding all 80-odd at start
+// took most of pogi's start-up time.
 type entry struct {
 	name, version, tf, title, label string
 	svc                             string // the registry name: the API's name, unless another cloud's service has it (config is AWS Config)
-	d                               *doc
+	doc                             func() *doc
 }
 
 // entries are the listed APIs; a bad list or document is a bug in the build, so it panics.
@@ -75,24 +75,30 @@ var entries = sync.OnceValue(func() []*entry {
 		if f[0] == "config" {
 			e.svc = "gcpconfig"
 		}
-		f2, err := docFS.Open("docs/" + e.name + "-" + e.version + ".json.gz")
-		if err != nil {
-			panic(fmt.Sprintf("gcp/generic: %v (run go generate ./internal/gcp/generic)", err))
-		}
-		zr, err := gzip.NewReader(f2)
-		if err == nil {
-			err = json.NewDecoder(zr).Decode(&e.d)
-		}
-		f2.Close()
-		if err != nil {
-			panic(fmt.Sprintf("gcp/generic: %s %s: %v", e.name, e.version, err))
-		}
-		u, _ := url.Parse(e.d.RootURL)
-		e.label, _, _ = strings.Cut(u.Host, ".") // https://file.googleapis.com/ -> file
+		e.label = e.name // every listed API is at https://<name>.googleapis.com/; TestDocsDecode checks it
+		e.doc = sync.OnceValue(func() *doc { return loadDoc(e.name, e.version) })
 		out = append(out, e)
 	}
 	return out
 })
+
+// loadDoc decodes an API's embedded discovery document.
+func loadDoc(name, version string) *doc {
+	f, err := docFS.Open("docs/" + name + "-" + version + ".json.gz")
+	if err != nil {
+		panic(fmt.Sprintf("gcp/generic: %v (run go generate ./internal/gcp/generic)", err))
+	}
+	defer f.Close()
+	var d *doc
+	zr, err := gzip.NewReader(f)
+	if err == nil {
+		err = json.NewDecoder(zr).Decode(&d)
+	}
+	if err != nil {
+		panic(fmt.Sprintf("gcp/generic: %s %s: %v", name, version, err))
+	}
+	return d
+}
 
 // walk calls f for every method of the document.
 func (d *doc) walk(f func(*dmethod)) {

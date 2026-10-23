@@ -26,10 +26,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/demo.gif" width="880" alt="Typing pogi opens its terminal screen. Calls from the AWS, Google Cloud and Azure CLIs fill the dashboard, then the Requests tab lists each one: S3, SQS, DynamoDB, Cloud Storage, Pub/Sub and Blob Storage, all answering 200 or 201.">
+  <img src="docs/images/demo.gif" width="880" alt="Typing pogi opens its terminal screen. Calls from the AWS, Google Cloud and Azure CLIs fill the Overview with the services in use and recent calls. The Requests tab lists all 14 calls to S3, SQS, SNS, DynamoDB, Cloud Storage, Pub/Sub and Blob Storage, each answering 200 or 201. The Flows tab shows the hand-offs between services, such as an SNS message delivered to an SQS queue.">
 </p>
 
-pogi runs AWS, Google Cloud and Azure on your laptop. Point your SDKs, the cloud CLIs, Terraform or the CDK at it, and they work the way they do against the real cloud: no account, no bill, and nothing leaves your machine. It is one program on one port, and it starts in about 25 ms. It covers <!-- count:total -->355 services: 144 AWS (88 with real behavior, 56 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (29 with real behavior, 74 Thin)<!-- /count -->. A Thin service keeps your resources and reads them back, but nothing runs behind them.
+pogi runs AWS, Google Cloud and Azure on your laptop. Point your SDKs, the cloud CLIs, Terraform or the CDK at it, and they work the way they do against the real cloud: no account, no bill, and nothing leaves your machine. It is one program on one port, and it starts in about 50 ms. It covers <!-- count:total -->355 services: 144 AWS (88 with real behavior, 56 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (29 with real behavior, 74 Thin)<!-- /count -->. A Thin service keeps your resources and reads them back, but nothing runs behind them.
 
 > [!NOTE]
 > pogi is new, at version 0.x. Flags, config keys and APIs may still change between releases, and the [changelog](CHANGELOG.md) lists every change.
@@ -82,7 +82,7 @@ Your own code needs nothing more. Only the endpoint and the credentials change, 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/console-dark.jpg">
-  <img src="docs/images/console-light.jpg" alt="The pogi web console's Home page: six services in use across AWS, Google Cloud and Azure, request and error counts, a rough real-cloud cost, and a live list of calls.">
+  <img src="docs/images/console-light.jpg" alt="The pogi web console's Home page: seven services in use across AWS, Google Cloud and Azure, each with its icon, request and error counts, a rough real-cloud cost, and a live list of calls.">
 </picture>
 
 While pogi runs, the web console at `http://localhost:7644/_pogi/` shows what your code did:

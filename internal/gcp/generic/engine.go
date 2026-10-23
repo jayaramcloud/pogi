@@ -105,9 +105,11 @@ type api struct {
 	e     *entry
 	hub   *core.Hub
 	ops   *gapi.Ops
-	meth  []*method
 	hooks hooks
-	base  string // https://<host>/<prefix>/<version>/, for selfLink
+
+	compiled sync.Once // meth and base are built on the API's first request, not at start
+	meth     []*method
+	base     string // https://<host>/<prefix>/<version>/, for selfLink
 
 	mu   sync.Mutex
 	objs map[string]map[string]any // the path after the version -> resource
@@ -115,19 +117,28 @@ type api struct {
 }
 
 func newAPI(h *core.Hub, e *entry) *api {
-	a := &api{e: e, hub: h, ops: gapi.Operations(h), base: e.d.RootURL + e.version + "/"}
+	a := &api{e: e, hub: h, ops: gapi.Operations(h)}
 	a.hooks = apiHooks[e.name]
-	e.d.walk(func(dm *dmethod) {
-		if first, _, _ := strings.Cut(cmp.Or(dm.FlatPath, dm.Path), "/"); !gapiVersion(first) {
-			a.base = e.d.RootURL + first + "/" + e.version + "/" // dns.googleapis.com/dns/v1/
-		}
-		if m := compile(e, dm); m != nil {
-			a.meth = append(a.meth, m)
-		}
-	})
-	slices.SortStableFunc(a.meth, func(x, y *method) int { return y.lits - x.lits }) // the most specific path first
 	a.Reset()
 	return a
+}
+
+// build compiles the API's methods from its document, once. Every request goes through find, which
+// calls it, so pogi starts without decoding any document.
+func (a *api) build() {
+	a.compiled.Do(func() {
+		e, d := a.e, a.e.doc()
+		a.base = d.RootURL + e.version + "/"
+		d.walk(func(dm *dmethod) {
+			if first, _, _ := strings.Cut(cmp.Or(dm.FlatPath, dm.Path), "/"); !gapiVersion(first) {
+				a.base = d.RootURL + first + "/" + e.version + "/" // dns.googleapis.com/dns/v1/
+			}
+			if m := compile(e, dm); m != nil {
+				a.meth = append(a.meth, m)
+			}
+		})
+		slices.SortStableFunc(a.meth, func(x, y *method) int { return y.lits - x.lits }) // the most specific path first
+	})
 }
 
 // compile turns a discovery method into a matcher. Its path loses the API's own prefix ("dns/"),
@@ -182,6 +193,7 @@ func (a *api) find(r *http.Request) (*method, []string) {
 	if len(segs) < 2 || segs[0] != a.e.version {
 		return nil, nil
 	}
+	a.build()
 	segs = segs[1:]
 	verb := ""
 	if last := segs[len(segs)-1]; strings.Contains(last, ":") {
@@ -310,7 +322,7 @@ func (a *api) dispatch(c *call) (any, error) {
 // ---- schemas ----
 
 func (a *api) schema(n string) *schema {
-	if s := a.e.d.Schemas[n]; s != nil {
+	if s := a.e.doc().Schemas[n]; s != nil {
 		return s
 	}
 	return &schema{}
