@@ -1,7 +1,9 @@
 # golangci-lint v2. A small, strict set: every finding is fixed or excluded below with a reason.
 version: "2"
 run:
-  timeout: 10m
+  # With a cold cache (GitHub drops a cache unused for 7 days), loading every package on a 2-core runner takes
+  # more than 10 minutes since v0.2.0. A warm run takes a few.
+  timeout: 25m
 linters:
   default: none
   enable:
