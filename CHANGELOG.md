@@ -14,6 +14,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **The MCP endpoint refuses other websites.** `/_pogi/mcp` now has the same cross-origin check as the admin API, so a page on another local port can no longer call its tools.
 - **More secrets are hidden in Activity.** SSM SecureStrings, Key Vault values, Google Secret Manager payloads, Azure SQL passwords, Lambda environment variables, Cognito tokens, security-token and API-key headers and query values now show as `[redacted]`. Names stay visible.
 - **`evil.xlocalhost` is no longer treated as localhost.** Only `localhost`, `*.localhost` and the `-localhost` form pogi uses count.
+- **Each release has SLSA provenance.** `pogi.intoto.jsonl` on the release page is a signed record of how and from what source the archives and packages were built; `slsa-verifier` checks it ([how to check a download](docs/how-to/install.md)). GitHub's build attestations are still there too.
+- **The Docker image's base images are pinned by digest,** so a changed upstream image cannot slip into a build. CodeQL now scans the Go code on every push and pull request.
 - **Built with Go 1.27.3.** Go 1.27.2, which built 0.1.0, still trusted certificates from eight eMudhra intermediate certificate authorities whose keys were stolen ([GO-2026-6809](https://pkg.go.dev/vuln/GO-2026-6809)). Go 1.27.3 rejects them, so pogi's outbound HTTPS connections do too.
 
 ### Fixed

@@ -7,8 +7,9 @@
 # provided.* runtimes and container-backed services (RDS, ECS, EKS…) work too, but that socket gives
 # pogi, and anyone who can reach its port, control of your Docker.
 # Keep this tag equal to the go line in go.mod. The image sets GOTOOLCHAIN=local, so an older cached
-# 1.27 image cannot fetch the Go that go.mod asks for, and the build fails.
-FROM golang:1.27.3-alpine AS build
+# 1.27 image cannot fetch the Go that go.mod asks for, and the build fails. Images are pinned by digest, so a
+# changed upstream image cannot slip in; Dependabot (docker) proposes new digests.
+FROM golang:1.27.3-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
@@ -17,7 +18,7 @@ ARG VERSION=dev
 RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X github.com/nrndev/pogi.Version=${VERSION}" -o /pogi ./cmd/pogi
 
 # The image: only what functions and init scripts need.
-FROM alpine:3.22
+FROM alpine:3.22@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f
 RUN apk upgrade --no-cache && apk add --no-cache ca-certificates python3 nodejs
 COPY --from=build /pogi /usr/local/bin/pogi
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

@@ -1,0 +1,7 @@
+# Known advisories that do not affect pogi, each with its reason. OSV-Scanner and OpenSSF Scorecard read this file.
+# govulncheck (scripts/security-scan.sh vuln) still checks every advisory against the code that pogi really calls.
+
+[[IgnoredVulns]]
+id = "GO-2026-5932"
+ignoreUntil = 2027-04-25T00:00:00Z # look again then: has golang.org/x/crypto dropped or fixed openpgp?
+reason = "golang.org/x/crypto/openpgp is unmaintained and has no fix. pogi needs the golang.org/x/crypto module for other packages but never imports openpgp, and govulncheck finds no call to it."

@@ -1,6 +1,6 @@
 # Used by goreleaser: the binary is already built for the target platform.
 # A minimal Alpine with Python and Node.js, so functions run natively and init scripts run (see Dockerfile).
-FROM alpine:3.22
+FROM alpine:3.22@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f
 ARG TARGETPLATFORM
 RUN apk upgrade --no-cache && apk add --no-cache ca-certificates python3 nodejs
 COPY $TARGETPLATFORM/pogi /usr/local/bin/pogi

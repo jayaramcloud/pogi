@@ -53,7 +53,7 @@ docker run --rm -p 127.0.0.1:7644:7644 -p 127.0.0.1:10000-10002:10000-10002 ghcr
 
 ### Check that a download is genuine
 
-GitHub's release job signs every release, with no long-lived keys. You can check a download in two ways, both optional:
+GitHub's release job signs every release, with no long-lived keys. You can check a download in three ways, all optional:
 
 - With [cosign](https://docs.sigstore.dev/cosign/system_config/installation/), check `checksums.txt` (download `checksums.txt.sigstore.json` from the release too), then check your archive against it as in step 2:
 
@@ -67,6 +67,14 @@ GitHub's release job signs every release, with no long-lived keys. You can check
 
   ```bash
   gh attestation verify pogi_0.2.0_linux_amd64.tar.gz -R nrndev/pogi
+  ```
+
+- With [slsa-verifier](https://github.com/slsa-framework/slsa-verifier), check the archive against the release's SLSA provenance
+  (a signed record of how and from what source it was built). Download `pogi.intoto.jsonl` from the release too:
+
+  ```bash
+  slsa-verifier verify-artifact pogi_0.2.0_linux_amd64.tar.gz --provenance-path pogi.intoto.jsonl \
+    --source-uri github.com/nrndev/pogi --source-tag v0.2.0
   ```
 
 The Docker image is signed the same way: `cosign verify ghcr.io/nrndev/pogi:0.2.0` with the same two certificate flags.

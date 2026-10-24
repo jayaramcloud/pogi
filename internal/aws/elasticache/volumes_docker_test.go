@@ -104,13 +104,16 @@ func TestDataSurvivesRecreateAndGoesWithResource(t *testing.T) {
 	}
 
 	h, base = volHub(t, dir)
+	// Wait for Redis itself to answer. An open port is not enough: Docker Desktop's port proxy accepts connections
+	// before Redis listens, and a GET sent then gets no reply ("" below, not "$-1"), which looked like lost data.
 	eventually(t, "the recreated container to answer", 2*time.Minute, func() bool { // the saved status says available at once
 		c = describe(t, base, id)
 		conn, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(c.Nodes[0].Endpoint.Port)), time.Second)
-		if err == nil {
-			conn.Close()
+		if err != nil || c.CacheClusterStatus != "available" {
+			return false
 		}
-		return err == nil && c.CacheClusterStatus == "available"
+		conn.Close()
+		return volRedis(t, c, "PING") == "+PONG"
 	})
 	if r := volRedis(t, c, "GET kept"); r != "$3\r\nyes" {
 		t.Fatalf("the data did not survive the recreate: GET kept = %q", r)

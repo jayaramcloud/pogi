@@ -1,0 +1,26 @@
+# Dependabot opens pull requests here for security fixes only. Routine dependency updates are made in pogi's
+# development repository and arrive with each release, so version updates are off (open-pull-requests-limit: 0,
+# which does not limit security updates). Security updates also need "Dependabot security updates" turned on in
+# the repository settings.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /examples/cdk
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0

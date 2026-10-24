@@ -133,8 +133,9 @@ done
 if want cdk; then
 
 echo "== cdk"
+# npm ci installs exactly what examples/cdk/package-lock.json pins (Dependabot keeps it current).
 cp -R "$root/examples/cdk" "$work/cdk"
-(cd "$work/cdk" && npm install --no-audit --no-fund >/dev/null && npx cdk bootstrap aws://000000000000/us-east-1 >/dev/null \
+(cd "$work/cdk" && npm ci --no-audit --no-fund >/dev/null && npx cdk bootstrap aws://000000000000/us-east-1 >/dev/null \
   && npx cdk deploy --require-approval never >/dev/null && npx cdk destroy --force >/dev/null)
 echo "cdk: bootstrap, deploy and destroy passed"
 fi
