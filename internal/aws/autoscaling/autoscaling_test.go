@@ -242,8 +242,9 @@ func TestGroupScaling(t *testing.T) {
 	if a := must(e.c.DescribeScheduledActions(ctx, &autoscaling.DescribeScheduledActionsInput{AutoScalingGroupName: aws.String("web")})); len(a.ScheduledUpdateGroupActions) != 0 {
 		t.Fatalf("a one-time action stays: %+v", a.ScheduledUpdateGroupActions)
 	}
+	// Every day, written as a range and a list. A weekday-limited recurrence ("1-5,0") made this fail on Saturdays.
 	must(e.c.PutScheduledUpdateGroupAction(ctx, &autoscaling.PutScheduledUpdateGroupActionInput{AutoScalingGroupName: aws.String("web"),
-		ScheduledActionName: aws.String("weekdays"), Recurrence: aws.String("*/5 * * * 1-5,0"), MinSize: aws.Int32(2), DesiredCapacity: aws.Int32(2)}))
+		ScheduledActionName: aws.String("every-5-min"), Recurrence: aws.String("*/5 * * * 1-5,0,6"), MinSize: aws.Int32(2), DesiredCapacity: aws.Int32(2)}))
 	e.as.Tick(time.Now().Add(6 * time.Minute))
 	if g := e.capacity(t, "web", 2); *g.MinSize != 2 {
 		t.Fatalf("recurring action: min %d", *g.MinSize)
