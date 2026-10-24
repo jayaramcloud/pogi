@@ -5,16 +5,17 @@ description: How pogi's start-up time, memory and speed were measured, and on wh
 
 # Benchmarks
 
-pogi's website quotes the numbers below. All of them were measured on 2026-10-24 on an Apple M5
-with 32 GB of memory, using a v0.2.0 build made the way the release build makes it (`-trimpath -s -w`). The machine
-was also running other work at the time, so a quiet machine may do better. Your numbers will differ with your machine.
+pogi's website quotes the numbers below. They were measured on an Apple M5 with 32 GB of memory, using a v0.2.0
+build made the way the release build makes it (`-trimpath -s -w`). Start-up was measured on 2026-10-25 on a quiet
+machine. The other numbers were measured on 2026-10-24, while the machine was running other work, so a quiet machine
+may do better. Your numbers will differ with your machine.
 
-v0.2.0 starts about twice as slowly as v0.1.0 (about 25 ms) and uses more memory, because it runs many more
+v0.2.0 starts a little more slowly than v0.1.0 (about 25 ms) and uses more memory, because it runs many more
 services and its program is larger.
 
 | Measure | Result | How |
 |---|---|---|
-| Start-up time | about 50 ms | `pogi start` with default flags, timed from launch to the `Ready.` line, warm (after one run that pays the operating system's first-launch check). Each run in a fresh shell and a fresh data folder. Median of 6 runs: 48 ms. |
+| Start-up time | about 30 ms | `pogi start` with default flags, timed from launch to the `Ready.` line, warm (after one run that pays the operating system's first-launch check). Each run in a fresh shell and a fresh data folder. Median of 21 runs: 27.6 ms; the middle half took 27.2 to 29.2 ms. |
 | Memory at idle | about 75 MB | Resident memory (`ps -o rss`) half a second after `Ready.`. Median of 10 runs. |
 | Writes per second | about 20,000 | 20,000 signed DynamoDB `PutItem` calls over localhost, 8 at a time, with `ab` (ApacheBench), after a 2,000-call warm-up. No failed calls. |
 | Memory under load | about 150 MB | Resident memory right after that burst. |
