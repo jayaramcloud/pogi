@@ -278,7 +278,7 @@ func (q *req) list(kind, selfPath string, items []map[string]any) any {
 		}
 		items = out
 	}
-	n, _ := strconv.Atoi(query.Get("maxResults"))
+	n, _ := strconv.ParseInt(query.Get("maxResults"), 10, 32) // PageSizeOK already refused anything bigger
 	page, next := gapi.Page(items, int32(n), query.Get("pageToken"))
 	out := map[string]any{"kind": "compute#" + kind, "id": selfPath, "items": page, "selfLink": api + selfPath}
 	if page == nil {
