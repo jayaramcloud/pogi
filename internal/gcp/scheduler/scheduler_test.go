@@ -328,9 +328,12 @@ func TestRetries(t *testing.T) {
 		t.Fatal("retried before the doubled 20s backoff")
 	}
 	step(due.Add(30*time.Second), 3)
-	if g := must(c.GetJob(ctx, &pb.GetJobRequest{Name: created.Name})); g.Status.Code != 0 {
-		t.Fatalf("final status = %v", g.Status)
-	}
+	// lastAttemptTime is set when an attempt starts and status when its answer arrives (as in Cloud Scheduler), so
+	// wait for the third answer instead of reading the status once.
+	waitFor(t, "the third attempt to succeed", func() bool {
+		g := must(c.GetJob(ctx, &pb.GetJobRequest{Name: created.Name}))
+		return g.Status != nil && g.Status.Code == 0
+	})
 	svc.Tick(due.Add(time.Hour)) // succeeded: no more retries
 	time.Sleep(30 * time.Millisecond)
 	if tg.count() != 3 {

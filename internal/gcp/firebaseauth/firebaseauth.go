@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"math"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -1046,10 +1047,11 @@ func (s *Service) batchGet(_ *http.Request, pid string, in body) (any, error) {
 			all = append(all, u.info())
 		}
 	}
-	size := int32(in.num("maxResults"))
-	if size < 0 {
-		return nil, bad("Invalid value for maxResults: must be 0 or more")
+	n := in.num("maxResults")
+	if n < 0 || n > math.MaxInt32 { // checked before narrowing: 4294967297 must not become 1
+		return nil, bad("Invalid value for maxResults: must be 0 or more, and at most 2147483647")
 	}
+	size := int32(n)
 	if size == 0 {
 		size = 20
 	}

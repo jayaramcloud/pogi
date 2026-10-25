@@ -67,7 +67,7 @@ const MaxPageSize = 1000
 // number from 0 to 2^32-1. A bigger size is capped, a negative or non-numeric
 // one is refused with a 400.
 func PageSizeOK(v string) bool {
-	_, err := strconv.ParseUint(v, 10, 32)
+	_, err := strconv.ParseUint(v, 10, 31) // Page takes an int32: a bigger value would wrap negative and skip paging
 	return v == "" || err == nil
 }
 

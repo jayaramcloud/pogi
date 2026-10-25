@@ -71,7 +71,7 @@ func TestIAMAzurePage(t *testing.T) {
 	want(t, page, "ci · managedIdentity", "containers/blobs/read", "would deny", ">data<", "Create and assign pogi-ci",
 		"Strict: calls without an allowing role assignment", "1 denied")
 	want(t, c.get("/_pogi/iam/azure/policy?principal="+oid), `"roleName": "pogi-ci"`, `"CustomRole"`, `"dataActions"`)
-	want(t, c.get("/_pogi/iam?c=azure&fmt=cli"), "az role definition create", "az role assignment create --assignee-object-id "+oid)
+	want(t, c.get("/_pogi/iam?c=azure&fmt=cli"), "az role definition create", "az role assignment create --assignee-object-id &#39;"+oid+"&#39;") // shell-quoted, then HTML-escaped
 
 	// the attach drawer shows what it will create
 	want(t, c.get("/_pogi/iam/azure/attach?principal="+oid), "+1 permission", "pogi-ci", rg, "custom role")

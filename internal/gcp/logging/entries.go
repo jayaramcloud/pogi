@@ -147,8 +147,8 @@ func severityRank(v string) (int, bool) {
 	if n, ok := ltype.LogSeverity_value[strings.ToUpper(v)]; ok {
 		return int(n), true
 	}
-	n, err := strconv.Atoi(v)
-	return n, err == nil
+	n, err := strconv.ParseInt(v, 10, 32) // LogSeverity is an int32: a bigger number is not a severity, not a wrapped one
+	return int(n), err == nil
 }
 
 // entryJSON is the entry as the REST API shows it, for filters to walk.

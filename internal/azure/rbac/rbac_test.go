@@ -6,7 +6,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -251,7 +255,7 @@ func TestGenerateAttachUndo(t *testing.T) {
 	if d.Name != "pogi-orders" || d.Scope != rg || d.Assignable != rg || len(d.Actions) != 1 || len(d.DataActions) != 1 {
 		t.Fatalf("definition %+v", d)
 	}
-	if !strings.Contains(d.CLI(), "az role assignment create --assignee-object-id "+oid) || !strings.Contains(d.JSON(), `"CustomRole"`) {
+	if !strings.Contains(d.CLI(), "az role assignment create --assignee-object-id '"+oid+"'") || !strings.Contains(d.JSON(), `"CustomRole"`) {
 		t.Fatalf("snippets:\n%s\n%s", d.CLI(), d.JSON())
 	}
 	pl, err := rbac.Preview(hub, oid)
@@ -402,5 +406,38 @@ func TestServiceBusAMQP(t *testing.T) {
 	}
 	if err == nil {
 		t.Fatal("receive without Azure Service Bus Data Receiver went through")
+	}
+}
+
+// The role script is run by the developer, and its values come from recorded requests, so a quote, a ; or a
+// $(...) in a scope, the object id or an action must reach az as plain text, never run as a command.
+func TestCLIQuotesEveryValue(t *testing.T) {
+	sh, err := exec.LookPath("sh")
+	if err != nil {
+		t.Skip("no sh")
+	}
+	hostile := "x'; touch PWNED; echo '$(touch PWNED)`touch PWNED`"
+	d := rbac.Definition{Name: "pogi-app", Principal: "oid" + hostile, Kind: "user", Scope: "/subscriptions/s/resourceGroups/rg" + hostile,
+		Assignable: "/subscriptions/s" + hostile, Actions: []string{"Microsoft.Storage/" + hostile}}
+	dir := t.TempDir()
+	cmd := exec.Command(sh, "-c", `az() { for a in "$@"; do printf '%s\n' "$a"; done; }`+"\n"+d.CLI())
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("script: %v\n%s", err, d.CLI())
+	}
+	if _, err := os.Stat(filepath.Join(dir, "PWNED")); err == nil {
+		t.Fatalf("a recorded value ran as a command:\n%s", d.CLI())
+	}
+	args := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
+	for _, want := range []string{d.Principal, d.Scope, d.Name} {
+		if !slices.Contains(args, want) {
+			t.Errorf("%q did not reach az intact: %q", want, args)
+		}
+	}
+	var def struct{ Actions, AssignableScopes []string }
+	if i := slices.Index(args, "--role-definition"); i < 0 || json.Unmarshal([]byte(args[i+1]), &def) != nil ||
+		def.Actions[0] != d.Actions[0] || def.AssignableScopes[0] != d.Assignable {
+		t.Errorf("the role definition JSON did not reach az intact: %q", args)
 	}
 }

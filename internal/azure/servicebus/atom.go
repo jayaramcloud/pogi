@@ -149,16 +149,36 @@ func (l *kvList) values() map[string]any {
 	return out
 }
 
+// check rejects a number in a description that is not a number or does not fit its field, as Service Bus does,
+// instead of storing 0 (and so a default) or a wrapped value: a MaxDeliveryCount of 4294967297 must not become 1.
+func (b *putBody) check() error {
+	for _, d := range []*descXML{b.Content.Queue, b.Content.Topic, b.Content.Sub} {
+		if d == nil {
+			continue
+		}
+		for _, f := range []struct {
+			name, v string
+			bits    int
+		}{{"MaxSizeInMegabytes", d.MaxSizeInMegabytes, 32}, {"MaxDeliveryCount", d.MaxDeliveryCount, 32}, {"MaxMessageSizeInKilobytes", d.MaxMessageSizeInKilobytes, 64}} {
+			if _, err := strconv.ParseInt(f.v, 10, f.bits); f.v != "" && err != nil {
+				return invalid("The value '%s' of %s is not a valid number.", f.v, f.name)
+			}
+		}
+	}
+	return nil
+}
+
 func (d *descXML) props() Props {
 	b := func(s string) bool { return s == "true" }
 	dur := func(s string) Dur { v, _ := ParseDur(s); return v }
 	n := func(s string) int64 { v, _ := strconv.ParseInt(s, 10, 64); return v }
+	n32 := func(s string) int32 { v, _ := strconv.ParseInt(s, 10, 32); return int32(v) } // check() rejected what does not fit
 	return Props{
-		LockDuration: dur(d.LockDuration), MaxSizeInMegabytes: int32(n(d.MaxSizeInMegabytes)),
+		LockDuration: dur(d.LockDuration), MaxSizeInMegabytes: n32(d.MaxSizeInMegabytes),
 		RequiresDuplicateDetection: b(d.RequiresDuplicateDetection), RequiresSession: b(d.RequiresSession),
 		DefaultMessageTimeToLive: dur(d.DefaultMessageTimeToLive), DeadLetteringOnMessageExpiration: b(d.DeadLetteringOnMessageExpiration),
 		DeadLetteringOnFilterEvalFailures: b(d.DeadLetteringOnFilterEvalFailures), DuplicateDetectionHistoryWindow: dur(d.DuplicateDetectionHistoryWindow),
-		MaxDeliveryCount: int32(n(d.MaxDeliveryCount)), EnableBatchedOperations: b(d.EnableBatchedOperations), Status: d.Status,
+		MaxDeliveryCount: n32(d.MaxDeliveryCount), EnableBatchedOperations: b(d.EnableBatchedOperations), Status: d.Status,
 		AutoDeleteOnIdle: dur(d.AutoDeleteOnIdle), EnablePartitioning: b(d.EnablePartitioning), ForwardTo: d.ForwardTo,
 		ForwardDeadLetteredMessagesTo: d.ForwardDeadLetteredMessagesTo, UserMetadata: d.UserMetadata, SupportOrdering: b(d.SupportOrdering),
 		MaxMessageSizeInKilobytes: n(d.MaxMessageSizeInKilobytes),
@@ -505,6 +525,9 @@ func (s *Service) atom(r *http.Request, p []string, ns, base string) (op string,
 		if xml.Unmarshal(core.Body(r), &in) != nil {
 			return "Create", 0, "", invalid("The request body is not a valid ATOM entry.")
 		}
+		if err := in.check(); err != nil {
+			return "Create", 0, "", err
+		}
 		var e Entity
 		switch {
 		case in.Content.Queue != nil:
@@ -563,6 +586,9 @@ func (s *Service) atom(r *http.Request, p []string, ns, base string) (op string,
 		var in putBody
 		if xml.Unmarshal(core.Body(r), &in) != nil || in.Content.Sub == nil {
 			return "CreateSubscription", 0, "", invalid("The entry holds no SubscriptionDescription.")
+		}
+		if err := in.check(); err != nil {
+			return "CreateSubscription", 0, "", err
 		}
 		var e Entity
 		if update {

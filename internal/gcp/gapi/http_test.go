@@ -84,3 +84,12 @@ func TestTokens(t *testing.T) {
 		t.Fatalf("%v %+v", err, j)
 	}
 }
+
+// Page takes an int32, so a page size above MaxInt32 is refused instead of wrapping negative and skipping paging.
+func TestPageSizeOK(t *testing.T) {
+	for v, want := range map[string]bool{"": true, "0": true, "50": true, "2147483647": true, "2147483648": false, "3000000000": false, "-1": false, "x": false} {
+		if got := PageSizeOK(v); got != want {
+			t.Errorf("PageSizeOK(%q) = %v, want %v", v, got, want)
+		}
+	}
+}

@@ -2,6 +2,7 @@ package cosmos_test
 
 import (
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -56,6 +57,17 @@ func TestMongoDriver(t *testing.T) {
 	}
 	if len(names) != 1 || names[0] != "users" {
 		t.Fatalf("collections: %v", names)
+	}
+	// The same script makes the collection and then its unique index, so the collection can appear first: wait for
+	// the index too. (ARM answers before the script has run; real Azure finishes the operation first.)
+	unique := func() bool {
+		specs, err := users.Indexes().ListSpecifications(ctx)
+		return err == nil && slices.ContainsFunc(specs, func(s mongo.IndexSpecification) bool { return s.Unique != nil && *s.Unique })
+	}
+	for end := time.Now().Add(90 * time.Second); time.Now().Before(end) && !unique(); time.Sleep(200 * time.Millisecond) {
+	}
+	if !unique() {
+		t.Fatal("the unique index never appeared")
 	}
 	if _, err := users.InsertOne(ctx, bson.M{"email": "a@example.com", "city": "Oslo"}); err != nil {
 		t.Fatal(err)

@@ -3,6 +3,7 @@ package servicebus_test
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -346,5 +347,34 @@ func TestNegativePaging(t *testing.T) {
 func check(err error) {
 	if err != nil {
 		panic(err)
+	}
+}
+
+// A number in a queue description that is not a number, or does not fit, is refused with 400. It used to be stored
+// as 0 (so the default) or wrapped: a MaxDeliveryCount of 4294967297 became 1.
+func TestQueueNumbersChecked(t *testing.T) {
+	h := core.NewHub(core.Config{DataDir: t.TempDir()}, nil)
+	h.Register(servicebus.New(h))
+	t.Cleanup(h.Close)
+	u, pool := core.ListenTLS(t, h, h)
+	hc := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool}}}
+	put := func(name, field, v string) int {
+		body := `<entry xmlns="http://www.w3.org/2005/Atom"><content type="application/xml"><QueueDescription xmlns="http://schemas.microsoft.com/netservices/2010/10/servicebus/connect"><` +
+			field + `>` + v + `</` + field + `></QueueDescription></content></entry>`
+		r, _ := http.NewRequest("PUT", u+"/"+name+"?api-version=2024-05", strings.NewReader(body))
+		r.Header.Set("Authorization", "SharedAccessSignature sr=x&sig=y&se=1&skn=k")
+		r.Header.Set("Content-Type", "application/atom+xml;type=entry;charset=utf-8")
+		resp := must(hc.Do(r))
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+	for i, c := range []struct{ field, v string }{{"MaxDeliveryCount", "4294967297"}, {"MaxDeliveryCount", "abc"},
+		{"MaxSizeInMegabytes", "99999999999"}, {"MaxMessageSizeInKilobytes", "1e3"}} {
+		if code := put(fmt.Sprintf("bad%d", i), c.field, c.v); code != 400 {
+			t.Errorf("%s=%s: status %d, want 400", c.field, c.v, code)
+		}
+	}
+	if code := put("good", "MaxDeliveryCount", "7"); code != 201 {
+		t.Fatalf("a valid MaxDeliveryCount: status %d, want 201", code)
 	}
 }

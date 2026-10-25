@@ -521,3 +521,18 @@ func TestPersistenceAndConsole(t *testing.T) {
 		t.Fatalf("after reset: %v", err)
 	}
 }
+
+// maxResults that does not fit an int32 is refused: 4294967297 used to wrap to 1 and return one user.
+func TestBatchGetMaxResultsRange(t *testing.T) {
+	e := start(t)
+	for _, v := range []string{"4294967297", "-1"} {
+		code, out := e.call("GET", accounts+":batchGet?maxResults="+v, nil)
+		msg, _ := out["error"].(map[string]any)["message"].(string)
+		if code != 400 || !strings.HasPrefix(msg, "Invalid value for maxResults") {
+			t.Errorf("maxResults=%s: %d %v, want 400 Invalid value for maxResults", v, code, out)
+		}
+	}
+	if code, out := e.call("GET", accounts+":batchGet?maxResults=5", nil); code != 200 {
+		t.Errorf("maxResults=5: %d %v", code, out)
+	}
+}

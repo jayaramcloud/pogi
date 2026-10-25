@@ -99,14 +99,18 @@ func (d Definition) JSON() string {
 	return string(b)
 }
 
-// CLI is the Azure CLI that creates the role and assigns it.
+// CLI is the Azure CLI that creates the role and assigns it. Every value is shell-quoted: the scopes and the
+// object id come from recorded requests, and the developer runs this script.
 func (d Definition) CLI() string {
 	def, _ := json.Marshal(map[string]any{"Name": d.Name, "IsCustom": true, "Description": description, "Actions": nonNil(d.Actions),
 		"DataActions": nonNil(d.DataActions), "AssignableScopes": []string{d.Assignable}})
 	typ := map[string]string{"managedIdentity": "ServicePrincipal", "servicePrincipal": "ServicePrincipal", "user": "User"}[d.Kind]
-	return fmt.Sprintf("az role definition create --role-definition '%s'\naz role assignment create --assignee-object-id %s --assignee-principal-type %s --role %s --scope %s\n",
-		def, d.Principal, typ, d.Name, d.Scope)
+	return fmt.Sprintf("az role definition create --role-definition %s\naz role assignment create --assignee-object-id %s --assignee-principal-type %s --role %s --scope %s\n",
+		shQuote(string(def)), shQuote(d.Principal), typ, shQuote(d.Name), shQuote(d.Scope))
 }
+
+// shQuote quotes s for a POSIX shell: in single quotes, with each ' written as '\”.
+func shQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
 func nonNil(a []string) []string {
 	if a == nil {

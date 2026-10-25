@@ -478,8 +478,8 @@ func (ui *UI) firestoreRun(q url.Values) (*result, error) {
 		}
 		sq.OrderBy = []*firestorepb.StructuredQuery_Order{{Field: &firestorepb.StructuredQuery_FieldReference{FieldPath: f}, Direction: dir}}
 	}
-	if n, _ := strconv.Atoi(q.Get("limit")); n > 0 {
-		sq.Limit = wrapperspb.Int32(int32(n))
+	if n, ok := queryLimit(q.Get("limit")); ok {
+		sq.Limit = wrapperspb.Int32(n)
 	}
 	conn, err := grpc.NewClient(core.Hostport(ui.hub.URL), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -514,4 +514,10 @@ func (ui *UI) firestoreRun(q url.Values) (*result, error) {
 	b, _ := protojson.Marshal(sq)
 	res.Note = fmt.Sprintf("%d documents · %s", len(docs), b)
 	return res, nil
+}
+
+// queryLimit is the console's Firestore limit: a positive number that fits Firestore's int32, else no limit.
+func queryLimit(v string) (int32, bool) {
+	n, err := strconv.ParseInt(v, 10, 32)
+	return int32(n), err == nil && n > 0
 }
