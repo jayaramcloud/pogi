@@ -16,6 +16,18 @@ func Label(name string) string {
 	return l
 }
 
+// Sentence is Label in sentence case, for titles: CreateNodePool is "Create node pool". Acronyms
+// (DB, IAM) keep their capitals.
+func Sentence(name string) string {
+	words := strings.Split(Label(name), " ")
+	for i, w := range words {
+		if i > 0 && w != strings.ToUpper(w) {
+			words[i] = strings.ToLower(w)
+		}
+	}
+	return strings.Join(words, " ")
+}
+
 // Field is one input of a console form, built from an API model (botocore, protobuf)
 // or written by hand. Values are read back into JSON by member name.
 type Field struct {

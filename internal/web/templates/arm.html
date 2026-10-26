@@ -4,7 +4,9 @@
   <div class="dbody">
     <p class="dim" style="margin-top:0">Azure resources are JSON: pick a type for a starting body, fill in the ID, edit, and send. pogi reads the resource back to check it.</p>
     {{if .Err}}<div class="flash" role="alert" id="apierr">{{.Err}}</div>{{end}}
-    <div class="field"><label>Resource type</label><select class="input" name="type" hx-get="/_pogi/arm/new" hx-trigger="change" hx-target="#drawer">{{$t := .Type}}{{range .Types}}<option {{if eq . $t}}selected{{end}}>{{.}}</option>{{end}}</select></div>
+    <div class="field"><label>Resource type</label><select class="input" name="type" hx-get="/_pogi/arm/new" hx-trigger="change" hx-target="#drawer" hx-include="[name=back],[name=name]">{{$t := .Type}}{{range .Types}}<option {{if eq . $t}}selected{{end}}>{{.}}</option>{{end}}</select></div>
+    <input type="hidden" name="back" value="{{.Back}}">
+    <div class="field"><label for="aname">Name</label><input class="input mono" id="aname" name="name" value="{{.Name}}" placeholder="my-resource" autocomplete="off"></div>
     <div class="field"><label>Resource ID <span class="req">*</span></label><input class="input mono" name="path" value="{{.Path}}" required></div>
     <div class="field"><label>Body (PUT) <span class="req">*</span></label><textarea class="input" name="body" rows="14" required>{{.Body}}</textarea></div>
   </div>
@@ -20,11 +22,13 @@
 <p>Azure resources are JSON: pick a type for a starting body, fill in the ID, edit, and send. pogi reads the resource back to check it.</p>
 {{if .Err}}<div class="flash" role="alert" id="apierr">{{.Err}}</div>{{end}}
 <div id="edit">
-<form class="stack" method="get" action="/_pogi/arm/new" hx-get="/_pogi/arm/new" hx-trigger="change" hx-target="#edit" hx-select="#edit" hx-swap="outerHTML">
+<form class="stack" method="get" action="/_pogi/arm/new" hx-include="[name=back]" hx-get="/_pogi/arm/new" hx-trigger="change" hx-target="#edit" hx-select="#edit" hx-swap="outerHTML">
   <label class="fld"><span>Resource type</span><select name="type">{{$t := .Type}}{{range .Types}}<option {{if eq . $t}}selected{{end}}>{{.}}</option>{{end}}</select></label>
 </form>
 <form class="stack" method="post" action="/_pogi/arm/new">
   <input type="hidden" name="type" value="{{.Type}}">
+  <input type="hidden" name="back" value="{{.Back}}">
+  <label class="fld"><span>Name</span><input name="name" value="{{.Name}}" placeholder="my-resource" autocomplete="off"></label>
   <label class="fld"><span>Resource ID<b class="req">*</b></span><input name="path" value="{{.Path}}" required></label>
   <label class="fld"><span>Body (PUT)<b class="req">*</b></span><textarea name="body" rows="14" required>{{.Body}}</textarea></label>
   <div><button>Create or update</button></div>

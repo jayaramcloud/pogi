@@ -56,11 +56,12 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	s.mu.Lock()
 	topic, domain := s.st.Topics[name], s.st.Domains[name]
+	topicID, domainID := s.topicID("topics/"+name), s.topicID("domains/"+name)
 	s.mu.Unlock()
 	switch {
 	case topic != nil:
 		for _, e := range events {
-			s.fanout([]string{"topics/" + name}, resourceID("topics/"+name), e, c.Trace)
+			s.fanout([]string{"topics/" + name}, topicID, e, c.Trace)
 		}
 	case domain != nil:
 		for _, e := range events {
@@ -69,7 +70,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				writeError(w, c, http.StatusBadRequest, "BadRequest", "An event published to a domain must name its domain topic in topic.")
 				return
 			}
-			s.fanout([]string{"domains/" + name, "domains/" + name + "/topics/" + t}, resourceID("domains/"+name+"/topics/"+t), e, c.Trace)
+			s.fanout([]string{"domains/" + name, "domains/" + name + "/topics/" + t}, domainID+"/topics/"+t, e, c.Trace)
 		}
 	default:
 		writeError(w, c, http.StatusNotFound, "ResourceNotFound", "The topic or domain "+name+" does not exist.")

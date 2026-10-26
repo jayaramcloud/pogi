@@ -106,12 +106,41 @@ Shows your resources as boxes, grouped by cloud, with a line for each connection
 
 Click a service under "In use" to browse its resources in tables. Create resources from a form. Every create form has a CLI mirror, which shows the matching command so you can repeat the action in a script.
 
+- **Google forms:** the fields the URL needs (such as `parent`) come first. A `locations/*` part is filled with `us-central1`, so `parent` is complete: `projects/pogi/locations/us-central1`. A part you must name yourself (a key ring) stays empty.
+- **Scope:** the pill in the top bar says where the console looks and creates. Click it to change the values. Pick a value from the list or type one. `*` shows everything, and creates then use the default.
+
+  | Cloud | Fields | Shown at first | New resources go to, when the field is `*` |
+  |---|---|---|---|
+  | AWS | Account, Region | `000000000000`, the server's region | the same |
+  | Google Cloud | Project, Location | project `pogi`, every location | location `us-central1` |
+  | Azure | Subscription, Resource group, Location | the default subscription, every group and location | group `pogi`, location `eastus` |
+
+  The lists hold every value pogi has, with a resource count. **Reset to defaults** clears all of them. A resource whose location is `global` shows in every location, and picking a region (`us-central1`) also shows its zones (`us-central1-a`). With one cloud picked, the pill shows its full scope ("Google Cloud · pogi · all locations"). With All clouds, it says "All clouds", plus "· N filters" when a value is not the default. Home names the scope of each cloud in use.
+- **Hidden rows:** above each table, the bar says what hides rows ("Showing pogi · us-central1 · 2 topics in other projects or locations") and offers a link to show them. The service's resource count says how many rows the scope hides.
+- **Form drawer:** the line above a create form says where the new resource goes, in its own cloud ("Kubernetes Engine · pogi · us-central1").
+- **Titles:** generated forms and menu items use sentence case: "Create cluster", "Create node pool".
+- **Empty pages:** a page with a Create button says "Create one here, or with your CLI, SDK or Terraform". A page without one leaves out "here".
+- **Azure resources:** every Azure service page with ARM types has a Create button (a menu when there are several types). It opens the resource editor with the page's type picked. The editor has a Name field, and the ID is built from the scope's subscription, resource group and location (you can still edit it). The starting body works as it is for managed clusters, storage accounts, Key Vaults, Service Bus namespaces and queues, Event Grid topics, virtual networks, PostgreSQL flexible servers, Container Apps environments and apps, container groups, App Service plans and web apps, and Cosmos DB accounts. After a save, the message names the resource ("Managed cluster aks1 saved") and you go back to the page you started from. An editor opened from Resource Manager takes you to the service page that lists the resource, else to Resource Manager. Three pages list what Create makes: Key Vault has a Vaults tab (first, with secret, key and certificate counts), Cosmos DB has an Accounts tab (before Databases), and App Service has an App Service plans tab. Each shows Name, Resource group and Location, and a row opens as JSON.
+- **Resource groups:** Resource Manager's Create menu has a short "Create resource group" form (name, location). A group's drawer lists the resources in it, each a link to its service page.
+- **Kubernetes clusters:** EKS, GKE and AKS each have a short "Create cluster" form with defaults from the scope.
+
+  | Service | Fields | Notes |
+  |---|---|---|
+  | EKS | Name, Kubernetes version, Subnets (optional), Role ARN | Role ARN starts as `arn:aws:iam::<account>:role/eks`. With no subnets picked, pogi first makes a VPC and two subnets and the message says so. If the cluster then fails, they are removed again. |
+  | GKE | Name, Location, Node count | Location starts as the scope's location. This form replaces the generated "Create cluster" form. |
+  | AKS | Name, Resource group, Location, Node count | Group and location start as the scope's. A group that does not exist is made first, and the message says so. |
+
+- **Connect with kubectl:** the drawer of an EKS, GKE or AKS cluster has a "Connect with kubectl" part. When the cluster is ready it has a **Download kubeconfig** button (`GET /_pogi/kubeconfig/<service>/<cluster>`, a file named `<cluster>.kubeconfig`), the command that writes the same file the cloud's own way (`aws eks update-kubeconfig`, `pogi kubeconfig gke`, `az aks get-credentials`), and `kubectl --kubeconfig <cluster>.kubeconfig get nodes`. Before that it says "Available when the cluster is ready". The download answers 404 for an unknown cluster and 409 for one that has no API server yet. The EKS file runs `aws eks get-token` with pogi's test credentials, so it needs the `aws` command.
+
 ### Feedback while you work
 
 - **Busy buttons.** While a form is sending, its buttons are locked and the one you pressed says what is happening ("Creating…", "Saving…", "Deleting…"). They come back when the request ends, even if it failed. A double click cannot send twice.
 - **Names in messages.** Messages say what happened to which resource: "Bucket photos created", "Queue jobs deleted". After a page reload, the message shows as a green bar at the top of the page.
 - **Confirm dialog.** Deleting, resetting and removing ask first in pogi's own dialog. Cancel is selected, Esc cancels, and nothing is sent. Focus goes back to the button you used.
 - **Live rows.** While a row is `creating`, `modifying`, `deleting` or in a similar state, the table refreshes itself every 2 seconds. It stops when every row has settled. It waits while you have a row ticked, a menu or drawer open, or a link focused. Rows never show a pop-up on their own: the bell does that.
+- **The bell.** It lists failed calls, IAM denials, chaos faults and your resources. Titles use the service name ("Cloud Storage objects.get failed"). "Notify me about" are toggle buttons (`aria-pressed`): Tab to one and press Enter or Space. "See all errors in Activity" opens the Activity page filtered to errors.
+- **What counts as an error.** The bell, the sidebar count and Home's Errors card count a call with status 400 or more, except a 404 from a read (a GET or HEAD, or an operation named Get, Describe, Head or List). Looking for something that is not there is normal. Activity's Errors filter still shows every status 400 or more.
+- **Toasts.** They wait their turn: a new one shows after the current one is gone (at most 3 wait). A toast stays while the pointer is on it or it has focus. When one check finds several new problems, you get one toast ("3 calls failed · View") that opens the bell.
 - **Background work.** When pogi is downloading an image or starting a container for a resource, its status cell says so ("Downloading mariadb:11.4 · 140 of 410 MB", or "Starting…"). A failed row shows the reason in plain words.
 - **Activity indicator.** A small dot in the top bar shows while pogi has background work running. Click it to see each task and its progress. It is hidden when nothing is running, and it only pulses if your system allows motion.
 
@@ -123,6 +152,13 @@ Some services have their own pages:
 | SQS | Send, peek at and purge messages. |
 | Lambda | Invoke a function with a test event. |
 | SNS and EventBridge | Publish a message or put an event. |
+| DynamoDB | On the **Query** tab: add an item as plain JSON, and edit or delete a row of the results. The query runs again after each write. An item needs the table's key attributes and must be under 400 KB. |
+| Pub/Sub | On the **Messages** tab: pull messages from a pull subscription without acking them, then ack the ones you tick. **Pull and ack** does both. Messages you do not ack come back after the ack deadline. |
+| Kinesis | On the **Records** tab: put a record on a stream, and read records from a shard, from the oldest or only new ones. |
+| Lambda | Invoke a function with a test event (the box starts with `{"hello": "pogi"}`). In a function's drawer, upload a `.zip` to update its code, or edit its environment variables. Delete a function from its row menu or in bulk. "Create event source mapping" links a function to an SQS queue, a Kinesis stream or a DynamoDB stream. |
+| Step Functions | On the Run tab, start an execution with a name and a JSON input, and stop one that is running. The new execution opens in the graph. |
+| SNS | Publish a message. "Create subscription" subscribes an SQS queue, Lambda function, URL or email address, with raw message delivery and a filter policy if you want them. Delete a subscription from its row menu or in bulk. |
+| EventBridge | Put an event. "Put rule" takes a list of targets (Id, ARN and optional Input JSON) and saves them with the rule. Deleting a rule removes its targets first. |
 
 ## Tools
 

@@ -35,6 +35,7 @@ func (ui *UI) exploreRoutes(m *http.ServeMux) {
 	m.HandleFunc("POST /_pogi/secrets/reveal", ui.reveal)
 	m.HandleFunc("GET /_pogi/inbox/{n}", ui.mailPage)
 	m.HandleFunc("GET /_pogi/network", ui.networkPage)
+	ui.dataRoutes(m)
 }
 
 // explore is the old index of explorers: they live on their services' pages now.
@@ -133,7 +134,7 @@ func (ui *UI) rows(r *http.Request, svc, table string) [][]string {
 		if t.Name == table {
 			var out [][]string
 			for _, row := range t.Rows {
-				if sc.allows(t.Columns, row) {
+				if sc.keeps(t, row) {
 					out = append(out, row)
 				}
 			}

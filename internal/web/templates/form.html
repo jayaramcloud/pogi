@@ -10,7 +10,7 @@
 
 {{define "content"}}{{with .Data}}
 <p class="crumbs"><a href="/_pogi/resources/{{.Service}}">{{.Service}}</a> / {{.Form.Title}}
-  <span class="dim">· as {{.Scope.Account}} {{.Scope.Region}}{{if ne .Scope.Project "*"}} {{.Scope.Project}}{{end}}</span></p>
+  <span class="dim">· {{.Eyebrow}}</span></p>
 <form class="form" method="post" action="{{.Root.Base}}" enctype="multipart/form-data">
   {{template "formbody" .}}
   <div><button>{{.Form.Title}}</button></div>
@@ -27,7 +27,7 @@
   {{if .F.Required}}<fieldset class="grp"><legend>{{.F.Label}}<b class="req">*</b></legend>{{range .F.Fields}}{{template "field" ($n.Sub .)}}{{end}}</fieldset>
   {{else}}<details class="grp" {{if .Open}}open{{end}}><summary>{{.F.Label}}</summary><div>{{range .F.Fields}}{{template "field" ($n.Sub .)}}{{end}}</div></details>{{end}}
 {{else if or (eq .F.Kind "list") (eq .F.Kind "map")}}
-  <fieldset class="grp rep"><legend>{{.F.Label}}{{if .Marker}}<b class="req">*</b>{{end}}</legend>
+  <fieldset class="grp rep"><legend>{{.F.Label}}{{if .Marker}}<b class="req">*</b>{{end}}</legend>{{with .F.Help}}<span class="help">{{.}}</span>{{end}}
   {{range .Items}}{{template "item" ($n.Item .)}}{{end}}
   {{template "add" ($n.Add $n.Next)}}</fieldset>
 {{else}}

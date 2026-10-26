@@ -76,7 +76,7 @@ func TestKQLQuery(t *testing.T) {
 	}
 	rg := "/subscriptions/" + core.AzureSubscription + "/resourceGroups/" + core.AzureResourceGroup
 	ws := rg + "/providers/Microsoft.OperationalInsights/workspaces/logs"
-	wsRes := put("Microsoft.OperationalInsights/workspaces", ws, map[string]any{"location": "westeurope"})
+	wsRes := put("Microsoft.OperationalInsights/workspaces", ws, map[string]any{"location": "eastus"})
 	customer := wsRes["properties"].(map[string]any)["customerId"].(string)
 	col := func(n, ty string) any { return map[string]any{"name": n, "type": ty} }
 	put("Microsoft.OperationalInsights/workspaces/tables", ws+"/tables/App_CL", map[string]any{"properties": map[string]any{

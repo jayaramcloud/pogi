@@ -95,6 +95,8 @@ main { overflow-y: auto; display: flex; flex-direction: column; }
 .ph { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .ph h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -.2px; display: flex; align-items: center; gap: 10px; }
 .ph .sub { margin: 4px 0 0; color: var(--dim); }
+.ph > :first-child { flex: 1 1 auto; min-width: 0; } .ph > .actions { flex: 0 0 auto; justify-content: flex-end; } /* the title block gives way, the buttons stay on one row */
+.ph [data-rev-paused] { font-size: 12px; margin-top: 2px; }
 .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 /* ---------- controls ---------- */
@@ -116,14 +118,14 @@ select.input { padding-right: 6px; }
 .filter svg { position: absolute; left: 9px; top: 8px; color: var(--faint); }
 .filter .input { padding-left: 30px; }
 .seg { display: inline-flex; padding: 2px; border: 1px solid var(--line); border-radius: 7px; background: var(--sunken); gap: 2px; }
-.seg button { border: 0; background: none; height: 24px; padding: 0 10px; border-radius: 5px; cursor: pointer; color: var(--dim); display: inline-flex; align-items: center; gap: 6px; }
-.seg button.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); font-weight: 550; }
+.seg button, .seg a { border: 0; background: none; height: 24px; padding: 0 10px; border-radius: 5px; cursor: pointer; color: var(--dim); display: inline-flex; align-items: center; gap: 6px; }
+.seg button.on, .seg a.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); font-weight: 550; }
 .chip { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; cursor: pointer; color: var(--dim); background: var(--panel); }
 .chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-.switch { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; color: var(--dim); user-select: none; }
+.switch { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; color: var(--dim); user-select: none; position: relative; white-space: nowrap; }
 .switch i { width: 28px; height: 16px; border-radius: 99px; background: var(--line2); position: relative; transition: .15s; }
 .switch i::after { content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: .15s; }
-.switch.on i { background: var(--ok); } .switch.on i::after { left: 14px; }
+.switch.on i, .switch input:checked + i { background: var(--ok); } .switch.on i::after, .switch input:checked + i::after { left: 14px; }
 .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
 .tabs a { padding: 8px 12px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: var(--dim); cursor: pointer; display: flex; gap: 6px; align-items: center; }
@@ -165,7 +167,7 @@ input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; m
 .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
 .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
 .metric:hover { border-color: var(--line2); }
-.metric .k { color: var(--dim); font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+.metric .k { color: var(--dim); font-size: 12px; min-height: 26px; display: flex; justify-content: space-between; align-items: center; }
 .metric .v { font-size: 22px; font-weight: 650; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
 .metric .d { font-size: 12px; color: var(--faint); }
 .metric svg.spark { width: 90px; height: 26px; }
@@ -352,7 +354,6 @@ svg.map { display: block; width: 100%; min-width: 1000px; height: auto; } /* the
 .svcbars div span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
 /* ---------- responsive: desktop and tablet (768px and up) ---------- */
 body { min-width: 768px; }
-@media (max-width: 1180px) { .search { width: 260px; } }
 @media (max-width: 1100px) { .app:not(.wide) { --sidew: 60px; } .app:not(.wide) .logo .txt, .app:not(.wide) .logo small { display: none; }
   .app:not(.wide) .nav a { justify-content: center; padding: 0; position: relative; }
   .app:not(.wide) .nav a > span:not(.dot):not(.si), .app:not(.wide) .nav a em, .app:not(.wide) .nav .hint, .app:not(.wide) .side .foot > span { display: none; }
@@ -392,7 +393,7 @@ form.inline { display: inline; margin: 0; }
 .fld { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 550; color: var(--dim); }
 .fld input, .fld select, .fld textarea { font-size: 13px; font-weight: 400; color: var(--text); }
 .req { color: var(--bad); margin-left: 3px; }
-fieldset.grp, fieldset.item, details.grp { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px 10px; margin: 0; background: var(--panel); }
+fieldset, details.grp { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px 10px; margin: 0; background: var(--panel); }
 fieldset.item { margin: 6px 0; background: var(--sunken); }
 fieldset legend { font-size: 12px; color: var(--dim); padding: 0 6px; }
 details.grp summary { cursor: pointer; color: var(--dim); font-size: 12px; }
@@ -400,8 +401,6 @@ details.grp > div, fieldset.grp, fieldset.item { display: flex; flex-direction: 
 .empty-cell { color: var(--dim); text-align: center; padding: 22px !important; }
 
 /* ---------- builder A: Home, Activity, notifications ---------- */
-.switch input { display: none; }
-.switch:has(input:checked) i { background: var(--ok); } .switch:has(input:checked) i::after { left: 14px; }
 .toolbar button.chip { font: inherit; }
 .card > .body { max-width: none; white-space: normal; word-break: normal; } /* the Inbox table's legacy .body rule must not reach cards */
 /* ---------- builder D: tools pages ---------- */
@@ -414,19 +413,13 @@ form.seg button { font: inherit; }
 .tile .pin { position: relative; z-index: 1; cursor: pointer; }
 .tile .tag { position: relative; z-index: 1; }
 .tile[hidden], .cat[hidden] { display: none; }
-.seg a { height: 24px; padding: 0 10px; border-radius: 5px; cursor: pointer; color: var(--dim); display: inline-flex; align-items: center; gap: 6px; }
-.seg a.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); font-weight: 550; }
 .crumbs .i { width: 12px; }
 .btn.pinned { color: var(--warn); } .btn.pinned svg { fill: currentColor; }
-.dt td.chk label { display: block; padding: 11px 0; cursor: pointer; }
+.dt td.chk label { display: flex; align-items: center; height: 35px; cursor: pointer; } /* the click target fills the 36px row */
 .drawer .cli pre { min-height: 18px; }
 .drawer .toolbar .crumbs { flex: 1; }
 .drawer details.grp, .drawer fieldset.grp { margin-bottom: 14px; }
 /* ---------- builder C: flows ---------- */
-.seg a { height: 24px; padding: 0 10px; border-radius: 5px; cursor: pointer; color: var(--dim); display: inline-flex; align-items: center; gap: 6px; }
-.seg a.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); font-weight: 550; }
-.switch input { display: none; }
-.switch input:checked + i { background: var(--ok); } .switch input:checked + i::after { left: 14px; }
 .chip { text-decoration: none; }
 
 /* ---------- builder C: map ---------- */
@@ -435,7 +428,6 @@ form.seg button { font: inherit; }
 .page:has(#live:not(:checked)) .map .pulse { display: none; }
 a.banner { color: inherit; text-decoration: none; }
 /* ---------- gate fixes ---------- */
-.switch { white-space: nowrap; }
 .codewrap pre.code { white-space: pre-wrap; word-break: break-all; }
 
 /* ---------- light theme QA ---------- */
@@ -490,7 +482,6 @@ main:focus { outline: none; }
 .toast:not(.on) { visibility: visible; opacity: 0; pointer-events: none; }
 
 /* switches: the checkbox stays focusable and labelled, only the track is drawn */
-.switch { position: relative; }
 .switch input { display: inline-block; position: absolute; left: 0; top: 50%; width: 28px; height: 16px; margin: 0; transform: translateY(-50%); opacity: 0; cursor: pointer; }
 .switch input:focus-visible { outline: none; }
 .switch input:focus-visible + i { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -517,8 +508,26 @@ main:focus { outline: none; }
   svg.map .pulse { display: none; }
 }
 
+/* ---------- responsive: shell and toolbars ---------- */
+/* One toolbar rule: fields grow and shrink from a base width instead of a fixed one, the row wraps when it must,
+   and the primary button sits at the right end of its row (margin-left: auto, so a wrapped row still ends with it). */
+.toolbar .filter { flex: 1 1 200px; width: auto; max-width: 420px; min-width: 0; }
+.toolbar .tb-lg, .toolbar .tb-md, .toolbar .tb-sm { width: auto; min-width: 0; }
+.toolbar .tb-lg { flex: 3 1 260px; } .toolbar .tb-md { flex: 1 1 150px; } .toolbar .tb-sm { flex: 0 1 100px; }
+.toolbar > .btn.primary { margin-left: auto; }
+.tfsizefilter .field { margin: 0; } .tfsizefilter .switch { height: 30px; } .tfsizefilter #tf-fcount { line-height: 30px; }
+.toolbar .chips { display: flex; gap: 8px; flex: none; } /* a group of chips wraps as one */
+.objbar { align-items: flex-start; } .nomb { margin: 0; } /* the drawer's upload note sits under its button, so the row aligns at the top */
+.cli + .stats3 { margin-top: 14px; }
+.tb-principal { width: 420px; max-width: 100%; }
+.toolbar .legend { justify-content: flex-end; } /* the Map's legend ends its row; the Terraform legend stays left */
+/* the top bar: the search box gives way first, the cloud picker and the icons keep their size */
+.top .search { flex: 0 1 380px; width: auto; }
+.top > :not(.search):not(.spacer) { flex: none; }
+
 /* ---------- credit ---------- */
-.credit { max-width: 1360px; padding: 4px 28px 64px; text-align: center; font-size: 12px; color: var(--faint); } /* the bottom padding keeps it clear of the bulk bar */
+.credit { max-width: 1360px; padding: 4px 28px 8px; text-align: center; font-size: 12px; color: var(--faint); }
+body:has(.bulk.on) .credit { padding-bottom: 64px; } /* room for the bulk bar, only while it shows */
 .credit a { color: var(--dim); text-decoration: none; } .credit a:hover { color: var(--accent); text-decoration: underline; }
 
 /* ---------- builder tf-web: the Terraform tab and the diagram ---------- */
@@ -656,3 +665,33 @@ button[aria-busy=true], input[aria-busy=true] { opacity: .65; cursor: progress; 
 #taskpop progress { width: 100%; height: 6px; accent-color: var(--accent); }
 td.tasktext { color: var(--accent); }
 td.taskfail { color: var(--bad); }
+
+/* ---------- round 2 B: notifications ---------- */
+.bellpop header .linkbtn { margin-left: auto; font: inherit; font-weight: 400; font-size: 12px; color: var(--accent); background: none; border: 0; padding: 2px 4px; height: auto; cursor: pointer; }
+.bellpop .allerr { display: block; padding: 8px 14px; font-size: 12px; color: var(--accent); border-top: 1px solid var(--line); }
+.bellpop footer .chip { font: inherit; }
+
+/* ---------- round 2 C: account center ---------- */
+.pop .actions { gap: 8px; }
+
+/* ---------- responsive: tables ---------- */
+/* A table never gets wider than its card. Narrow screens hide the columns a reader can spare; the drawer still
+   shows every field. Resource tables tag each cell with its column name (data-c), so one rule covers every service. */
+.mt4 { margin-top: 4px; } .mt14 { margin-top: 14px; }
+.empty.roomy { padding: 24px; }
+.metrics.m3 { grid-template-columns: repeat(3, 1fr); }
+.dt .trunc { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.dt td .st { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle; }
+.recent td.r { text-align: right; } .recent .tm { font-size: 11.5px; line-height: 1; } .dt.recent td .st { max-width: 140px; }
+@media (max-width: 1499px) { .grid2.costgrid { grid-template-columns: minmax(0, 1fr); } }
+/* Home's Live activity keeps its Service column from 1100px: seconds instead of milliseconds, a shorter status
+   (full text in the title) and no latency bar make the room. */
+.feed td .st { max-width: 150px; }
+@media (max-width: 1499px) { .feed td { padding: 0 8px; } .feed .lat { display: none; } }
+@media (max-width: 1279px) { .dt [data-c="Account"] { display: none; } }
+@media (max-width: 1099px) {
+  .dt .col-narrow { display: none; }
+  .dt [data-c="Created"], .dt [data-c="Versioning"], .dt [data-c="Type"], .dt [data-c="Delayed"], .dt [data-c="Rotation"],
+  .dt [data-c="Last changed"], .dt [data-c="Retention"], .dt [data-c="Streams"] { display: none; }
+}
+.dt td.empty, .dt td.empty-cell { white-space: normal; }

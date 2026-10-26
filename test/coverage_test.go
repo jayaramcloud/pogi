@@ -26,6 +26,7 @@ type covRow struct {
 	Docker   bool     `yaml:"docker"`
 	Covered  string   `yaml:"covered"`
 	NotYet   string   `yaml:"not_yet"`
+	Guide    string   `yaml:"guide"` // a how-to for the row, relative to docs/reference/, with an optional #heading
 }
 
 // coverageEntry is one service in internal/web/coverage.json, which the web console embeds.
@@ -101,6 +102,11 @@ func TestCoverageDocs(t *testing.T) {
 		}
 		if r.Covered == "" {
 			t.Errorf("%s: nothing covered", r.Title)
+		}
+		if r.Guide != "" {
+			if err := guideExists(r.Guide); err != nil {
+				t.Errorf("%s: guide: %v", r.Title, err)
+			}
 		}
 		if r.Rest {
 			if rest >= 0 || r.Cloud != "aws" {
@@ -257,7 +263,11 @@ func TestCoverageDocs(t *testing.T) {
 			if r.Rest {
 				reg = ids[0]
 			}
-			fmt.Fprintf(&md, "| %s · %s | %s | %s | %s |\n", r.Title, reg, r.Depth, esc(covered), esc(r.NotYet))
+			name := r.Title
+			if r.Guide != "" {
+				name = "[" + r.Title + "](" + r.Guide + ")"
+			}
+			fmt.Fprintf(&md, "| %s · %s | %s | %s | %s |\n", name, reg, r.Depth, esc(covered), esc(r.NotYet))
 			switch {
 			case r.Rest:
 			case r.Docker:
@@ -321,6 +331,44 @@ func TestCoverageDocs(t *testing.T) {
 }
 
 func esc(s string) string { return strings.ReplaceAll(s, "|", `\|`) }
+
+var (
+	codeBlock = regexp.MustCompile("(?s)```.*?```")
+	heading   = regexp.MustCompile(`(?m)^#{1,6}\s+(.*)$`)
+	notSlug   = regexp.MustCompile(`[^\p{L}\p{N}_\- ]`)
+)
+
+// guideExists checks that a row's guide link, relative to docs/reference/, names a page that exists and, after
+// a #, one of its headings, made into an anchor the way GitHub and the website do it.
+func guideExists(link string) error {
+	path, anchor, _ := strings.Cut(link, "#")
+	raw, err := os.ReadFile("../docs/reference/" + path)
+	if err != nil {
+		return err
+	}
+	if anchor == "" {
+		return nil
+	}
+	for _, m := range heading.FindAllStringSubmatch(codeBlock.ReplaceAllString(string(raw), ""), -1) {
+		if strings.ReplaceAll(notSlug.ReplaceAllString(strings.ToLower(strings.TrimSpace(m[1])), ""), " ", "-") == anchor {
+			return nil
+		}
+	}
+	return fmt.Errorf("%s has no heading for #%s", path, anchor)
+}
+
+func TestCoverageGuideLinks(t *testing.T) {
+	for link, ok := range map[string]bool{
+		"../how-to/connect-your-tools.md":               true,
+		"../how-to/connect-your-tools.md#sdks-and-clis": true,
+		"../how-to/connect-your-tools.md#no-such":       false,
+		"../how-to/no-such-page.md":                     false,
+	} {
+		if err := guideExists(link); (err == nil) != ok {
+			t.Errorf("%s: %v", link, err)
+		}
+	}
+}
 
 // check compares a generated file with the one on disk, or rewrites it with -update.
 func check(t *testing.T, path string, gen func(old string) string) {

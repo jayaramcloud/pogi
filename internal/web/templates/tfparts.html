@@ -16,7 +16,7 @@
 {{with .Warnings}}<details class="banner warn tfwarn" {{if le (len .) 3}}open{{end}}><summary>{{plural (len .) "warning"}}: some values could not be worked out</summary><ul>{{range .}}<li>{{.}}</li>{{end}}</ul></details>{{end}}
 
 <div class="toolbar tfbar">
-  <label class="dim tfgroup">Group by <select class="input" style="width:120px" data-tf="group"><option value="module" {{if eq .Group "module"}}selected{{end}}>Module</option><option value="service" {{if eq .Group "service"}}selected{{end}}>Service</option><option value="cloud" {{if eq .Group "cloud"}}selected{{end}}>Cloud</option></select></label>
+  <label class="dim tfgroup">Group by <select class="input tb-sm" data-tf="group"><option value="module" {{if eq .Group "module"}}selected{{end}}>Module</option><option value="service" {{if eq .Group "service"}}selected{{end}}>Service</option><option value="cloud" {{if eq .Group "cloud"}}selected{{end}}>Cloud</option></select></label>
   {{template "tfvars" .}}
   <span class="spacer"></span>
   <button type="button" class="btn sm" data-tf-export="json">{{icon "download"}}JSON</button><button type="button" class="btn sm" data-tf-export="markdown">{{icon "download"}}Markdown</button>
@@ -77,7 +77,7 @@
 <p class="tftotal"><strong>{{if .Plan}}{{usd .Total}} a month after the plan{{else}}{{usd .Total}} a month{{end}}</strong>{{if .Plan}} <span class="dim">({{usd .Before}} before, {{sgn .Delta}})</span>{{end}}{{with .Warnings}} <span class="st warn">{{plural (len .) "warning"}}</span>{{end}}{{with .Unsure}} <span class="st warn" title="pogi can't price {{plural (len .) "changed resource"}}">not counting {{plural (len .) "changed resource"}}</span>{{end}}</p>
 <div class="toolbar tfbar">
   <button type="button" class="btn sm" data-tf="folder">{{icon "folder"}}Choose folder</button><button type="button" class="btn sm" data-tf="plan">{{icon "file"}}Choose plan.json</button><button type="button" class="btn sm" data-tf="sample">{{icon "play"}}Try a sample</button>
-  <label class="dim tfgroup">Group by <select class="input" style="width:110px" data-tf="layout"><option value="module" {{if eq .Layout "module"}}selected{{end}}>Module</option><option value="network" {{if eq .Layout "network"}}selected{{end}}>Network</option></select></label>
+  <label class="dim tfgroup">Group by <select class="input tb-sm" data-tf="layout"><option value="module" {{if eq .Layout "module"}}selected{{end}}>Module</option><option value="network" {{if eq .Layout "network"}}selected{{end}}>Network</option></select></label>
   {{template "tfvars" .}}
   <span class="spacer"></span>
   <button type="button" class="btn sm" data-tf-export="svg">{{icon "download"}}SVG</button><button type="button" class="btn sm" data-tf-export="png">{{icon "download"}}PNG</button><button type="button" class="btn sm" data-tf-export="json">{{icon "download"}}JSON</button><button type="button" class="btn sm" data-tf-export="markdown">{{icon "download"}}Markdown</button>

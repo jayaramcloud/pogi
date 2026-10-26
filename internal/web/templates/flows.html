@@ -15,17 +15,17 @@
   <div class="seg"><a href="/_pogi/requests">{{icon "pulse"}}Requests</a><a class="on" href="/_pogi/flows">{{icon "map"}}Flows</a></div>
   <div class="filter">{{icon "search"}}<input class="input" id="fq" aria-label="Filter flows" name="q" value="{{.Q}}" placeholder="Filter flows by service, resource or trace ID" autocomplete="off"></div>
   <input type="hidden" name="f" value="{{.F}}">
-  <a class="chip {{if not .F}}on{{end}}" href="/_pogi/flows">All</a><a class="chip {{if eq .F "failed"}}on{{end}}" href="/_pogi/flows?f=failed">Failed</a><a class="chip {{if eq .F "slow"}}on{{end}}" href="/_pogi/flows?f=slow">Slow (&gt; 1 s)</a>
+  <div class="chips"><a class="chip {{if not .F}}on{{end}}" href="/_pogi/flows">All</a><a class="chip {{if eq .F "failed"}}on{{end}}" href="/_pogi/flows?f=failed">Failed</a><a class="chip {{if eq .F "slow"}}on{{end}}" href="/_pogi/flows?f=slow">Slow (&gt; 1 s)</a></div>
   <span class="spacer"></span><span class="faint">{{len .Flows}} flows</span>
 </form>
-<div class="tablecard"><table class="dt"><thead><tr><th>Started</th><th>Trigger</th><th>Path</th><th class="num">Steps</th><th class="num">Duration</th><th>Result</th></tr></thead>
+<div class="tablecard"><table class="dt"><thead><tr><th>Started</th><th>Trigger</th><th>Path</th><th class="num col-narrow">Steps</th><th class="num col-narrow">Duration</th><th>Result</th></tr></thead>
 <tbody id="flowrows" hx-get="/_pogi/flows?frag=1" hx-include="#flt" hx-swap="innerHTML"
   data-poll="3000" data-poll-live hx-trigger="pogi-poll, keyup changed delay:300ms from:#fq">{{template "rows" .}}</tbody></table></div>
 {{end}}{{end}}{{end}}
 
 {{define "rows"}}{{range .Flows}}
 <tr data-drawer="/_pogi/flows/{{path .Trace}}"><td class="mono faint">{{time .Start}}</td><td class="name"><span class="dot {{.Cloud}}"></span> <a href="/_pogi/flows/{{path .Trace}}" data-drawer>{{.Trigger}}</a></td>
-<td>{{template "path" .Path}}</td><td class="num">{{len .Steps}}</td><td class="num mono dim">{{.Duration}}</td><td>{{template "result" .}}</td></tr>
+<td>{{template "path" .Path}}</td><td class="num col-narrow">{{len .Steps}}</td><td class="num mono dim col-narrow">{{.Duration}}</td><td>{{template "result" .}}</td></tr>
 {{else}}<tr><td colspan="6" class="empty">{{if .NotShown}}No flow matches.{{else}}No flows yet. A flow appears when one call sets off another: a publish that reaches a queue, an upload that triggers a function.{{end}}</td></tr>{{end}}{{end}}
 
 {{define "waterfall"}}

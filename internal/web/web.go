@@ -119,7 +119,7 @@ func New(hub *core.Hub) http.Handler {
 		titles.Store(s.Info().Name, s.Info().Title)
 	}
 	layout := shell()
-	for _, p := range []string{"overview", "requests", "request", "resources", "inspect", "objects", "sqs", "lambda", "inbox", "chaos", "chaos-new", "snapshots", "connect", "form", "arm", "flows", "map"} {
+	for _, p := range []string{"overview", "requests", "request", "resources", "inspect", "objects", "sqs", "lambda", "inbox", "chaos", "chaos-new", "snapshots", "connect", "form", "arm", "armgroup", "flows", "map"} {
 		ui.pages[p] = template.Must(template.Must(layout.Clone()).ParseFS(files, "templates/"+p+".html"))
 	}
 	m := http.NewServeMux()
@@ -139,6 +139,7 @@ func New(hub *core.Hub) http.Handler {
 	m.HandleFunc("GET /_pogi/resources", ui.resources)
 	m.HandleFunc("GET /_pogi/resources/{service}", ui.resources)
 	m.HandleFunc("GET /_pogi/resources/{service}/{table}/{id...}", ui.inspect)
+	m.HandleFunc("GET /_pogi/kubeconfig/{service}/{id}", ui.kubeconfigFile)
 	ui.serviceRoutes(m)
 	ui.exploreRoutes(m)
 	ui.noteRoutes(m)
@@ -150,8 +151,11 @@ func New(hub *core.Hub) http.Handler {
 	m.HandleFunc("GET /_pogi/blank", blank)
 	m.HandleFunc("GET /_pogi/arm/new", ui.armPage)
 	m.HandleFunc("POST /_pogi/arm/new", ui.armSubmit)
+	m.HandleFunc("GET /_pogi/arm/group", ui.groupPage)
+	m.HandleFunc("POST /_pogi/arm/group", ui.groupSubmit)
 	m.HandleFunc("POST /_pogi/bulk/{service}/{table}", ui.bulk)
 	m.HandleFunc("POST /_pogi/scope", ui.scopeSet)
+	m.HandleFunc("GET /_pogi/scope/values", ui.scopeValues)
 	m.HandleFunc("POST /_pogi/cloud", ui.cloudSet)
 	m.HandleFunc("GET /_pogi/chaos", ui.chaos)
 	m.HandleFunc("POST /_pogi/chaos", ui.chaosAdd)
@@ -218,6 +222,7 @@ type page struct {
 	Title, Active, Error, Flash, Version, Endpoint string
 	Eyebrow                                        string // the small line above a drawer's title
 	Scope                                          scope
+	Pill                                           string // the header pill's text
 	Back                                           string // where the switcher returns to
 	Cloud, Foreign                                 string // the cloud selector ("" is all), and the cloud of a service page that is not it
 	Note                                           bool   // show the "showing one cloud only" notice
@@ -240,6 +245,7 @@ func (ui *UI) renderX(w http.ResponseWriter, r *http.Request, name, title, activ
 	st := ui.hub.Status()
 	p := page{Title: title, Active: active, Eyebrow: eyebrow, Error: r.URL.Query().Get("err"), Flash: r.URL.Query().Get("ok"), Version: st.Version, Endpoint: "http://" + r.Host,
 		Scope: ui.scope(r), Back: r.URL.RequestURI(), Data: data, Cloud: ui.cloud(r), UploadMB: ui.hub.MaxUpload() >> 20, CodeMB: ui.hub.CodeLimit(false) >> 20}
+	p.Pill = ui.pill(p.Scope, p.Cloud)
 	switch name {
 	case "overview", "requests", "flows", "catalog", "map", "cost":
 		p.Note = p.Cloud != ""
@@ -333,6 +339,11 @@ func (ui *UI) inspect(w http.ResponseWriter, r *http.Request) {
 	} else if tags, ok := ui.resourceTags(svc, table, id); ok {
 		d["Tags"], d["HasTags"] = tags, true
 	}
+	if d["Tab"] == "json" {
+		if c := ui.kubeConnectFor(r, svc, table, id); c != nil {
+			d["Connect"] = c
+		}
+	}
 	if del, _ := ui.bulkable(svc, table); del {
 		if b, ok := ui.hub.Service(svc).(core.Browsable); ok {
 			for _, t := range b.Resources() {
@@ -345,6 +356,9 @@ func (ui *UI) inspect(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+	}
+	if svc == "arm" && table == "Resource groups" && d["Tab"] == "json" {
+		d["Members"] = ui.groupMembers(ui.scope(r).sub(), id)
 	}
 	title := svc
 	if s := ui.hub.Service(svc); s != nil {

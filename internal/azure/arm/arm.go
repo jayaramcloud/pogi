@@ -53,8 +53,9 @@ type Provider struct {
 	// what services that check their own parents (AKS, Service Bus) answer.
 	ParentNotFound bool
 	// AsyncPut and AsyncDelete make only PUT or only DELETE long-running, for types where the other is a plain call
-	// (a DNS zone is deleted by a long-running operation and created by a plain one).
-	AsyncPut, AsyncDelete bool
+	// (a DNS zone is deleted by a long-running operation and created by a plain one). AsyncPatch makes PATCH answer
+	// 202 with an operation; off, a PATCH (most often a tags update) is a plain call, even with Async.
+	AsyncPut, AsyncDelete, AsyncPatch bool
 	// Created is the status of a PUT that creates the resource: 201 when 0. The SDKs
 	// accept only the statuses the real service answers with (200 for a Service Bus
 	// queue, 202 for a storage account).

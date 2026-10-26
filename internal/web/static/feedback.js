@@ -188,7 +188,9 @@
         if (typeof j.rev !== 'string' || !j.rev || j.rev === ph.dataset.rev) return;
         const busy = !!$('dialog[open]') || !!$('#drawer.on, #palette.on, #pop.on, #menu.on, #keys.on') || /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '');
         const tb = $$('[data-live-rows]')[0];
-        if (busy || (tb && paused(tb))) return;
+        const note = $('[data-rev-paused]');
+        if (busy || (tb && paused(tb))) { if (note) note.hidden = false; return; }
+        if (note) note.hidden = true;
         ph.dataset.rev = j.rev;
         if (tb) htmx.trigger(tb, 'pogi-rows'); else location.reload();
       }).catch(() => {});

@@ -66,3 +66,23 @@ func TestHandWrittenWins(t *testing.T) {
 		t.Fatalf("the hand-written Provider was not used: %d %+v", hits, got)
 	}
 }
+
+// A long-running PATCH answers 202 with an operation where its spec lists 202 (Redis Enterprise), and stays a
+// plain call where the spec lists only 200 (IoT Hub): SDKs generated from a spec accept only its statuses.
+func TestLongRunningPatch(t *testing.T) {
+	e := armtest.Start(t, pogi.Config{}, "azmanagedredis", "aziothub")
+	for typ, want := range map[string]bool{"Microsoft.Cache/redisEnterprise": true, "Microsoft.Devices/IotHubs": false} {
+		if p := arm.Lookup(e.Srv.Hub, typ); p == nil || p.AsyncPatch != want {
+			t.Fatal(typ, p)
+		}
+	}
+	c := armtest.Must(armresources.NewClient(sub, e.Cred, e.Opts))
+	const v = "2025-04-01"
+	armtest.Must(armtest.Must(c.BeginCreateOrUpdate(ctx, rg, "Microsoft.Cache", "", "redisEnterprise", "re1", v,
+		armresources.GenericResource{Location: to.Ptr("eastus"), SKU: &armresources.SKU{Name: to.Ptr("Balanced_B0")}}, nil)).PollUntilDone(ctx, armtest.Fast))
+	got := armtest.Must(armtest.Must(c.BeginUpdate(ctx, rg, "Microsoft.Cache", "", "redisEnterprise", "re1", v,
+		armresources.GenericResource{Tags: map[string]*string{"env": to.Ptr("dev")}}, nil)).PollUntilDone(ctx, armtest.Fast))
+	if got.Tags["env"] == nil || *got.Tags["env"] != "dev" {
+		t.Fatalf("%+v", got)
+	}
+}

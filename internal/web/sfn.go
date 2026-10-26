@@ -6,8 +6,10 @@ package web
 // node each), layers by distance from StartAt; the upgrade is nested layouts.
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/nrndev/pogi/internal/core"
@@ -43,9 +45,11 @@ type sfnData struct {
 	Err        string
 }
 
-func (ui *UI) sfnPage(w http.ResponseWriter, r *http.Request) {
+func (ui *UI) sfnPage(w http.ResponseWriter, r *http.Request) { ui.sfnRender(w, r, "") }
+
+func (ui *UI) sfnRender(w http.ResponseWriter, r *http.Request, errMsg string) {
 	q := r.URL.Query()
-	d := &sfnData{Machine: q.Get("machine"), Execution: q.Get("execution")}
+	d := &sfnData{Machine: q.Get("machine"), Execution: q.Get("execution"), Err: errMsg}
 	for _, m := range ui.rows(r, "stepfunctions", "State machines") {
 		d.Machines = append(d.Machines, choice{m[0], m[0] + " (" + m[3] + ")"})
 		if d.Machine == "" {
@@ -204,4 +208,72 @@ func edgePath(a, b *gnode) string {
 	x1, y1, x2, y2 := a.X+nodeW, a.Y+nodeH/2, b.X+nodeW, b.Y+nodeH/2
 	out := max(x1, x2) + 50
 	return fmt.Sprintf("M%d,%d C%d,%d %d,%d %d,%d", x1, y1, out, y1, out, y2, x2, y2)
+}
+
+// machineRef finds a state machine by name among the rows: its account and region make its ARN.
+func (ui *UI) machineRef(r *http.Request, name string) (arn, account, region string, ok bool) {
+	for _, m := range ui.rows(r, "stepfunctions", "State machines") {
+		if m[0] == name {
+			return core.ARN("states", m[1], m[2], "stateMachine:"+name), m[2], m[1], true
+		}
+	}
+	return "", "", "", false
+}
+
+// sfnFail answers a failed post from the Executions tab: an error toast, and the tab stays as it is.
+func sfnFail(w http.ResponseWriter, err error) {
+	w.Header().Set("HX-Reswap", "none")
+	trigger(w, "pogi-toast", map[string]string{"msg": errText(err), "kind": "bad"})
+}
+
+// sfnStart starts an execution and shows it, coloured, in the graph.
+func (ui *UI) sfnStart(w http.ResponseWriter, r *http.Request) {
+	machine, name, input := r.FormValue("machine"), strings.TrimSpace(r.FormValue("name")), strings.TrimSpace(r.FormValue("input"))
+	arn, acct, region, ok := ui.machineRef(r, machine)
+	switch {
+	case !ok:
+		sfnFail(w, fmt.Errorf("Pick a state machine"))
+		return
+	case len(name) > 80:
+		sfnFail(w, fmt.Errorf("The execution name is too long: use 80 characters or fewer"))
+		return
+	}
+	if input == "" {
+		input = "{}"
+	}
+	if !json.Valid([]byte(input)) {
+		sfnFail(w, fmt.Errorf("The input is not valid JSON"))
+		return
+	}
+	call := map[string]any{"stateMachineArn": arn, "input": input}
+	if name != "" {
+		call["name"] = name
+	}
+	var out struct{ ExecutionArn string }
+	if err := ui.hub.ConsoleCall(acct, region, "AWSStepFunctions", "StartExecution", call, &out); err != nil {
+		sfnFail(w, err)
+		return
+	}
+	started := out.ExecutionArn[strings.LastIndex(out.ExecutionArn, ":")+1:]
+	r.URL.RawQuery = "machine=" + url.QueryEscape(machine) + "&execution=" + url.QueryEscape(started)
+	trigger(w, "pogi-toast", map[string]string{"msg": "Execution " + started + " started on " + machine})
+	ui.sfnRender(w, r, "")
+}
+
+// sfnStop stops a running execution.
+func (ui *UI) sfnStop(w http.ResponseWriter, r *http.Request) {
+	machine, name := r.FormValue("machine"), r.FormValue("execution")
+	_, acct, region, ok := ui.machineRef(r, machine)
+	if !ok || name == "" {
+		sfnFail(w, fmt.Errorf("Pick an execution of a state machine"))
+		return
+	}
+	arn := core.ARN("states", region, acct, "execution:"+machine+":"+name)
+	if err := ui.hub.ConsoleCall(acct, region, "AWSStepFunctions", "StopExecution", map[string]any{"executionArn": arn, "cause": "Stopped from the console"}, nil); err != nil {
+		sfnFail(w, err)
+		return
+	}
+	r.URL.RawQuery = "machine=" + url.QueryEscape(machine) + "&execution=" + url.QueryEscape(name)
+	trigger(w, "pogi-toast", map[string]string{"msg": "Execution " + name + " stopped"})
+	ui.sfnRender(w, r, "")
 }

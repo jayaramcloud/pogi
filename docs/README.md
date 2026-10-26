@@ -35,4 +35,22 @@ The web console is at `http://localhost:7644/_pogi/`. Open it in your browser to
 | Reference | Look up a command, setting or endpoint. | [CLI](reference/cli.md), [Configuration](reference/configuration.md), [REST API](reference/rest-api.md), [Console](reference/console.md), [Terraform cost](reference/terraform-cost.md), [Coverage](reference/coverage.md), [AWS long-tail services](reference/aws-long-tail.md), [LocalStack to pogi mapping](reference/localstack-mapping.md), [pogi compared](reference/compared.md) |
 | Explanation | Understand why it works this way. | [How pogi works](explanation/how-pogi-works.md), [Flows and the Map](explanation/flows-and-the-map.md), [How Terraform cost works](explanation/how-terraform-cost-works.md), [IAM: record, then enforce](explanation/iam.md), [FAQ](explanation/faq.md) |
 
+## Use a service
+
+Each guide gets one kind of service working, with the commands for AWS, Google Cloud and Azure and the output they print.
+
+- [Use any service](how-to/use-any-service.md), including the Thin ones: Route 53, Cloud DNS, Azure DNS and the AWS long tail
+- [Use object storage](how-to/use-object-storage.md): S3, Cloud Storage and Blob Storage
+- [Use queues and topics](how-to/use-queues-and-topics.md): SQS, SNS, Pub/Sub and Queue Storage
+- [Use key-value and document databases](how-to/use-nosql-databases.md): DynamoDB, Firestore and Table Storage
+- [Store secrets and keys](how-to/store-secrets-and-keys.md): Secrets Manager, Parameter Store, KMS, Secret Manager, Cloud KMS and Key Vault
+- [Run functions and HTTP APIs](how-to/run-functions-and-http-apis.md): Lambda, API Gateway, Cloud Functions and Azure Functions
+- [Run events and workflows](how-to/run-events-and-workflows.md): EventBridge, Step Functions, Cloud Tasks, Cloud Scheduler, Workflows and Event Grid
+- [Run Kubernetes clusters](how-to/run-kubernetes-clusters.md): EKS, GKE and AKS
+- [Run containers and VMs](how-to/run-containers-and-vms.md): ECR, ECS, EC2, Cloud Run, Compute Engine and Container Instances
+- [Run SQL databases and caches](how-to/run-sql-databases-and-caches.md): RDS, ElastiCache, Cloud SQL, Memorystore and Azure Database for PostgreSQL
+- [Sign users in](how-to/sign-users-in.md): Cognito, Firebase Auth and managed identity tokens
+- [Read logs and metrics](how-to/read-logs-and-metrics.md): CloudWatch and Cloud Logging
+- [Deploy a CloudFormation stack](how-to/deploy-a-cloudformation-stack.md), with or without SAM
+
 To build pogi, fix a bug or add a service, see [CONTRIBUTING.md](../CONTRIBUTING.md).

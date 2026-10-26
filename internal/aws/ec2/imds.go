@@ -209,10 +209,12 @@ func (s *Service) forward(name, id, port string) {
 	d, ctx := s.hub.Docker(), context.Background()
 	if port != "" {
 		fwd := imdsName(id)
-		d.Remove(ctx, fwd) // one of the instance's earlier run
-		_, err := d.Run(ctx, &docker.Container{Name: fwd, Image: "alpine/socat", Service: "ec2", Resource: id + "-imds", Network: "container:" + name,
-			CapAdd: []string{"NET_ADMIN"}, Entrypoint: []string{"/bin/sh", "-c", "ip addr add " + imdsAddr + "/32 dev lo && exec socat tcp-listen:80,bind=" + imdsAddr +
-				",fork,reuseaddr tcp-connect:" + net.JoinHostPort(d.HostAddr(), port)}})
+		err := d.RemoveLeftover(ctx, fwd) // one of the instance's earlier run
+		if err == nil {
+			_, err = d.Run(ctx, &docker.Container{Name: fwd, Image: "alpine/socat", Service: "ec2", Resource: id + "-imds", Network: "container:" + name,
+				CapAdd: []string{"NET_ADMIN"}, Entrypoint: []string{"/bin/sh", "-c", "ip addr add " + imdsAddr + "/32 dev lo && exec socat tcp-listen:80,bind=" + imdsAddr +
+					",fork,reuseaddr tcp-connect:" + net.JoinHostPort(d.HostAddr(), port)}})
+		}
 		if err != nil {
 			s.hub.Log.Warn("ec2 instance cannot reach the metadata service at "+imdsAddr, "instance", id, "err", err)
 		}

@@ -508,8 +508,9 @@ func (s *Service) boot(key, verb string) error {
 	switch {
 	case verb == "start" && d.Start(ctx, name) == nil, verb == "restart" && d.Restart(ctx, name) == nil:
 	default:
-		d.Remove(ctx, name) // a leftover
-		_, err = d.Run(ctx, ct)
+		if err = d.RemoveLeftover(ctx, name); err == nil {
+			_, err = d.Run(ctx, ct)
+		}
 	}
 	if err != nil {
 		s.h.Log.Warn("azure vm container failed", "vm", key, "err", err)

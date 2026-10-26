@@ -8,7 +8,7 @@
 
 {{define "content"}}{{with .Data}}{{if .Node}}{{template "nodebody" .}}{{else}}
 <form id="mf" class="toolbar" action="/_pogi/map" data-nosubmit>
-  <div class="filter" style="width:240px">{{icon "search"}}<input class="input" id="hl" aria-label="Highlight a resource" name="hl" value="{{.Hl}}" placeholder="Highlight a resource" autocomplete="off"></div>
+  <div class="filter">{{icon "search"}}<input class="input" id="hl" aria-label="Highlight a resource" name="hl" value="{{.Hl}}" placeholder="Highlight a resource" autocomplete="off"></div>
   <input type="hidden" name="trace" value="{{.Trace}}">
   <span class="spacer"></span>
   <div class="legend"><span><i></i>configured</span><span><i class="o"></i>seen at runtime</span><span><i class="d"></i>dead-letter</span><span><svg width="10" height="10"><circle cx="5" cy="5" r="3.5" fill="var(--accent)"/></svg> live message</span>{{if .Hidden}}<span class="faint">· {{.Hidden}} unconnected resources hidden</span>{{end}}</div>

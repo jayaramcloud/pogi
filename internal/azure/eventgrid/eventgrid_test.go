@@ -668,3 +668,49 @@ azure:
 		t.Fatal("DeleteTopic left subscriptions, or deleted twice")
 	}
 }
+
+// TestARMStorageQueue: a topic made over ARM in its own resource group, with a storage queue subscription that
+// names the queue in queueName, as ARM does. The delivered event names the topic in that group.
+func TestARMStorageQueue(t *testing.T) {
+	e := setup(t)
+	group := e.srv.URL + "/subscriptions/" + core.AzureSubscription + "/resourceGroups/demo"
+	put := func(path, body string) map[string]any {
+		req, _ := http.NewRequest(http.MethodPut, group+path+"?api-version=2022-06-15", strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer x")
+		req.Header.Set("Content-Type", "application/json")
+		res := must(http.DefaultClient.Do(req))
+		defer res.Body.Close()
+		out := map[string]any{}
+		json.NewDecoder(res.Body).Decode(&out)
+		if res.StatusCode/100 != 2 {
+			t.Fatalf("PUT %s = %d %v", path, res.StatusCode, out)
+		}
+		return out
+	}
+	put("", `{"location":"eastus"}`)
+	put("/providers/Microsoft.EventGrid/topics/orders", `{"location":"eastus"}`)
+	sub := put("/providers/Microsoft.EventGrid/topics/orders/providers/Microsoft.EventGrid/eventSubscriptions/to-queue",
+		`{"properties":{"destination":{"endpointType":"StorageQueue","properties":{"resourceId":"/subscriptions/`+core.AzureSubscription+
+			`/resourceGroups/demo/providers/Microsoft.Storage/storageAccounts/devstoreaccount1","queueName":"events"}}}}`)
+	p := sub["properties"].(map[string]any)
+	topicID := "/subscriptions/" + core.AzureSubscription + "/resourceGroups/demo/providers/Microsoft.EventGrid/topics/orders"
+	if p["topic"] != topicID || p["destination"].(map[string]any)["properties"].(map[string]any)["queueName"] != "events" {
+		t.Fatalf("subscription = %v", p)
+	}
+
+	qc := must(azqueue.NewQueueClientFromConnectionString("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey="+key+
+		";QueueEndpoint="+e.srv.Ports["azqueue"]+"/devstoreaccount1;", "events", nil))
+	must(qc.Create(ctx, nil))
+	http.Post(e.srv.URL+"/_azure/eventgrid/orders/api/events", "application/json", strings.NewReader(
+		`[{"id":"1","subject":"s","eventType":"t","eventTime":"2026-01-01T00:00:00Z","dataVersion":"1","data":{}}]`))
+	var msg string
+	for deadline := time.Now().Add(5 * time.Second); msg == "" && time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+		if res, err := qc.DequeueMessage(ctx, nil); err == nil && len(res.Messages) == 1 {
+			msg = *res.Messages[0].MessageText
+		}
+	}
+	raw, _ := base64.StdEncoding.DecodeString(msg)
+	if !strings.Contains(string(raw), `"topic":"`+topicID+`"`) {
+		t.Fatalf("storage queue message = %q", raw)
+	}
+}

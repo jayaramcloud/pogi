@@ -708,9 +708,20 @@ type paramDecl struct {
 	Description   string `json:",omitempty"`
 }
 
+// templateInfo is the output of GetTemplateSummary and ValidateTemplate. AWS sends Parameters even when the
+// template has none, and aws cloudformation deploy reads it.
+type templateInfo struct {
+	Parameters         []paramDecl `query:",empty"`
+	Description        string      `json:",omitempty"`
+	Capabilities       []string    `json:",omitempty"`
+	CapabilitiesReason string      `json:",omitempty"`
+	ResourceTypes      []string    `json:",omitempty"`
+	Version            string      `json:",omitempty"`
+}
+
 func declarations(tmpl map[string]any) []paramDecl {
 	defs, _ := tmpl["Parameters"].(map[string]any)
-	var out []paramDecl
+	out := []paramDecl{}
 	for _, k := range core.SortedKeys(defs) {
 		d, _ := defs[k].(map[string]any)
 		out = append(out, paramDecl{k, str(d["Default"]), str(d["Type"]), str(d["NoEcho"]) == "true", str(d["Description"])})
@@ -744,8 +755,8 @@ func (s *Service) templateSummary(c *core.Ctx, in *struct{ TemplateBody, Templat
 		d, _ := def.(map[string]any)
 		types[str(d["Type"])] = true
 	}
-	return map[string]any{"Parameters": declarations(tmpl), "Description": str(tmpl["Description"]), "Capabilities": neededCapabilities(tmpl),
-		"ResourceTypes": core.SortedKeys(types), "Version": str(tmpl["AWSTemplateFormatVersion"])}, nil
+	return templateInfo{Parameters: declarations(tmpl), Description: str(tmpl["Description"]), Capabilities: neededCapabilities(tmpl),
+		ResourceTypes: core.SortedKeys(types), Version: str(tmpl["AWSTemplateFormatVersion"])}, nil
 }
 
 func (s *Service) validateTemplate(c *core.Ctx, in *struct{ TemplateBody, TemplateURL string }) (any, error) {
@@ -763,10 +774,9 @@ func (s *Service) validateTemplate(c *core.Ctx, in *struct{ TemplateBody, Templa
 	if _, err := order(tmpl["Resources"].(map[string]any)); err != nil {
 		return nil, err
 	}
-	out := map[string]any{"Parameters": declarations(tmpl), "Description": str(tmpl["Description"])}
+	out := templateInfo{Parameters: declarations(tmpl), Description: str(tmpl["Description"])}
 	if caps := neededCapabilities(tmpl); len(caps) > 0 {
-		out["Capabilities"] = caps
-		out["CapabilitiesReason"] = "The following resource(s) require capabilities: [AWS::IAM::*]"
+		out.Capabilities, out.CapabilitiesReason = caps, "The following resource(s) require capabilities: [AWS::IAM::*]"
 	}
 	return out, nil
 }

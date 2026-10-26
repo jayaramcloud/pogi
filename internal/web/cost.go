@@ -248,6 +248,9 @@ func (ui *UI) estimate(region string, sc scope, cloud string) costEstimate {
 			continue
 		}
 		rowScope := sc.forCloud(info.Cloud)
+		if info.Cloud != core.AWS {
+			rowScope.Location, rowScope.Group = all, all // only AWS is priced per region; the others are cut by project or subscription
+		}
 		for ti, t := range b.Resources() {
 			col := func(row []string, name string) string {
 				if i := slices.Index(t.Columns, name); i >= 0 && i < len(row) {
@@ -256,7 +259,7 @@ func (ui *UI) estimate(region string, sc scope, cloud string) costEstimate {
 				return ""
 			}
 			for _, row := range t.Rows {
-				if !rowScope.allows(t.Columns, row) {
+				if !rowScope.allows(t.Columns, row) { // costs are priced per region, so even a global list (S3) is cut to the region
 					continue
 				}
 				name := row[0]

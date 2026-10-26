@@ -94,7 +94,7 @@ func (s *Service) send(sub *Subscription, d *Delivery) (int, error) {
 	if dest.Type == "EventHub" {
 		body = append(append([]byte{'['}, body...), ']') // Event Hubs get an array
 	}
-	return 0, s.hub.Deliver(dest.ResourceID, &core.Message{Body: string(body), Subject: d.Event.Subject, DetailType: d.Event.EventType, Trace: d.Trace, From: d.Event.Topic})
+	return 0, s.hub.Deliver(dest.target(), &core.Message{Body: string(body), Subject: d.Event.Subject, DetailType: d.Event.EventType, Trace: d.Trace, From: d.Event.Topic})
 }
 
 func (s *Service) post(sub *Subscription, d *Delivery) (int, error) {
@@ -185,8 +185,11 @@ func (s *Service) handshake(sub *Subscription) error {
 		return nil
 	}
 	code := core.UUID()
+	s.mu.Lock()
+	topic := s.topicID(sub.Scope)
+	s.mu.Unlock()
 	body, _ := json.Marshal([]map[string]any{{
-		"id": core.UUID(), "topic": resourceID(sub.Scope), "subject": "", "eventType": "Microsoft.EventGrid.SubscriptionValidationEvent",
+		"id": core.UUID(), "topic": topic, "subject": "", "eventType": "Microsoft.EventGrid.SubscriptionValidationEvent",
 		"eventTime": time.Now().UTC().Format(time.RFC3339Nano), "metadataVersion": "1", "dataVersion": "2",
 		"data": map[string]string{"validationCode": code,
 			"validationUrl": "https://rp-eastus.eventgrid.azure.net:553/eventsubscriptions/" + sub.Name + "/validate?id=" + code},

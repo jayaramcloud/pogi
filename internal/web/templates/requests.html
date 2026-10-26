@@ -5,18 +5,18 @@
   {{with .Q.Service}}<input type="hidden" name="service" value="{{.}}">{{end}}
   <div class="seg"><button type="button" class="on">{{icon "pulse"}}Requests</button><button formaction="/_pogi/flows">{{icon "map"}}Flows</button></div>
   <div class="filter">{{icon "search"}}<input class="input" id="q" aria-label="Filter requests" name="q" value="{{.Q.Q}}" placeholder="Filter by service, operation, path or error code" autocomplete="off"></div>
-  {{$s := .Q.Show}}<button class="chip {{if eq $s ""}}on{{end}}" name="show" value="">All</button><button class="chip {{if eq $s "errors"}}on{{end}}" name="show" value="errors">Errors</button><button class="chip {{if eq $s "chaos"}}on{{end}}" name="show" value="chaos">Chaos</button><button class="chip {{if eq $s "iam"}}on{{end}}" name="show" value="iam">IAM denied</button>
+  <div class="chips">{{$s := .Q.Show}}<button class="chip {{if eq $s ""}}on{{end}}" name="show" value="">All</button><button class="chip {{if eq $s "errors"}}on{{end}}" name="show" value="errors">Errors</button><button class="chip {{if eq $s "chaos"}}on{{end}}" name="show" value="chaos">Chaos</button><button class="chip {{if eq $s "iam"}}on{{end}}" name="show" value="iam">IAM denied</button></div>
   <span class="spacer"></span><span class="faint">{{len .Entries}} of {{.Total}}</span>
 </form>
 <div class="tablecard"><table class="dt">
-<thead><tr><th>Time</th><th>Service</th><th>Operation</th><th class="col-path">Request</th><th>Status</th><th class="num">Latency</th></tr></thead>
+<thead><tr><th>Time</th><th class="col-narrow">Service</th><th>Operation</th><th class="col-path">Request</th><th>Status</th><th class="num">Latency</th></tr></thead>
 <tbody id="reqs" hx-get="{{.Poll}}" hx-include="#q" hx-swap="innerHTML"
   data-poll="2000" data-poll-live hx-trigger="pogi-poll, keyup changed delay:300ms from:#q">
 {{template "rows" .}}
 </tbody></table></div>
 {{end}}{{end}}
 {{define "rows"}}{{range .Entries}}
-<tr data-drawer="/_pogi/requests/{{.ID}}"><td class="mono faint">{{time .Time}}</td><td><span class="dot {{.Cloud}}"></span> {{title .Service}}</td><td class="name"><a href="/_pogi/requests/{{.ID}}" data-drawer>{{.Op}}</a>{{if .Console}} <span class="tag" title="Made from the console, not by an SDK or CLI">console</span>{{end}}</td>
+<tr data-drawer="/_pogi/requests/{{.ID}}"><td class="mono faint">{{time .Time}}</td><td class="col-narrow"><span class="dot {{.Cloud}}"></span> {{title .Service}}</td><td class="name"><a href="/_pogi/requests/{{.ID}}" data-drawer>{{.Op}}</a>{{if .Console}} <span class="tag" title="Made from the console, not by an SDK or CLI">console</span>{{end}}</td>
 <td class="mono dim trunc col-path" title="{{.Path}}">{{.Method}} {{.Path}}</td>
 <td><span class="st {{stc .Status}}">{{.Status}}{{if .Error}} {{.Error}}{{end}}</span>{{if .Chaos}} <span class="st warn">chaos</span>{{end}}{{with .IAM}}{{if hasPrefix . "deny"}} <span class="st bad" title="{{.}}">iam deny</span>{{end}}{{end}}</td>
 <td class="num mono dim"><span class="lat" style="width:{{lat .Ms}}px"></span>{{ms .Ms}}</td></tr>

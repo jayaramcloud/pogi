@@ -72,6 +72,12 @@ func TestCloudBuild(t *testing.T) {
 	_, err = pools.Delete(parent + "/workerPools/nope").Do()
 	wantCode(t, err, 404, "nope")
 	must(pools.Delete(parent + "/workerPools/wp1").Do())
+
+	// the default build service account, which gcloud functions deploy reads
+	sa := must(svc.Projects.Locations.GetDefaultServiceAccount(parent + "/defaultServiceAccount").Do())
+	if sa.Name != parent+"/defaultServiceAccount" || sa.ServiceAccountEmail != "projects/p/serviceAccounts/p-compute@developer.gserviceaccount.com" {
+		t.Fatalf("%+v", sa)
+	}
 }
 
 func TestCloudDeploy(t *testing.T) {

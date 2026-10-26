@@ -30,17 +30,34 @@ scripts/ci.sh lint              # one step (make lint)
 scripts/ci.sh groups            # the test group names, one per line
 scripts/ci.sh test aws-a-c      # the race tests of one group (make test G=aws-a-c)
 scripts/ci.sh conformance aws   # one conformance block
-scripts/ci.sh gate              # race tests with Docker on, then all conformance blocks (make gate)
+scripts/ci.sh gate              # race tests with Docker on, all conformance blocks, then the browser tests (make gate)
 ```
 
 - Steps: `fmt`, `vet`, `build`, `cross`, `release-check`, `lint`, `workflows`, `coverage`, `groups`,
-  `test <group|all>`, `conformance [block ...]`, `security [tool ...]` and `gate`.
+  `test <group|all>`, `conformance [block ...]`, `security [tool ...]`, `e2e` and `gate`.
 - Tools you do not have are skipped with an install hint: golangci-lint, GoReleaser and zizmor
   (`brew install golangci-lint goreleaser zizmor`). In CI a missing tool fails the step.
 - The test groups split the packages by cloud and name, so CI jobs have about the same length. A new package
   must be in exactly one group: `scripts/ci.sh coverage` fails until you add it to `group_pattern` in
   `scripts/ci.sh`.
 - CI runs the race tests with Docker off, so tests that need containers skip themselves. `gate` runs them.
+
+## End-to-end tests
+
+`test/e2e` has browser tests (Playwright, Chromium only) that drive the console against a real pogi. They cover
+live refresh of the S3 page, the paused-refresh hint, region and account scope, the objects drawer, the console
+forms and a page of 200 buckets.
+
+```
+scripts/ci.sh e2e                          # install, then run every test
+cd test/e2e && npx playwright test live    # one file (after one run of the line above)
+```
+
+- Needs Node.js, Go and, for the first run, a download of Chromium. One test uses the `aws` CLI and skips itself
+  without it.
+- The config builds pogi from the repo, starts it on port 17645 with a temporary data folder and stops it at the
+  end. Set `POGI_E2E_PORT` to use another port. A port that is taken fails the run. It never uses 7644.
+- Every test starts with empty S3 and SQS. Wait for something to appear with `expect(...)`, not with a sleep.
 
 ## Security scans
 

@@ -48,14 +48,16 @@ sboms:
 dockers_v2:
   # A minimal Alpine with Python and Node.js (see Dockerfile.release).
   - images: ["ghcr.io/nrndev/pogi"]
-    tags: ["{{.Version}}", latest]
+    # a pre-release (v0.2.0-rc.1) gets only its version tag; latest stays on the last release
+    tags: ["{{.Version}}", "{{ if not .Prerelease }}latest{{ end }}"]
     dockerfile: Dockerfile.release
     platforms: [linux/amd64, linux/arm64]
     extra_files: [scripts/docker-entrypoint.sh]
 # A Homebrew Cask (GoReleaser's replacement for formulas) for macOS: brew install nrndev/tap/pogi.
 # Linux users get the .deb and .rpm packages instead; casks on Linux Homebrew are not something we promise.
 homebrew_casks:
-  - repository:
+  - skip_upload: auto # a pre-release leaves the tap on the last release
+    repository:
       owner: nrndev
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
@@ -70,13 +72,17 @@ homebrew_casks:
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/pogi"]
           end
 scoops:
-  - repository:
+  - skip_upload: auto # a pre-release leaves the bucket on the last release
+    repository:
       owner: nrndev
       name: scoop-bucket
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     homepage: https://github.com/nrndev/pogi
     description: AWS, Google Cloud and Azure emulators in one binary, with a CLI, TUI and web console
     license: MIT
+release:
+  prerelease: auto # a tag such as v0.2.0-rc.1 is published as a GitHub pre-release
+  make_latest: "{{ not .Prerelease }}"
 changelog:
   sort: asc
   filters:

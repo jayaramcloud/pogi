@@ -3,9 +3,9 @@
 {{define "content"}}{{with .Data}}
 <form method="post" action="/_pogi/sql" data-run>
   <div class="card" style="margin-bottom:12px"><div class="body">
-    <div class="toolbar"><select class="input" name="target" style="width:320px">{{$t := .Target}}{{range .Targets}}<option value="{{.Value}}" {{if eq .Value $t}}selected{{end}}>{{.Label}}</option>{{else}}<option value="">(no database servers yet)</option>{{end}}</select>
-      <input class="input mono" name="db" value="{{.DB}}" placeholder="database (default)" style="width:180px"><span class="spacer"></span>
-      <button class="btn primary">{{icon "play"}}Run <span class="kbd">⌘↵</span></button></div>
+    <div class="toolbar"><select class="input tb-lg" name="target">{{$t := .Target}}{{range .Targets}}<option value="{{.Value}}" {{if eq .Value $t}}selected{{end}}>{{.Label}}</option>{{else}}<option value="">(no database servers yet)</option>{{end}}</select>
+      <input class="input mono tb-md" name="db" value="{{.DB}}" placeholder="database (default)">
+      <button class="btn primary" title="Run (⌘↵ or Ctrl↵)" aria-keyshortcuts="Meta+Enter Control+Enter">{{icon "play"}}Run</button></div>
     <textarea class="input" name="sql" style="min-height:130px" placeholder="SELECT * FROM users LIMIT 20" autofocus>{{.SQL}}</textarea></div></div>
 </form>
 {{if .Err}}<div class="flash" role="alert">{{.Err}}</div>{{end}}

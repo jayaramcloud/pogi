@@ -442,6 +442,14 @@ func TestREST(t *testing.T) {
 	if code, e := do("POST", "/v2/"+parent+"/services/api:setIamPolicy", `{}`); code != 400 || e["error"].(map[string]any)["status"] != "INVALID_ARGUMENT" {
 		t.Fatalf("setIamPolicy without a policy = %d %v", code, e)
 	}
+	// gcloud functions deploy --allow-unauthenticated binds the invoker role over the v1 API
+	invoker := `{"policy":{"bindings":[{"role":"roles/run.invoker","members":["allUsers"]}]}}`
+	if code, p := do("POST", "/v1/"+parent+"/services/api:setIamPolicy", invoker); code != 200 || p["etag"] == nil {
+		t.Fatalf("v1 setIamPolicy = %d %v", code, p)
+	}
+	if code, p := do("GET", "/v1/"+parent+"/services/api:getIamPolicy", ""); code != 200 || len(p["bindings"].([]any)) != 1 {
+		t.Fatalf("v1 getIamPolicy = %d %v", code, p)
+	}
 	if code, _ := do("POST", "/v2/"+parent+"/jobs?jobId=j", "null"); code != 400 {
 		t.Fatalf("a null body = %d, want a 400, not a panic", code)
 	}
@@ -471,5 +479,70 @@ func TestPersistence(t *testing.T) {
 	svc := must(c.GetService(ctx, &runpb.GetServiceRequest{Name: parent + "/services/keep"}))
 	if !strings.Contains(svc.LatestReadyRevision, "keep-00001-") {
 		t.Fatalf("after load = %v", svc)
+	}
+}
+
+func TestKnative(t *testing.T) {
+	srv := pogi.Start(t, pogi.Config{Services: []string{"run", "operations"}, DockerHost: "tcp://127.0.0.1:1"})
+	do := func(method, host, path, body string) (int, map[string]any) {
+		if !strings.HasPrefix(path, "/v") {
+			path = "/apis/serving.knative.dev/v1/namespaces/pogi/services" + path
+		}
+		req, _ := http.NewRequest(method, srv.URL+path, strings.NewReader(body))
+		req.Host = host
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		out := map[string]any{}
+		json.NewDecoder(resp.Body).Decode(&out)
+		return resp.StatusCode, out
+	}
+	const regional, plain = "us-central1-run.localhost", "run.localhost"
+	body := func(nonce, container string) string {
+		return `{"apiVersion":"serving.knative.dev/v1","kind":"Service","metadata":{"annotations":{"run.googleapis.com/client-name":"gcloud"},"labels":{},"name":"hello","namespace":"pogi"},"spec":{"template":{"metadata":{"annotations":{"run.googleapis.com/startup-cpu-boost":"True"},"labels":{"client.knative.dev/nonce":"` + nonce + `"}},"spec":{"containers":[` + container + `],"nodeSelector":{}}}},"status":{"address":{}}}`
+	}
+	nginx := `{"image":"nginx:alpine","name":"","ports":[{"containerPort":80}]}`
+	if code, _ := do("GET", regional, "/hello", ""); code != 404 {
+		t.Fatalf("get before create = %d", code)
+	}
+	code, svc := do("POST", regional, "", body("aaa", nginx))
+	meta, _ := svc["metadata"].(map[string]any)
+	st, _ := svc["status"].(map[string]any)
+	conds, _ := st["conditions"].([]any)
+	if code != 200 || meta["labels"].(map[string]any)["cloud.googleapis.com/location"] != "us-central1" || st["url"] == "" ||
+		len(conds) == 0 || conds[0].(map[string]any)["status"] != "True" ||
+		!strings.Contains(fmt.Sprint(svc["spec"]), "containerPort:80") {
+		t.Fatalf("create = %d %v", code, svc)
+	}
+	if _, v2 := do("GET", plain, "/v2/projects/pogi/locations/us-central1/services/hello", ""); v2["name"] != "projects/pogi/locations/us-central1/services/hello" {
+		t.Fatalf("v2 get = %v", v2)
+	}
+	first := st["latestCreatedRevisionName"]
+	code, svc = do("PUT", regional, "/hello", body("bbb", nginx))
+	meta, _ = svc["metadata"].(map[string]any)
+	st, _ = svc["status"].(map[string]any)
+	if code != 200 || meta["generation"] != float64(2) || st["latestCreatedRevisionName"] == first {
+		t.Fatalf("replace = %d %v", code, svc)
+	}
+	if code, list := do("GET", plain, "", ""); code != 200 || len(list["items"].([]any)) != 1 || list["kind"] != "ServiceList" {
+		t.Fatalf("list = %d %v", code, list)
+	}
+	// gcloud run services list without --region
+	if code, list := do("GET", plain, "/v1/projects/pogi/locations/-/services", ""); code != 200 || len(list["items"].([]any)) != 1 {
+		t.Fatalf("v1 list of every region = %d %v", code, list)
+	}
+	if code, _ := do("GET", plain, "/hello", ""); code != 400 {
+		t.Fatalf("get without region = %d", code)
+	}
+	if code, e := do("POST", regional, "", body("c", `{"image":"x","env":[{"name":"A","valueFrom":{"secretKeyRef":{"name":"s","key":"k"}}}]}`)); code != 400 {
+		t.Fatalf("valueFrom = %d %v", code, e)
+	}
+	if code, del := do("DELETE", regional, "/hello", ""); code != 200 || del["status"] != "Success" {
+		t.Fatalf("delete = %d %v", code, del)
+	}
+	if code, _ := do("GET", regional, "/hello", ""); code != 404 {
+		t.Fatalf("get after delete = %d", code)
 	}
 }

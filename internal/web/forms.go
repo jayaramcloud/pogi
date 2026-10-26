@@ -29,7 +29,7 @@ func (ui *UI) formOps(svc string) []formOp {
 	case nil:
 	case *generic.Service:
 		for _, op := range s.FormOps() {
-			out = append(out, formOp{op, core.Label(op)})
+			out = append(out, formOp{op, core.Sentence(op)})
 		}
 	default:
 		for _, c := range curated[svc] {
@@ -39,7 +39,8 @@ func (ui *UI) formOps(svc string) []formOp {
 			out = ui.gcpOps(svc)
 		}
 	}
-	for _, sp := range specials[svc] {
+	for _, sp := range specials[svc] { // a special replaces the generated form of the same title
+		out = slices.DeleteFunc(out, func(o formOp) bool { return o.Title == sp.Title })
 		out = append(out, formOp{sp.Op, sp.Title})
 	}
 	return out
@@ -48,8 +49,8 @@ func (ui *UI) formOps(svc string) []formOp {
 func (ui *UI) form(svc, op string, sc scope) *core.Form {
 	if sp := ui.special(svc, op); sp != nil && ui.hub.Service(svc) != nil {
 		fs := slices.Clone(sp.Fields(ui)) // fixed() shares its slice
-		for i := range fs {               // {account} in a default is the scope's account
-			fs[i].Default = strings.ReplaceAll(fs[i].Default, "{account}", sc.acct())
+		for i := range fs {               // {account}, {location}, {group} and {azlocation} in a default are the scope's
+			fs[i].Default = strings.NewReplacer("{account}", sc.acct(), "{location}", sc.location(), "{group}", sc.group(), "{azlocation}", sc.azLocation()).Replace(fs[i].Default)
 		}
 		return &core.Form{Op: sp.Op, Title: sp.Title, Fields: fs}
 	}

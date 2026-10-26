@@ -1,6 +1,6 @@
 {{define "head"}}{{with .Data}}
 <div class="crumbs"><a href="/_pogi/services">Services</a>{{icon "right"}}<span>{{.CloudName}}</span>{{icon "right"}}<span>{{.Title}}</span></div>
-<div class="ph" data-rev-svc="{{.Name}}" data-rev="{{.Rev}}"><div><h1>{{svcIcon .Cloud .Name}}{{.Title}}{{if .Depth}} {{depthTag .Depth true}}{{end}}</h1><p class="sub">{{.Sub}}</p></div>
+<div class="ph" data-rev-svc="{{.Name}}" data-rev="{{.Rev}}"><div><h1>{{svcIcon .Cloud .Name}}{{.Title}}{{if .Depth}} {{depthTag .Depth true}}{{end}}</h1><p class="sub">{{.Sub}}</p><p class="sub" data-rev-paused role="status" hidden>Updates paused while you work here. New changes appear when you're done.</p></div>
   <div class="actions">
     <button class="btn icon {{if .Pinned}}pinned{{else}}ghost{{end}}" data-pin="{{.Name}}" title="{{if .Pinned}}Unpin from the sidebar{{else}}Pin to the sidebar{{end}}" aria-pressed="{{if .Pinned}}true{{else}}false{{end}}" aria-label="{{if .Pinned}}Unpin{{else}}Pin{{end}}">{{icon "star"}}</button>
     <button class="btn" data-menu="svc-menu" aria-label="More" aria-haspopup="menu" aria-expanded="false">{{icon "more"}}</button>
@@ -25,7 +25,7 @@
 {{else}}{{template "abouttab" .}}{{end}}
 {{end}}{{end}}
 
-{{define "scopebar"}}<div class="scopebar">{{icon "lock"}} Showing <b class="mono">{{.Scope.Text}}</b><span class="spacer"></span><a role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" data-js="scope">Change scope</a>{{with .Scope.Vals}} · <a role="button" tabindex="0" hx-post="/_pogi/scope" hx-vals="{{.}}">{{$.Scope.AllLabel}}</a>{{end}}</div>{{end}}
+{{define "scopebar"}}<div class="scopebar">{{icon "lock"}} Showing <b class="mono">{{.Scope.Text}}</b>{{with .Scope.Hidden}} · {{.}}{{end}}<span class="spacer"></span><a role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" data-js="scope">Change scope</a>{{with .Scope.Vals}} · <a role="button" tabindex="0" hx-post="/_pogi/scope" hx-vals="{{.}}">{{$.Scope.AllLabel}}</a>{{end}}</div>{{end}}
 
 {{define "restab"}}{{$p := .}}{{with .Table}}{{$t := .}}
 {{if .Rows}}
@@ -34,10 +34,10 @@
 <div class="toolbar"><div class="filter">{{icon "search"}}<input class="input" placeholder="Filter {{$p.Noun}}" aria-label="Filter" autocomplete="off" data-filter="rows"></div>
   <span class="spacer"></span><a class="btn ghost" href="{{$p.Back}}">{{icon "reset"}}Refresh</a></div>
 <div class="tablecard">{{template "scopebar" $p}}
-<table class="dt"><thead><tr>{{if or .Del .Tag}}<th class="chk"><label><input type="checkbox" aria-label="Select all"></label></th>{{end}}{{range $i, $c := .Columns}}<th class="{{if $p.IsNum $i}}num{{end}}">{{$c}}</th>{{end}}<th></th></tr></thead>
+<table class="dt"><thead><tr>{{if or .Del .Tag}}<th class="chk"><label><input type="checkbox" aria-label="Select all"></label></th>{{end}}{{range $i, $c := .Columns}}<th class="{{if $p.IsNum $i}}num{{end}}" data-c="{{$c}}">{{$c}}</th>{{end}}<th></th></tr></thead>
 <tbody id="rowsbody" data-live-rows data-svc="{{$p.Name}}" hx-get="{{$p.Back}}" hx-select="#rowsbody" hx-swap="outerHTML" hx-trigger="pogi-rows">{{range $r, $row := .Rows}}<tr data-drawer="{{link $p.Name $t.Name $row}}">
   {{if or $t.Del $t.Tag}}<td class="chk"><label><input type="checkbox" name="row" value="{{index $t.Enc $r}}" aria-label="Select {{index $row 0}}"></label></td>{{end}}
-  {{range $i, $c := $row}}<td class="{{if eq $i 0}}name{{else if $p.IsNum $i}}num{{else}}dim{{end}}">{{if eq $i 0}}<a href="{{link $p.Name $t.Name $row}}" data-drawer>{{$c}}</a>{{else}}{{$c}}{{end}}</td>{{end}}
+  {{range $i, $c := $row}}<td class="{{if eq $i 0}}name{{else if $p.IsNum $i}}num{{else}}dim{{end}}" data-c="{{index $t.Columns $i}}">{{if eq $i 0}}<a href="{{link $p.Name $t.Name $row}}" data-drawer>{{$c}}</a>{{else}}{{$c}}{{end}}</td>{{end}}
   <td class="num"><button type="button" class="btn icon ghost sm" data-menu="row-{{$r}}" aria-label="Row actions" aria-haspopup="menu" aria-expanded="false">{{icon "more"}}</button>
     <div hidden><button type="button" role="menuitem" data-drawer="{{$p.JSONURL $row}}">{{icon "file"}}View JSON</button><button type="button" role="menuitem" data-copy="{{index $row 0}}">{{icon "copy"}}Copy name</button>
     {{if $t.Del}}<hr><button type="button" role="menuitem" class="danger" hx-post="/_pogi/bulk/{{$p.Name}}/{{path $t.Name}}" hx-vals="{{$p.RowVals (index $t.Enc $r)}}" hx-confirm="Delete {{index $row 0}}?">{{icon "trash"}}Delete</button>{{end}}</div></td></tr>{{end}}</tbody></table></div>
@@ -48,7 +48,7 @@
 </form>
 {{else}}
 <div class="tablecard">{{template "scopebar" $p}}<div class="empty"><div class="ico">{{icon "box"}}</div><h2>No {{$p.Noun}} in {{$p.Scope.Text}}</h2>
-  <p>Create one here, or with your CLI, SDK or Terraform. It shows up live.</p>
+  <p>{{if $p.Create}}Create one here, or with your CLI, SDK or Terraform. It shows up live.{{else}}Create one with your CLI, SDK or Terraform. It shows up live.{{end}}</p>
   <div class="actions" style="justify-content:center">{{template "createbtn" $p.Create}}{{with $p.Scope.Vals}}<button class="btn" hx-post="/_pogi/scope" hx-vals="{{.}}">{{$p.Scope.AllLabel}}</button>{{end}}</div>
   {{with $p.CLI}}<pre class="code" style="text-align:left;max-width:520px;margin:18px auto 0">{{.}} help</pre>{{end}}</div></div>
 {{end}}{{end}}{{end}}

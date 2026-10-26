@@ -99,6 +99,24 @@ redis.NewService(ctx, option.WithEndpoint("http://localhost:7644/redis/"), optio
 
 `pogi env` sets `AZURE_STORAGE_CONNECTION_STRING` (Azurite ports 10000 to 10002). It also sets `COSMOS_ENDPOINT`, `COSMOS_KEY` and `AZURE_KEYVAULT_URL` for the HTTPS port, plus the managed identity and Microsoft Entra ID settings (`IDENTITY_ENDPOINT`, `AZURE_AUTHORITY_HOST` and `ARM_METADATA_HOSTNAME`). HTTPS services use pogi's own certificate authority (CA). Run `pogi cert` to see where it is and how to trust it.
 
+#### Azure CLI
+
+The Azure CLI (`az`) signs in to pogi with a service principal (an app identity) once you register pogi as a cloud. `pogi env` sets `AZURE_CORE_INSTANCE_DISCOVERY=false`, so `az login` doesn't ask Microsoft's sign-in service about pogi's address first. `az` also has to trust pogi's CA through `REQUESTS_CA_BUNDLE`. `pogi env` leaves that one out, because it replaces the trusted list of every Python tool that reads it. Set it only in the shell where you run `az`:
+
+```bash
+eval "$(pogi env)"
+export REQUESTS_CA_BUNDLE="$HOME/.pogi/certs/ca.pem"   # pogi's CA; `pogi cert` prints its path
+export AZURE_CONFIG_DIR="$HOME/.pogi/azure"            # keeps your own ~/.azure as it is
+az cloud show -n pogi > /dev/null 2>&1 || az cloud register -n pogi --endpoint-resource-manager https://localhost:7644/
+az cloud set -n pogi --only-show-errors
+az login --service-principal -u 00000000-0000-0000-0000-000000000001 -p secret \
+  --tenant 00000000-0000-0000-0000-000000000000 --output none
+```
+
+You can run the block again: it registers the cloud only the first time.
+
+Any client ID and secret work. The tenant is pogi's own. After that, Azure Resource Manager (ARM) commands such as `az group create`, `az aks create` and `az aks get-credentials` talk to pogi. Your own `~/.azure` doesn't change, so a new shell talks to real Azure again. pogi doesn't serve the browser sign-in, so plain `az login` doesn't work.
+
 ### S3 with bucket names in the host
 
 Some code needs the bucket in the host name, as in `<bucket>.s3.aws.localhost`.

@@ -856,8 +856,9 @@ func (s *Service) boot(r *region, i *Instance, verb string) {
 		switch {
 		case verb == "start" && d.Start(ctx, ct.Name) == nil, verb == "restart" && d.Restart(ctx, ct.Name) == nil:
 		default:
-			d.Remove(ctx, ct.Name) // a leftover
-			_, err = d.Run(ctx, ct)
+			if err = d.RemoveLeftover(ctx, ct.Name); err == nil {
+				_, err = d.Run(ctx, ct)
+			}
 		}
 		var info *docker.Info
 		if err == nil {

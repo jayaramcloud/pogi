@@ -805,6 +805,29 @@ func (c *Client) published(ctx context.Context, id string) error {
 	}
 }
 
+// RemoveLeftover removes the container called name, so that this pogi can make one of that name: a leftover of
+// a crashed run, or one it replaces. A container of another pogi that still runs, or one pogi did not make,
+// stays, and the error says so: two pogis on one machine must not take each other's containers.
+func (c *Client) RemoveLeftover(ctx context.Context, name string) error {
+	i, err := c.Inspect(ctx, name)
+	if NotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !c.mine(i.Config.Labels) {
+		return fmt.Errorf("the container %s belongs to another pogi that is still running, or was not made by pogi: stop that one first", name)
+	}
+	return c.Remove(ctx, name)
+}
+
+// mine says whether this Client may take a container (by its labels): one it or its data dir made, or an orphan.
+func (c *Client) mine(labels map[string]string) bool {
+	own := labels[LabelOwner] == c.owner || c.opt.DataDir != "" && labels[LabelData] == c.opt.DataDir
+	return labels[LabelManaged] == "true" && own || Orphan(labels)
+}
+
 // Remove deletes a container, running or not, with its anonymous volumes;
 // a missing one is no error. When another call is already removing it
 // (409), Remove waits until it is gone: until then its named volumes are

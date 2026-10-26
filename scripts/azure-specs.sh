@@ -2,8 +2,8 @@
 # Refreshes internal/azure/generic/specs.json.gz from Microsoft's azure-rest-api-specs (MIT, see NOTICE) at a pinned commit.
 # Run by `go generate ./internal/azure/generic`. Needs curl and python3.
 # It fetches only the spec files that services.txt names and keeps, per listed resource type, what the engine
-# needs: API versions, the operations, which of them are long-running, read-only and required properties,
-# whether the type is tracked (has location and tags) and the constraints on its name.
+# needs: API versions, the operations, which of them are long-running (and whether a long-running PATCH answers 202),
+# read-only and required properties, whether the type is tracked (has location and tags) and the constraints on its name.
 set -eu
 commit=1355fe2fc33e3e3d4b69b026392f887239c87fe9
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -104,7 +104,7 @@ def merge(dst, src):
     dst["v"] = sorted(set(dst.get("v", []) + src["v"]))
     dst["ops"] = sorted(set(dst.get("ops", []) + src["ops"]))
     dst["lro"] = sorted(set(dst.get("lro", []) + src["lro"]))
-    for k in ("ro", "req", "tracked", "name", "created"):
+    for k in ("ro", "req", "tracked", "name", "created", "patch202"):
         if src.get(k) not in (None, [], {}, False) or k not in dst:
             dst[k] = src.get(k, dst.get(k))
 
@@ -147,6 +147,10 @@ for line in open(txt):
                 codes = ops["put"]["responses"]
                 if "201" not in codes:
                     rec["created"] = 202 if "202" in codes else 200
+                # a long-running PATCH answers 202 only where the spec lists it: some list just 200 (and 201)
+                p = ops.get("patch", {})
+                if p.get("x-ms-long-running-operation") and "202" in p["responses"]:
+                    rec["patch202"] = True
                 if typ in found:
                     merge(found[typ], rec)
                 else:

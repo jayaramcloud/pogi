@@ -37,6 +37,27 @@ type Entry struct {
 	RespBody   string            `json:"respBody,omitempty"`
 }
 
+// Alarming says whether the entry is an error worth a red count: status 400 or more, except a 404
+// from a read (a GET, a HEAD, or an operation named Get, Describe, Head or List: AWS JSON protocols
+// POST their reads). Looking for something that is not there is normal.
+func (e Entry) Alarming() bool {
+	if e.Status < 400 {
+		return false
+	}
+	if e.Status != 404 {
+		return true
+	}
+	if e.Method == "GET" || e.Method == "HEAD" {
+		return false
+	}
+	for _, p := range []string{"Get", "Describe", "Head", "List"} {
+		if strings.HasPrefix(e.Op, p) {
+			return false
+		}
+	}
+	return true
+}
+
 // Summary drops headers and bodies for list views.
 func (e Entry) Summary() Entry {
 	e.ReqHeaders, e.ReqBody, e.RespBody = nil, "", ""

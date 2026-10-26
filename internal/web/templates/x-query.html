@@ -35,7 +35,32 @@
   {{end}}
   <div><button class="btn primary">{{icon "play"}}Run</button></div>
 </form>
+{{if eq .Kind "dynamodb"}}{{template "ddbadd" .}}{{end}}
 {{if .Err}}<div class="flash" role="alert">{{.Err}}</div>{{end}}
-{{template "xresult" .Res}}
+{{if and (eq .Kind "dynamodb") .Res}}{{template "ddbres" .}}{{else}}{{template "xresult" .Res}}{{end}}
 {{if .Next}}<p><a href="{{.Next}}" hx-get="/_pogi/query/{{.Kind}}{{.Next}}" hx-target="#xtab" hx-swap="outerHTML">Next page</a></p>{{end}}
 </div>{{end}}{{end}}
+
+{{define "ddbadd"}}{{$t := .V.Get "target"}}{{if $t}}
+<details class="more" {{if .ItemErr}}open{{end}} style="margin:12px 0">
+  <summary>Add item</summary>
+  <form method="post" action="/_pogi/query/dynamodb/put" hx-post="/_pogi/query/dynamodb/put" hx-target="#xtab" hx-swap="outerHTML" class="stack">
+    <input type="hidden" name="target" value="{{$t}}"><input type="hidden" name="q" value="{{.V.Encode}}"><input type="hidden" name="from" value="add">
+    <label>Item (plain JSON, with the table's key attributes)
+      <textarea name="item" rows="4" class="mono" required placeholder='{"id": "u3", "name": "Kim"}'>{{.AddItem}}</textarea></label>
+    {{if .ItemErr}}<div class="flash" role="alert">{{.ItemErr}}</div>{{end}}
+    <div><button class="btn primary">Save item</button></div>
+  </form>
+</details>{{end}}{{end}}
+{{define "ddbres"}}{{$d := .}}{{$t := .V.Get "target"}}{{with .Res}}
+{{if .Note}}<p class="note">{{.Note}}</p>{{end}}
+{{if .Cols}}<div style="overflow:auto"><table><thead><tr>{{range .Cols}}<th>{{.}}</th>{{end}}<th>Actions</th></tr></thead><tbody>
+{{range $i, $r := .Rows}}{{$it := index $d.Items $i}}<tr>{{range $r}}<td class="mono body">{{.}}</td>{{end}}
+<td style="white-space:nowrap">
+  <details style="display:inline-block;vertical-align:top"><summary class="btn sm">Edit</summary>
+    <textarea name="item" rows="6" class="mono" style="min-width:300px" aria-label="Item as JSON">{{$it.Edit}}</textarea>
+    <button type="button" class="btn sm primary" hx-post="/_pogi/query/dynamodb/put" hx-vals='{{$d.Vals ""}}' hx-include="closest details" hx-target="#xtab" hx-swap="outerHTML">Save</button></details>
+  <button type="button" class="btn sm danger" style="margin-left:4px;vertical-align:top" hx-post="/_pogi/query/dynamodb/delete" hx-vals='{{$d.Vals $it.Item}}' hx-target="#xtab" hx-swap="outerHTML" hx-confirm="Delete this item?">Delete</button></td></tr>{{end}}</tbody></table></div>
+{{else if not .Note}}<p class="empty">No rows.</p>{{end}}
+{{if .Raw}}<details><summary class="dim">JSON</summary><pre>{{.Raw}}</pre></details>{{end}}
+{{end}}{{end}}

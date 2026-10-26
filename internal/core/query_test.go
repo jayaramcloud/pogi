@@ -69,3 +69,16 @@ func TestRedactKeepsKeysHidesValues(t *testing.T) {
 		t.Errorf("flatHeaders = %v", h)
 	}
 }
+
+// TestXMLEmptyList: an empty list tagged query:",empty" is written as an empty element (AWS's <Parameters/>
+// in GetTemplateSummary, which aws cloudformation deploy reads); other empty lists are left out.
+func TestXMLEmptyList(t *testing.T) {
+	var b strings.Builder
+	WriteXMLFields(&b, reflect.ValueOf(struct {
+		Parameters []string `query:",empty"`
+		Outputs    []string
+	}{Outputs: []string{}}))
+	if b.String() != "<Parameters/>" {
+		t.Fatalf("got %q", b.String())
+	}
+}

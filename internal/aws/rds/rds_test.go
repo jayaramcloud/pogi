@@ -262,7 +262,7 @@ func TestInstanceLifecycle(t *testing.T) {
 		t.Fatalf("delete: %+v", r.R.Instance)
 	}
 	fails(t, base, 404, "DBInstanceNotFound", "Action", "DescribeDBInstances", "DBInstanceIdentifier", "shop")
-	eventually(t, "docker rm", func() bool { return len(f.Called("rm -f -v pogi-rds-shop")) == 2 }) // before run, and now
+	eventually(t, "docker rm", func() bool { return len(f.Called("rm -f -v pogi-rds-shop")) == 1 }) // no leftover before run, so only now
 	ok(t, base, &r, "Action", "DescribeDBSnapshots", "DBInstanceIdentifier", "shop")
 	if len(r.R.Snapshots) != 2 || r.R.Snapshots[1].DBSnapshotIdentifier != "final" || r.R.Snapshots[1].Status != "available" {
 		t.Fatalf("snapshots %+v", r.R.Snapshots)
@@ -386,7 +386,7 @@ func TestAuroraCluster(t *testing.T) {
 		t.Fatalf("delete %+v", r.R.Cluster)
 	}
 	fails(t, base, 404, "DBClusterNotFoundFault", "Action", "DescribeDBClusters", "DBClusterIdentifier", "orders")
-	eventually(t, "cluster container removed", func() bool { return len(f.Called("rm -f -v pogi-rds-orders")) == 2 })
+	eventually(t, "cluster container removed", func() bool { return len(f.Called("rm -f -v pogi-rds-orders")) == 1 })
 }
 
 func TestEngineContainers(t *testing.T) {
@@ -566,7 +566,7 @@ func TestPersist(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc.Close()
-	if n := len(f.Called("rm")); n != 1 { // only the cleanup before create
+	if n := len(f.Called("rm")); n != 0 {
 		t.Fatalf("--persist must keep containers: %q", f.Called("rm"))
 	}
 
@@ -583,7 +583,7 @@ func TestPersist(t *testing.T) {
 	gone := rds.New(core.NewHub(core.Config{}, nil))
 	gone.Load(state)
 	gone.Close()
-	if rm := f.Called("rm -f -v pogi-rds-keep"); len(rm) != 2 {
+	if rm := f.Called("rm -f -v pogi-rds-keep"); len(rm) != 1 {
 		t.Fatalf("without --persist Close removes the containers: %q", rm)
 	}
 }

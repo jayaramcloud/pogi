@@ -40,6 +40,9 @@ type kind struct {
 	login   bool   // has an admin login and password
 	dbs     bool   // has databases
 	cfgs    bool   // has configurations
+	// lro makes PUT, PATCH and DELETE of the server and its children answer 202 with an operation:
+	// the PostgreSQL SDK of the Azure CLI takes no other status.
+	lro bool
 	// props and sku are what a new server gets where the body has none.
 	props func() map[string]any
 	sku   any
@@ -51,7 +54,7 @@ var kinds = []*kind{
 			return map[string]any{"version": "12.0", "minimalTlsVersion": "1.2", "publicNetworkAccess": "Enabled",
 				"restrictOutboundNetworkAccess": "Disabled", "privateEndpointConnections": []any{}}
 		}},
-	{key: "pg", typ: "Microsoft.DBforPostgreSQL/flexibleServers", engine: "postgres", port: 5432, state: "state", version: "16", login: true, dbs: true, cfgs: true,
+	{key: "pg", typ: "Microsoft.DBforPostgreSQL/flexibleServers", engine: "postgres", port: 5432, state: "state", version: "16", login: true, dbs: true, cfgs: true, lro: true,
 		sku: map[string]any{"name": "Standard_B1ms", "tier": "Burstable"},
 		props: func() map[string]any {
 			return map[string]any{"version": "16", "minorVersion": "0", "availabilityZone": "1", "storage": map[string]any{"storageSizeGB": 32, "autoGrow": "Disabled", "tier": "P4"},
@@ -121,11 +124,17 @@ func New(hub *core.Hub) *Service {
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	s.box = rds.NewBox(hub, "azdatabases", "failed", &s.mu, s.owns)
 	for _, k := range kinds {
+		register := func(p arm.Provider) {
+			if k.lro {
+				p.Async, p.AsyncPatch, p.Created = true, true, http.StatusAccepted
+			}
+			arm.Register(hub, p)
+		}
 		p := arm.Provider{Type: k.typ, Put: s.putServer(k), Get: s.get, Delete: s.deleteServer, List: s.list(k.typ)}
 		if k.key == "redis" {
 			p.Actions = map[string]func(*core.Ctx, arm.ID, map[string]any) (any, error){"listKeys": s.listKeys, "regenerateKey": s.regenerateKey}
 		}
-		arm.Register(hub, p)
+		register(p)
 		var children []string
 		if k.dbs {
 			children = append(children, databases)
@@ -134,9 +143,10 @@ func New(hub *core.Hub) *Service {
 			children = append(children, configs)
 		}
 		for _, ch := range append(children, firewallRules) {
-			arm.Register(hub, arm.Provider{Type: k.typ + "/" + ch, Put: s.putChild(k, ch), Get: s.get, Delete: s.deleteChild(k, ch), List: s.list(k.typ + "/" + ch)})
+			register(arm.Provider{Type: k.typ + "/" + ch, Put: s.putChild(k, ch), Get: s.get, Delete: s.deleteChild(k, ch), List: s.list(k.typ + "/" + ch)})
 		}
 	}
+	registerCapabilities(hub)
 	return s
 }
 

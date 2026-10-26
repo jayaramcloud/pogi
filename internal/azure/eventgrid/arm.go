@@ -81,6 +81,14 @@ func (s *Service) putTopic(c *core.Ctx, id arm.ID, body map[string]any) (map[str
 		return nil, armErr(err)
 	}
 	s.mu.Lock()
+	// events name their topic by its ID, in this resource group (nil: deleted meanwhile)
+	if t := s.st.Topics[name]; t != nil && id.Type() == eg+"topics" {
+		t.Group = id.ResourceGroup
+	} else if d := s.st.Domains[name]; d != nil && id.Type() == eg+"domains" {
+		d.Group = id.ResourceGroup
+	} else if t := s.st.System[name]; t != nil && id.Type() == eg+"systemTopics" {
+		t.Group = id.ResourceGroup
+	}
 	s.st.ARM.Put(id, armres.Envelope(id, body))
 	s.mu.Unlock()
 	return s.getTopic(c, id)
@@ -181,12 +189,14 @@ func (s *Service) listKeys(c *core.Ctx, id arm.ID, _ map[string]any) (any, error
 
 // ---- event subscriptions ----
 
-func subID(sc, name string) arm.ID {
+func (s *Service) subID(sc, name string) arm.ID {
 	suffix := "/providers/" + eg + "eventSubscriptions/" + name
 	if strings.HasPrefix(sc, "systemTopics/") {
 		suffix = "/eventSubscriptions/" + name
 	}
-	id, _ := arm.ParseID(resourceID(sc) + suffix)
+	s.mu.Lock()
+	id, _ := arm.ParseID(s.topicID(sc) + suffix)
+	s.mu.Unlock()
 	return id
 }
 
@@ -194,6 +204,8 @@ func (s *Service) subView(c *core.Ctx, id arm.ID, sub Subscription) map[string]a
 	dest := map[string]any{"endpointType": sub.Destination.Type}
 	if sub.Destination.Type == "WebHook" {
 		dest["properties"] = map[string]any{"endpointUrl": sub.Destination.Endpoint}
+	} else if sub.Destination.QueueName != "" {
+		dest["properties"] = map[string]any{"resourceId": sub.Destination.ResourceID, "queueName": sub.Destination.QueueName}
 	} else {
 		dest["properties"] = map[string]any{"resourceId": sub.Destination.ResourceID}
 	}
@@ -207,7 +219,10 @@ func (s *Service) subView(c *core.Ctx, id arm.ID, sub Subscription) map[string]a
 	if len(sub.Filter.Advanced) > 0 {
 		filter["advancedFilters"] = sub.Filter.Advanced
 	}
-	p := map[string]any{"topic": resourceID(sub.Scope), "provisioningState": "Succeeded",
+	s.mu.Lock()
+	topic := s.topicID(sub.Scope)
+	s.mu.Unlock()
+	p := map[string]any{"topic": topic, "provisioningState": "Succeeded",
 		"destination": dest, "filter": filter, "eventDeliverySchema": sub.Schema,
 		"retryPolicy": map[string]any{"maxDeliveryAttempts": sub.Retry.MaxAttempts, "eventTimeToLiveInMinutes": sub.Retry.TTLMinutes}, "labels": sub.Labels}
 	if sub.Labels == nil {
@@ -233,7 +248,8 @@ func subscription(id arm.ID, body map[string]any) (Subscription, error) {
 	sub := Subscription{Name: id.Name()}
 	if d, ok := p["destination"].(map[string]any); ok {
 		dp := armres.Props(d)
-		sub.Destination = Destination{Type: armres.Str(d, "endpointType"), Endpoint: armres.Str(dp, "endpointUrl"), ResourceID: armres.Str(dp, "resourceId")}
+		sub.Destination = Destination{Type: armres.Str(d, "endpointType"), Endpoint: armres.Str(dp, "endpointUrl"), ResourceID: armres.Str(dp, "resourceId"),
+			QueueName: armres.Str(dp, "queueName")}
 	}
 	for k, v := range map[string]any{"filter": &sub.Filter, "retryPolicy": &sub.Retry} {
 		if raw, ok := p[k]; ok {
@@ -299,7 +315,7 @@ func (s *Service) listSubs(c *core.Ctx, parent arm.ID) ([]map[string]any, error)
 	sc := scope(parent)
 	var out []map[string]any
 	for _, sub := range s.Subscriptions(sc) {
-		out = append(out, s.subView(c, subID(sc, sub.Name), sub))
+		out = append(out, s.subView(c, s.subID(sc, sub.Name), sub))
 	}
 	return out, nil
 }

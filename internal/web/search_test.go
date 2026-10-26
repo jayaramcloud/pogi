@@ -27,7 +27,8 @@ func TestSearchRanking(t *testing.T) {
 
 func TestHomeErrorsInOtherClouds(t *testing.T) {
 	c := start(t, "s3", "pubsub")
-	c.traffic() // one failing S3 call
+	c.traffic()
+	c.loud() // one failing S3 call that counts
 	c.cookie("pogi-cloud", "gcp")
 	home := c.get("/_pogi/")
 	want(t, home, "No errors in Google Cloud", "1 in other clouds", `name="cloud" value=""`)

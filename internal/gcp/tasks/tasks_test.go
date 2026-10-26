@@ -481,6 +481,12 @@ func TestREST(t *testing.T) {
 	if code, _ := do("GET", "/v2/"+parent+"/queues/rest", ""); code != 404 {
 		t.Fatalf("get after delete: %d", code)
 	}
+	// gcloud tasks without --location lists the locations
+	project, _, _ := strings.Cut(parent, "/locations/")
+	code, locs := do("GET", "/v2/"+project+"/locations?pageSize=100", "")
+	if l, _ := locs["locations"].([]any); code != 200 || len(l) == 0 || l[0].(map[string]any)["name"] != project+"/locations/"+l[0].(map[string]any)["locationId"].(string) {
+		t.Fatalf("list locations: %d %v", code, locs)
+	}
 }
 
 func TestPersistence(t *testing.T) {

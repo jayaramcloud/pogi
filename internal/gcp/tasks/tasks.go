@@ -23,6 +23,7 @@ import (
 	pb "cloud.google.com/go/cloudtasks/apiv2/cloudtaskspb"
 	"github.com/nrndev/pogi/internal/core"
 	"github.com/nrndev/pogi/internal/gcp/gapi"
+	locationpb "google.golang.org/genproto/googleapis/cloud/location"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -65,8 +66,9 @@ type task struct {
 func New(h *core.Hub) *Service {
 	s := &Service{hub: h, client: gapi.Client(h), queues: map[string]*queue{}}
 	q, t := "locations/*/queues", "locations/*/queues/*/tasks"
-	s.rest = &gapi.REST{Versions: []string{"v2"}, Collections: []string{"queues"}, Desc: &pb.CloudTasks_ServiceDesc, Impl: s,
+	s.rest = &gapi.REST{Versions: []string{"v2"}, Collections: []string{"queues", "locations"}, Desc: &pb.CloudTasks_ServiceDesc, Impl: s,
 		Routes: map[string]gapi.Route{
+			"GET locations":           {Method: "ListLocations", Field: "name"},
 			"GET " + q:                {Method: "ListQueues", Field: "parent"},
 			"POST " + q:               {Method: "CreateQueue", Field: "parent", Body: "queue"},
 			"GET " + q + "/*":         {Method: "GetQueue", Field: "name"},
@@ -93,6 +95,17 @@ func (s *Service) Info() core.Info {
 func (s *Service) RegisterGRPC(g *grpc.Server) { pb.RegisterCloudTasksServer(g, s) }
 
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) { s.rest.ServeHTTP(w, r) }
+
+// ListLocations lists the regions. gcloud tasks calls it to find a default location when --location is left
+// out; with no App Engine app it then asks for --location, as on Google Cloud.
+func (s *Service) ListLocations(_ context.Context, r *locationpb.ListLocationsRequest) (*locationpb.ListLocationsResponse, error) {
+	out := &locationpb.ListLocationsResponse{}
+	for _, l := range gapi.Regions {
+		out.Locations = append(out.Locations, &locationpb.Location{Name: r.Name + "/locations/" + l, LocationId: l,
+			Labels: map[string]string{"cloud.googleapis.com/region": l}})
+	}
+	return out, nil
+}
 
 // Close stops the dispatch loop.
 func (s *Service) Close() error { s.stop(); return nil }

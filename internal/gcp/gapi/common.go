@@ -17,6 +17,10 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+// Regions are the Google Cloud regions pogi lists: Compute Engine's regions, Cloud Tasks' locations.
+var Regions = []string{"us-central1", "us-east1", "us-east4", "us-west1", "us-west2", "europe-west1", "europe-west2", "europe-west3",
+	"europe-west4", "asia-east1", "asia-northeast1", "asia-south1", "asia-southeast1", "australia-southeast1", "southamerica-east1"}
+
 // Client is the HTTP client for calls a service makes to user targets (Cloud
 // Tasks, Scheduler, Eventarc). A *.localhost host (<svc>.run.localhost) goes
 // to pogi's own port with its Host header kept, so no DNS is involved. It

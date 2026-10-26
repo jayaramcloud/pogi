@@ -56,6 +56,7 @@ type homeData struct {
 	Cost                         string // "$29" or "<$1" when the Cost page has an estimate
 	OtherErrors                  int    // errors in the clouds a picked cloud hides, for the empty "Recent errors"
 	Scope                        scope
+	ScopeLine                    string // the scope of each cloud shown (or in use)
 	Cloud                        string // the selected cloud, "" for all
 	Rows                         []homeSvc
 	Quick                        []quickAct
@@ -92,6 +93,23 @@ func (ui *UI) overview(w http.ResponseWriter, r *http.Request) {
 			d.Resources += s.Resources
 		}
 	}
+	var used []string
+	for _, c := range []string{core.AWS, core.GCP, core.Azure} {
+		if cloud != "" && cloud != c {
+			continue
+		}
+		in := cloud == c
+		for _, s := range st.Services {
+			in = in || (s.Cloud == c && ui.inUse(s))
+		}
+		if in {
+			used = append(used, cloudNames[c]+" "+d.Scope.text(c))
+		}
+	}
+	if len(used) == 0 {
+		used = []string{"AWS " + d.Scope.text(core.AWS)}
+	}
+	d.ScopeLine = strings.Join(used, "; ")
 	d.Count, d.CountFull = serviceCount(cloud, st.Services)
 	d.FirstRun = traffic == 0
 	if r.URL.Query().Get("wait") != "" { // the first-run page polls: reload once traffic shows up
@@ -122,7 +140,7 @@ func (ui *UI) overview(w http.ResponseWriter, r *http.Request) {
 		if cloud == "" || e.Cloud == cloud {
 			return false
 		}
-		if e.Status >= 400 {
+		if e.Alarming() {
 			d.OtherErrors++
 		}
 		return true
@@ -136,7 +154,7 @@ func (ui *UI) overview(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	for _, e := range log {
-		bad := e.Status >= 400
+		bad := e.Alarming()
 		if m := int(now.Sub(e.Time) / time.Minute); m >= 0 && m < 12 {
 			reqs[11-m]++
 			if bad {

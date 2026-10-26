@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/nrndev/pogi/internal/core"
@@ -65,7 +66,7 @@ func (ui *UI) gcpMethods(svc, prefix string) []gcpMethod {
 func (ui *UI) gcpOps(svc string) []formOp {
 	var out []formOp
 	for _, m := range ui.gcpMethods(svc, "Create") {
-		out = append(out, formOp{m.Name, core.Label(string(m.md.Name()))})
+		out = append(out, formOp{m.Name, core.Sentence(string(m.md.Name()))})
 	}
 	return out
 }
@@ -86,11 +87,24 @@ func (ui *UI) gcpForm(svc, op string, sc scope) *core.Form {
 	if m == nil {
 		return nil
 	}
-	f := &core.Form{Op: m.Name, Title: core.Label(string(m.md.Name()))}
+	f := &core.Form{Op: m.Name, Title: core.Sentence(string(m.md.Name()))}
 	f.Fields = gcpFields(m.md.Input(), 3)
+	var urlFields []string
 	for _, v := range pathVar.FindAllStringSubmatch(m.tmpl, -1) {
-		mark(f.Fields, strings.Split(v[1], "."), prefill(v[2], sc.project()))
+		name := strings.Split(v[1], ".")
+		mark(f.Fields, name, prefill(v[2], sc))
+		urlFields = append(urlFields, name[0])
 	}
+	// The fields the URL needs come first, before the request's own fields.
+	var first, rest []core.Field
+	for _, fld := range f.Fields {
+		if slices.Contains(urlFields, fld.Name) {
+			first = append(first, fld)
+		} else {
+			rest = append(rest, fld)
+		}
+	}
+	f.Fields = append(first, rest...)
 	return f
 }
 
@@ -110,13 +124,15 @@ func mark(fields []core.Field, name []string, def string) {
 }
 
 // prefill is a resource name pattern up to where the user must say something:
-// projects/*/topics/* is projects/<project>/topics/.
-func prefill(pattern, project string) string {
+// projects/*/topics/* is projects/<project>/topics/, and a locations/* is the default location.
+func prefill(pattern string, sc scope) string {
 	var out []string
 	for _, seg := range strings.Split(pattern, "/") {
 		switch {
 		case seg == "*" && len(out) > 0 && out[len(out)-1] == "projects":
-			seg = project
+			seg = sc.project()
+		case seg == "*" && len(out) > 0 && out[len(out)-1] == "locations":
+			seg = sc.location()
 		case seg == "*" || seg == "**":
 			return strings.Join(out, "/") + "/"
 		}

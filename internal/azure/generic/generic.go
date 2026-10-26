@@ -88,6 +88,9 @@ type typeSpec struct {
 	Required []string `json:"req"`
 	Tracked  bool     `json:"tracked"`
 	Created  int      `json:"created"` // status of a PUT that creates, when the spec's PUT has no 201
+	// Patch202: the PATCH is long-running and the spec lists 202 for it, so it answers 202 with an operation.
+	// Some long-running PATCHes list only 200 (and 201); they stay plain calls.
+	Patch202 bool `json:"patch202"`
 	Name     struct {
 		Pattern string `json:"pattern"`
 		Min     int    `json:"min"`
@@ -250,7 +253,7 @@ func (s *Service) provider(ts *typeSpec) arm.Provider {
 		}
 	}
 	return arm.Provider{Type: ts.typ, APIVersions: ts.Versions, ParentNotFound: true, Actions: actions, Created: cmp.Or(h.Created, ts.Created), LongActions: h.LongActions,
-		AsyncPut: slices.Contains(ts.LRO, "put"), AsyncDelete: slices.Contains(ts.LRO, "delete") && !h.SyncDelete,
+		AsyncPut: slices.Contains(ts.LRO, "put"), AsyncDelete: slices.Contains(ts.LRO, "delete") && !h.SyncDelete, AsyncPatch: ts.Patch202,
 		Put: func(c *core.Ctx, id arm.ID, body map[string]any) (map[string]any, error) {
 			doc, err := ts.build(id, body)
 			if err != nil {

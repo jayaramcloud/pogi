@@ -369,16 +369,39 @@ func (s *Service) credentials(kind string) func(*core.Ctx, arm.ID, map[string]an
 		if cl == nil {
 			return nil, arm.NotFound(id)
 		}
-		server := "https://" + cmp.Or(cl.Endpoint, str(object(cl.Doc["properties"])["fqdn"]))
-		ca := ""
-		if cl.CA != "" {
-			ca = "    certificate-authority-data: " + cl.CA + "\n"
-		}
-		user := kind + "_" + id.ResourceGroup + "_" + id.Name()
-		cfg := fmt.Sprintf("apiVersion: v1\nclusters:\n- cluster:\n%[1]s    server: %[2]s\n  name: %[3]s\ncontexts:\n- context:\n    cluster: %[3]s\n    user: %[4]s\n  name: %[3]s\n"+
-			"current-context: %[3]s\nkind: Config\npreferences: {}\nusers:\n- name: %[4]s\n  user:\n    token: %[5]s\n", ca, server, id.Name(), user, cl.Bearer)
+		cfg := kubeconfig(cl, kind+"_"+id.ResourceGroup+"_"+id.Name(), id.Name())
 		return doc{"kubeconfigs": []any{doc{"name": kind, "value": base64.StdEncoding.EncodeToString([]byte(cfg))}}}, nil
 	}
+}
+
+// kubeconfig is a kubeconfig that logs in with the cluster's bearer token. Lock held.
+func kubeconfig(cl *cluster, user, name string) string {
+	server := "https://" + cmp.Or(cl.Endpoint, str(object(cl.Doc["properties"])["fqdn"]))
+	ca := ""
+	if cl.CA != "" {
+		ca = "    certificate-authority-data: " + cl.CA + "\n"
+	}
+	return fmt.Sprintf("apiVersion: v1\nclusters:\n- cluster:\n%[1]s    server: %[2]s\n  name: %[3]s\ncontexts:\n- context:\n    cluster: %[3]s\n    user: %[4]s\n  name: %[3]s\n"+
+		"current-context: %[3]s\nkind: Config\npreferences: {}\nusers:\n- name: %[4]s\n  user:\n    token: %[5]s\n", ca, server, name, user, cl.Bearer)
+}
+
+// Kubeconfig is the kubeconfig of the cluster of that name, for the console. It answers 404 for an
+// unknown cluster and 409 for one without an API server yet.
+func (s *Service) Kubeconfig(name string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, k := range core.SortedKeys(s.st.Clusters) {
+		cl := s.st.Clusters[k]
+		if cl.Doc["name"] != name {
+			continue
+		}
+		if cl.CA == "" {
+			return "", core.Errorf(http.StatusConflict, "ClusterNotReady", "Cluster %s has no API server yet. Try again when its state is Succeeded.", name)
+		}
+		id, _ := arm.ParseID(str(cl.Doc["id"])) // k is lower-cased
+		return kubeconfig(cl, "clusterUser_"+id.ResourceGroup+"_"+name, name), nil
+	}
+	return "", core.Errorf(http.StatusNotFound, "ResourceNotFound", "No cluster named %s.", name)
 }
 
 // authn is the TokenReview webhook of the clusters' API servers, at

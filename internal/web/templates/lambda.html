@@ -11,7 +11,7 @@
 
 {{define "lambdabody"}}{{$u := printf "/_pogi/lambda/%s/%s/%s" .Account .Region (path .Name)}}
 <form hx-post="{{$u}}/invoke" hx-target="#result" hx-swap="innerHTML">
-  <div class="field"><label>Test invoke · payload</label><textarea class="input" name="payload" rows="6" placeholder='{"hello": "pogi"}'></textarea></div>
+  <div class="field"><label>Test invoke · payload</label><textarea class="input" name="payload" rows="6">{"hello": "pogi"}</textarea></div>
   <div class="actions" style="justify-content:flex-end"><span class="dim htmx-indicator">running…</span><button class="btn primary">{{icon "play"}}Invoke</button></div>
 </form>
 <div id="result" style="margin:14px 0"></div>
@@ -19,7 +19,18 @@
 <div id="logs" hx-get="{{$u}}" hx-select="#logs" data-poll="3000" data-poll-drawer hx-trigger="pogi-poll" hx-swap="outerHTML">
 <pre class="code logs">{{range .Logs}}{{.}}
 {{else}}No logs yet. Invoke the function.{{end}}</pre></div>
-<details class="more" style="margin-top:16px"><summary>Configuration</summary><pre class="code">{{json .Info}}</pre></details>
+<details class="more" style="margin-top:16px"><summary>Update code</summary>
+<form hx-post="{{$u}}/code" hx-target="#drawer" hx-encoding="multipart/form-data">
+  <div class="field"><label for="lz">Zip file with the function's code</label><input class="input" id="lz" type="file" name="file" accept=".zip" data-upload required aria-required="true" style="padding:4px"></div>
+  <div class="actions" style="justify-content:flex-end"><button class="btn">Update code</button></div>
+</form></details>
+<details class="more" style="margin-top:8px"><summary>Environment variables</summary>
+<form hx-post="{{$u}}/env" hx-target="#drawer">
+  <p class="dim">Saving replaces all variables with the ones below. Empty rows are ignored.</p>
+  {{range $i, $e := .Env}}<div class="actions" style="margin-bottom:6px"><input class="input" name="k{{$i}}" value="{{index $e 0}}" aria-label="Variable {{add $i 1}} name" placeholder="NAME" autocomplete="off"><input class="input" name="v{{$i}}" value="{{index $e 1}}" aria-label="Variable {{add $i 1}} value" placeholder="value" autocomplete="off"></div>{{end}}
+  <div class="actions" style="justify-content:flex-end"><button class="btn">Save variables</button></div>
+</form></details>
+<details class="more" style="margin-top:8px"><summary>Configuration</summary><pre class="code">{{json .Info}}</pre></details>
 {{end}}
 {{define "result"}}{{if .Error}}<div class="flash" role="alert">{{.Error}}</div>{{end}}{{with .Result}}
 <p>{{if .Error}}<span class="st bad">{{.Error}}</span>{{else}}<span class="st ok">success</span>{{end}} <span class="dim">{{.Elapsed}}</span></p>

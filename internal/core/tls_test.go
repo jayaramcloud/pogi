@@ -48,3 +48,23 @@ func TestSniffTLS(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestCertCoversServiceHosts: the HTTPS addresses Azure services hand out (Event Grid topic endpoints and the
+// like) are covered by pogi's certificate; *.localhost covers one label only.
+func TestCertCoversServiceHosts(t *testing.T) {
+	h := NewHub(Config{DataDir: t.TempDir()}, nil)
+	cfg, err := h.TLS()
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaf, err := x509.ParseCertificate(cfg.Certificates[0].Certificate[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, host := range []string{"localhost", "orders.eventgrid.localhost", "app.azurewebsites.localhost", "app.scm.azurewebsites.localhost",
+		"hub.service.signalr.localhost", "gw.azure-api.localhost", "mail.communication.localhost", "acct.blob.localhost"} {
+		if err := leaf.VerifyHostname(host); err != nil {
+			t.Error(err)
+		}
+	}
+}

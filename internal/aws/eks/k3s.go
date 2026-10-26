@@ -43,7 +43,9 @@ func DefaultImage() string { return "rancher/k3s:" + k3sTags[defaultVersion] }
 // certificate chains to.
 func (k *K3s) Run(ctx context.Context, d *docker.Client, restart bool) (endpoint string, ca []byte, err error) {
 	if !restart {
-		d.Remove(ctx, k.Name) // a leftover of a crashed run
+		if err := d.RemoveLeftover(ctx, k.Name); err != nil {
+			return "", nil, err
+		}
 		cmd := append([]string{"server", "--disable=traefik", "--disable=metrics-server", "--disable-network-policy",
 			"--tls-san=127.0.0.1", "--tls-san=localhost", "--tls-san=host.docker.internal", "--token=" + k.Token}, k.Args...)
 		if k.Webhook != "" {

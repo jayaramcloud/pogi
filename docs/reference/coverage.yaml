@@ -5,7 +5,8 @@
 #
 # Row fields: title, cloud (aws, gcp, azure), depth (Deep, Core, Thin), services (registry
 # names, a service may be in several rows), docker (needs Docker for its real behavior),
-# covered, not_yet. `rest: true` takes the AWS services no other row names; {n} in its text
+# covered, not_yet, guide (an optional how-to link, from docs/reference/, with an optional #heading).
+# `rest: true` takes the AWS services no other row names; {n} in its text
 # is their count.
 intro: |
   # Coverage
@@ -19,6 +20,8 @@ intro: |
   - **Deep:** real behavior, plus links to other services. A queue can trigger a function, for example.
   - **Core:** the main API, with real behavior.
   - **Thin:** pogi stores your resources and reads them back, but nothing runs behind them. That is enough for tools such as Terraform.
+
+  A service whose name is a link has a how-to guide with the commands to get it working. For a Thin service, see [Use any service](../how-to/use-any-service.md).
 
   ARNs (the IDs AWS gives resources) use the right prefix for the region: `aws`, `aws-cn` for China, and `aws-us-gov` for GovCloud.
   The Terraform run also passes with `REGION=us-gov-west-1` and `REGION=cn-north-1`.
@@ -100,6 +103,7 @@ categories:
 
 rows:
 - title: "S3"
+  guide: ../how-to/use-object-storage.md#aws-s3
   cloud: aws
   depth: Deep
   services: [s3]
@@ -107,6 +111,7 @@ rows:
   not_yet: "stored replication settings are not acted on; lifecycle transitions are ignored; website routing rules are not applied; S3 Select; uploads over 10 MiB are refused unless `--max-upload-mb` is raised, because object bodies are held in memory (also in persistent mode)"
 
 - title: "SQS"
+  guide: ../how-to/use-queues-and-topics.md#aws-sqs-and-sns
   cloud: aws
   depth: Deep
   services: [sqs]
@@ -114,6 +119,7 @@ rows:
   not_yet: ""
 
 - title: "SNS"
+  guide: ../how-to/use-queues-and-topics.md#aws-sqs-and-sns
   cloud: aws
   depth: Deep
   services: [sns]
@@ -121,6 +127,7 @@ rows:
   not_yet: ""
 
 - title: "DynamoDB + Streams"
+  guide: ../how-to/use-nosql-databases.md#aws-dynamodb
   cloud: aws
   depth: Deep
   services: [dynamodb]
@@ -128,6 +135,7 @@ rows:
   not_yet: "PartiQL, import/export; redundant parentheses in an expression are accepted (AWS refuses some)"
 
 - title: "Lambda"
+  guide: ../how-to/run-functions-and-http-apis.md#aws-lambda
   cloud: aws
   depth: Deep
   services: [lambda]
@@ -135,6 +143,7 @@ rows:
   not_yet: "Java/.NET/Ruby run only in Docker, code signing, SnapStart; Kafka and MSK mappings use plain or SASL connections (no TLS settings), and an MSK mapping needs its cluster ACTIVE with Docker; extensions do not delay an invocation and the Logs and Telemetry APIs are not served, and a container image's own `/opt/extensions` do not start; `Architectures` is stored but native functions run on the host architecture; failed asynchronous invokes retry after 1 and 2 seconds, where AWS waits 1 and 2 minutes, so tests stay fast; `ListLayers` refuses a `CompatibleRuntime` of an unknown family but accepts a mistyped version such as `python3.99`"
 
 - title: "API Gateway v1 + v2"
+  guide: ../how-to/run-functions-and-http-apis.md#aws-api-gateway-in-front-of-lambda
   cloud: aws
   depth: Deep
   services: [apigateway]
@@ -142,6 +151,7 @@ rows:
   not_yet: "WebSocket invoke, VTL `#macro`, the role of an `AWS` integration (`credentials`) is not assumed, custom domain certificates are not checked and domains answer over HTTP only; `AWS_IAM` routes need a SigV4-signed request but the signature and the caller's permissions are not checked; a RestApi resource policy is enforced for `Deny` statements only (no implicit deny)"
 
 - title: "Step Functions"
+  guide: ../how-to/run-events-and-workflows.md#aws-step-functions
   cloud: aws
   depth: Deep
   services: [stepfunctions]
@@ -149,6 +159,7 @@ rows:
   not_yet: "distributed Map, redrive; Map `ToleratedFailure*` fields are checked at create but not applied (one failed item fails the Map); JSONata: `$eval`, `$formatInteger`, `$parseInteger`, the `%`, `@` and `#` operators, and picture strings in `$toMillis`; by design, every real sleep (a Wait state or a Retry backoff) is cut to at most 60 seconds so local runs stay fast, so a Wait of an hour ends after one minute"
 
 - title: "EventBridge + Scheduler"
+  guide: ../how-to/run-events-and-workflows.md#aws-eventbridge
   cloud: aws
   depth: Deep
   services: [events, scheduler]
@@ -163,6 +174,7 @@ rows:
   not_yet: ""
 
 - title: "CloudFormation"
+  guide: ../how-to/deploy-a-cloudformation-stack.md
   cloud: aws
   depth: Deep
   services: [cloudformation]
@@ -170,6 +182,7 @@ rows:
   not_yet: "SAM connectors, applications and deployment preferences, StackSets and macros, drift detection (always in sync), types whose service has no API for them yet (SES receipt rules, RDS proxies, Logs resource policies and destinations, ECR replication, API Gateway accounts and VPC links, Glue workflows, VPN and peering connections)"
 
 - title: "IAM"
+  guide: ../tutorials/least-privilege.md
   cloud: aws
   depth: Core
   services: [iam]
@@ -184,6 +197,7 @@ rows:
   not_yet: "trust policies are not checked, web identity tokens are not verified"
 
 - title: "KMS"
+  guide: ../how-to/store-secrets-and-keys.md#aws-kms
   cloud: aws
   depth: Core
   services: [kms]
@@ -191,6 +205,7 @@ rows:
   not_yet: "grants, imported key material, multi-region keys"
 
 - title: "Secrets Manager"
+  guide: ../how-to/store-secrets-and-keys.md#aws-secrets-manager
   cloud: aws
   depth: Core
   services: [secretsmanager]
@@ -198,6 +213,7 @@ rows:
   not_yet: "replication (metadata only)"
 
 - title: "Systems Manager (SSM)"
+  guide: ../how-to/store-secrets-and-keys.md#aws-parameter-store
   cloud: aws
   depth: Core
   services: [ssm]
@@ -206,6 +222,7 @@ rows:
   not_yet: "parameter policies; associations run once when made, not on their schedule; Run Command targets InstanceIds only (no tag targets), has one output stream, and runs `aws:runShellScript` steps only; Automation, Session Manager, Inventory and Patch Manager"
 
 - title: "CloudWatch Logs"
+  guide: ../how-to/read-logs-and-metrics.md#aws-cloudwatch-logs
   cloud: aws
   depth: Core
   services: [logs]
@@ -213,6 +230,7 @@ rows:
   not_yet: "Insights `stats/parse`; metric filters read JSON fields only (not space-delimited `$name`), and `defaultValue` is published per batch of ingested events, not per minute"
 
 - title: "CloudWatch Metrics"
+  guide: ../how-to/read-logs-and-metrics.md#aws-cloudwatch-metrics-and-alarms
   cloud: aws
   depth: Core
   services: [cloudwatch]
@@ -227,6 +245,7 @@ rows:
   not_yet: "Open, Click and Reject events; Firehose and Pinpoint destinations are stored but get nothing; the sandbox rule that a sender must be verified (any sender is accepted, on purpose)"
 
 - title: "Cognito user pools"
+  guide: ../how-to/sign-users-in.md#aws-cognito-user-pools
   cloud: aws
   depth: Deep
   services: [cognito-idp]
@@ -234,6 +253,7 @@ rows:
   not_yet: "signing in through an external identity provider, passkeys (WEB_AUTHN), hosted-UI sign-up; a user whose MFA method was only switched on has no authenticator, so the code 123456 passes"
 
 - title: "RDS / ElastiCache"
+  guide: ../how-to/run-sql-databases-and-caches.md#aws-rds
   cloud: aws
   depth: Core
   services: [rds, elasticache]
@@ -242,6 +262,7 @@ rows:
   not_yet: "snapshot restore, read replicas, parameters applied to engines"
 
 - title: "ECR"
+  guide: ../how-to/run-containers-and-vms.md#aws-ecr-and-ecs
   cloud: aws
   depth: Deep
   services: [ecr]
@@ -250,6 +271,7 @@ rows:
   not_yet: "one registry host for all accounts, blob garbage collection"
 
 - title: "ECS"
+  guide: ../how-to/run-containers-and-vms.md#aws-ecr-and-ecs
   cloud: aws
   depth: Deep
   services: [ecs]
@@ -274,6 +296,7 @@ rows:
   not_yet: "flow logs write no records, instances do not run on dedicated hosts, transit gateway route tables and routes, created images keep no snapshots (pogi has no EBS snapshots), IPv6 CIDR blocks on VPCs"
 
 - title: "EKS"
+  guide: ../how-to/run-kubernetes-clusters.md#aws-eks
   cloud: aws
   depth: Core
   services: [eks]
@@ -282,6 +305,7 @@ rows:
   not_yet: "node groups add no nodes, version upgrades, a cluster endpoint other machines can reach (it is always `https://127.0.0.1:<port>`; pogi publishes container ports on loopback only)"
 
 - title: "EC2 instances"
+  guide: ../how-to/run-containers-and-vms.md#aws-ec2
   cloud: aws
   depth: Core
   services: [ec2]
@@ -552,6 +576,7 @@ rows:
   not_yet: "the DAX client's own protocol (`dax://`, port 8111) is not spoken, so use the plain DynamoDB client locally; nothing is cached; no events; subnet IDs that pogi's EC2 does not know are accepted"
 
 - title: "Long tail (generated)"
+  guide: ../how-to/use-any-service.md#aws-a-long-tail-service
   cloud: aws
   depth: Thin
   rest: true # every AWS service no other row names
@@ -622,6 +647,7 @@ rows:
   not_yet: "storage and Lambda-duration billing"
 
 - title: "ACM, Route 53, EC2 network, Tagging"
+  guide: ../how-to/use-any-service.md#aws-route-53
   cloud: aws
   depth: Thin
   services: [acm, route53, ec2, resourcegroupstaggingapi]
@@ -823,6 +849,7 @@ rows:
   not_yet: "licenses are not counted or enforced: associations, licenses, grants and reports are not tested; no usage is ever reported"
 
 - title: "Cloud Storage"
+  guide: ../how-to/use-object-storage.md#google-cloud-cloud-storage
   cloud: gcp
   depth: Deep
   services: [gcs]
@@ -830,6 +857,7 @@ rows:
   not_yet: "IAM conditions, retention policies"
 
 - title: "Pub/Sub"
+  guide: ../how-to/use-queues-and-topics.md#google-cloud-pubsub
   cloud: gcp
   depth: Deep
   services: [pubsub]
@@ -837,6 +865,7 @@ rows:
   not_yet: "exactly-once, BigQuery/GCS subscriptions; the schema check says only that a message failed validation, Avro JSON ignores fields the schema does not name, and Protocol Buffers definitions cannot import other files"
 
 - title: "Firestore (Native)"
+  guide: ../how-to/use-nosql-databases.md#google-cloud-firestore
   cloud: gcp
   depth: Deep
   services: [firestore]
@@ -851,6 +880,7 @@ rows:
   not_yet: "GQL, `read_time`, metadata queries (`__kind__`), index checks"
 
 - title: "Cloud SQL"
+  guide: ../how-to/run-sql-databases-and-caches.md#google-cloud-cloud-sql
   cloud: gcp
   depth: Core
   services: [sqladmin]
@@ -859,6 +889,7 @@ rows:
   not_yet: "Auth Proxy, TLS and IAM database auth, CSV/BAK, replicas, backups, failover"
 
 - title: "Secret Manager"
+  guide: ../how-to/store-secrets-and-keys.md#google-cloud-secret-manager
   cloud: gcp
   depth: Core
   services: [secretmanager]
@@ -866,6 +897,7 @@ rows:
   not_yet: "rotation and notifications (stored only)"
 
 - title: "Cloud Run"
+  guide: ../how-to/run-containers-and-vms.md#google-cloud-cloud-run
   cloud: gcp
   depth: Core
   services: [run]
@@ -882,6 +914,7 @@ rows:
   not_yet: "needs Docker for queries; no `WITH OFFSET`, wildcard tables, `INFORMATION_SCHEMA`, ML, Storage API, partition pseudo-columns"
 
 - title: "Cloud Logging"
+  guide: ../how-to/read-logs-and-metrics.md#google-cloud-cloud-logging
   cloud: gcp
   depth: Core
   services: [logging]
@@ -896,6 +929,7 @@ rows:
   not_yet: "MQL/PromQL, groups, services and SLOs, snoozes, built-in metrics"
 
 - title: "Cloud Functions"
+  guide: ../how-to/run-functions-and-http-apis.md#google-cloud-cloud-functions
   cloud: gcp
   depth: Core
   services: [cloudfunctions]
@@ -904,6 +938,7 @@ rows:
   not_yet: "Node, Go and other runtimes, repository sources, IAM"
 
 - title: "Cloud Tasks"
+  guide: ../how-to/run-events-and-workflows.md#google-cloud-cloud-tasks-and-cloud-scheduler
   cloud: gcp
   depth: Core
   services: [cloudtasks]
@@ -911,6 +946,7 @@ rows:
   not_yet: "App Engine tasks, queue-level HTTP overrides"
 
 - title: "Cloud Scheduler"
+  guide: ../how-to/run-events-and-workflows.md#google-cloud-cloud-tasks-and-cloud-scheduler
   cloud: gcp
   depth: Core
   services: [cloudscheduler]
@@ -947,6 +983,7 @@ rows:
   not_yet: "bookkeeping only"
 
 - title: "Cloud KMS"
+  guide: ../how-to/store-secrets-and-keys.md#google-cloud-cloud-kms
   cloud: gcp
   depth: Deep
   services: [cloudkms]
@@ -954,6 +991,7 @@ rows:
   not_yet: "raw encryption, import jobs, ED25519 and post-quantum keys"
 
 - title: "Firebase Auth"
+  guide: ../how-to/sign-users-in.md#google-cloud-firebase-auth
   cloud: gcp
   depth: Core
   services: [firebaseauth]
@@ -961,6 +999,7 @@ rows:
   not_yet: "tenants, MFA, email-link sign-in"
 
 - title: "Blob Storage"
+  guide: ../how-to/use-object-storage.md#azure-blob-storage
   cloud: azure
   depth: Deep
   services: [azblob]
@@ -968,6 +1007,7 @@ rows:
   not_yet: ""
 
 - title: "Queue Storage"
+  guide: ../how-to/use-queues-and-topics.md#azure-queue-storage
   cloud: azure
   depth: Core
   services: [azqueue]
@@ -975,6 +1015,7 @@ rows:
   not_yet: ""
 
 - title: "Table Storage"
+  guide: ../how-to/use-nosql-databases.md#azure-table-storage
   cloud: azure
   depth: Core
   services: [aztable]
@@ -982,6 +1023,7 @@ rows:
   not_yet: "`$filter` functions, Atom payloads"
 
 - title: "Cosmos DB (NoSQL)"
+  guide: ../how-to/use-nosql-databases.md#azure-cosmos-db
   cloud: azure
   depth: Core
   services: [cosmos]
@@ -989,6 +1031,7 @@ rows:
   not_yet: "stored procedures run nothing, .NET binary batches, spatial/vector functions"
 
 - title: "Key Vault"
+  guide: ../how-to/store-secrets-and-keys.md#azure-key-vault
   cloud: azure
   depth: Core
   services: [keyvault]
@@ -996,6 +1039,7 @@ rows:
   not_yet: "certificate issuers, key release"
 
 - title: "Service Bus"
+  guide: ../how-to/use-queues-and-topics.md#azure-service-bus-and-event-hubs
   cloud: azure
   depth: Deep
   services: [servicebus]
@@ -1003,6 +1047,7 @@ rows:
   not_yet: "auto-delete-on-idle and max size are stored only"
 
 - title: "Event Hubs"
+  guide: ../how-to/use-queues-and-topics.md#azure-service-bus-and-event-hubs
   cloud: azure
   depth: Deep
   services: [eventhubs]
@@ -1010,6 +1055,7 @@ rows:
   not_yet: "AMQP and Kafka are separate logs, fixed partition count"
 
 - title: "Event Grid"
+  guide: ../how-to/run-events-and-workflows.md#azure-event-grid
   cloud: azure
   depth: Core
   services: [eventgrid]
@@ -1017,6 +1063,7 @@ rows:
   not_yet: "hybrid connections, input schema mapping"
 
 - title: "Azure Functions"
+  guide: ../how-to/run-functions-and-http-apis.md#azure-functions
   cloud: azure
   depth: Core
   services: [azfunctions]
@@ -1053,6 +1100,7 @@ rows:
   not_yet: "storage `regenerateKey`, function app config sub-resources"
 
 - title: "Azure SQL, PostgreSQL, MySQL, Cache for Redis"
+  guide: ../how-to/run-sql-databases-and-caches.md#azure-database-for-postgresql
   cloud: azure
   depth: Core
   services: [azdatabases]
@@ -1074,6 +1122,7 @@ rows:
   covered: "virtual networks and subnets with address checks, NSGs and rules, public IPs, NICs with private IP allocation, route tables, NAT gateways, private DNS zones"
   not_yet: "no traffic, peerings or service endpoints"
 - title: "Kubernetes Engine"
+  guide: ../how-to/run-kubernetes-clusters.md#google-cloud-gke
   cloud: gcp
   depth: Core
   services: [container]
@@ -1082,6 +1131,7 @@ rows:
   not_yet: "node pools are metadata and add no nodes, one Kubernetes version (the k3s one), every valid token is cluster-admin, lists are one page"
 
 - title: "Compute Engine"
+  guide: ../how-to/run-containers-and-vms.md#google-cloud-compute-engine
   cloud: gcp
   depth: Core
   services: [compute]
@@ -1105,6 +1155,7 @@ rows:
   not_yet: "operations are in memory only and never expire"
 
 - title: "Memorystore for Redis"
+  guide: ../how-to/run-sql-databases-and-caches.md#google-cloud-memorystore
   cloud: gcp
   depth: Core
   services: [redis]
@@ -1112,12 +1163,14 @@ rows:
   covered: "v1 (gRPC and REST, REST under `/redis/`): instances (create, get, list, update with `updateMask`, delete, `getAuthString`), each a real Redis container: `host` and `port` on the instance work for a Redis client, `authEnabled` sets a real password, `memorySizeGb` is the memory limit and the documented `redisConfigs` reach the server; without Docker, READY at once with the address 127.0.0.1:6379 and nothing behind it"
   not_yet: "the container is always Redis 7 whatever `redisVersion` says, STANDARD_HA and read replicas run as one server, TLS, persistence, import, export, failover and upgrade, `redisConfigs` other than the documented seven are refused, a key removed from `redisConfigs` keeps its value until the instance is made again"
 - title: "Workflows"
+  guide: ../how-to/run-events-and-workflows.md#google-cloud-workflows
   cloud: gcp
   depth: Core
   services: [workflows]
   covered: "Workflows v1 and Workflow Executions v1 (gRPC and REST, hosts `workflows` and `workflowexecutions`): workflows (create, get, list, patch with `updateMask`, delete, revisions with `revisionId` and `listRevisions`) and executions (create with an `argument`, get with BASIC or FULL view, list, cancel). An execution really runs the YAML: `main` and subworkflows with `params`; `assign`; `call` of `http.get`, `http.post`, `http.put`, `http.patch`, `http.delete`, `http.request`, `sys.log`, `sys.sleep`, `sys.get_env` and subworkflows; `switch`, `for` (`in`, `range`, `index`, `value`), `try`/`except`/`retry` (predicate, `max_retries`, backoff, `http.default_retry`), `return`, `raise` and `next`; `${...}` expressions with operators, list and map literals and access, and `len`, `keys`, `default`, `map.get`, `json.*`, `text.*` basics, `time.format`, `sys.now`. A `*.googleapis.com` URL in an HTTP call reaches pogi itself; other URLs are called for real (default timeout 300 s). State is ACTIVE while running, then SUCCEEDED with `result` or FAILED with the error and its step. An unsupported step, connector or function fails the execution with an error that names it and cannot be caught. Caps: 100,000 steps per execution, 100,000 iterations per loop, 20 nested calls"
   not_yet: "`parallel` steps, connectors (`googleapis.*`), callbacks and `events.*`, the long tail of standard library functions (bytes, `base64`, `uuid`, `hash`, most `text.*`), `sys.log` output (it is checked and dropped, nothing reaches Cloud Logging), `GOOGLE_CLOUD_PROJECT_NUMBER`, `auth` on HTTP calls is ignored, filters and ordering when listing, execution step history, CMEK, call logging and Terraform has no execution resource"
 - title: "Cloud DNS"
+  guide: ../how-to/use-any-service.md#google-cloud-cloud-dns
   cloud: gcp
   depth: Thin
   services: [dns]
@@ -1631,6 +1684,7 @@ rows:
   not_yet: "OpenAPI and WSDL import, the C# policy expression language (a few `context.Request.Headers` forms only), other policies (`choose`, `send-request`, `quota`, caching, `retry`) are skipped, `on-error` sections, rate limits are a fixed window kept in memory"
 
 - title: "Kubernetes Service"
+  guide: ../how-to/run-kubernetes-clusters.md#azure-aks
   cloud: azure
   depth: Core
   services: [azaks]
@@ -1745,6 +1799,7 @@ rows:
   not_yet: "no certificate is issued: the key opens nothing, and there is no ACME server behind it"
 
 - title: "Container Instances"
+  guide: ../how-to/run-containers-and-vms.md#azure-container-instances
   cloud: azure
   depth: Core
   services: [azaci]
@@ -1796,6 +1851,7 @@ rows:
   covered: "ARM `Microsoft.Web/serverfarms` and `sites` for web apps (`azurerm_service_plan`, `azurerm_linux_web_app`, `azurerm_windows_web_app`), with the site configuration, app settings, connection strings, publishing credentials and the other configuration `azurerm` reads. A Linux web app runs in Docker, at `<app>.azurewebsites.localhost:7644`: a container image (`DOCKER|<image>`, `WEBSITES_PORT`, app settings as environment), or Node and Python code from a zip deploy to `<app>.scm.azurewebsites.localhost/api/zipdeploy`; it starts on create and on change, `start`, `stop` and `restart` work, and it is removed on delete or shutdown; without Docker, metadata only"
   not_yet: "Windows web apps are metadata only (they do not run), no .NET, Java or PHP stacks, deployment slots, custom domains and certificates, authentication, backups, scaling (one container per app), startup commands are split on spaces without quoting, Kudu beyond zip deploy"
 - title: "DNS"
+  guide: ../how-to/use-any-service.md#azure-dns-zones
   cloud: azure
   depth: Thin
   services: [azdns]

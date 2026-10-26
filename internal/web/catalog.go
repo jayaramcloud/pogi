@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -98,7 +99,7 @@ type createBtn struct {
 }
 
 type scopeBar struct {
-	Text, AllLabel, Vals string // Vals is the JSON body of "show all", empty when everything is shown
+	Text, AllLabel, Vals, Hidden string // Vals is the JSON body of "show all", empty when everything is shown
 }
 
 type svcPage struct {
@@ -151,7 +152,7 @@ var explorerTabs = map[string]struct{ Key, Label, URL string }{
 	"cloudkms":      {"crypto", "Encrypt & decrypt", "/_pogi/crypto"},
 	"keyvault":      {"crypto", "Encrypt & decrypt", "/_pogi/crypto"},
 	"ec2":           {"network", "Network", "/_pogi/network"},
-	"stepfunctions": {"exec", "Executions", "/_pogi/sfn"},
+	"stepfunctions": {"exec", "Run", "/_pogi/sfn"}, // "Executions" is the table tab
 }
 
 // upFirst capitalises the first letter and ends the text with a full stop.
@@ -167,7 +168,10 @@ func upFirst(s string) string {
 	return s
 }
 
-// numCols marks the columns whose cells are all whole numbers.
+// sizeCell matches a byte size such as "5 B" or "1.2 MiB": a number with a unit, aligned like one.
+var sizeCell = regexp.MustCompile(`^\d+(\.\d+)? [KMGT]?i?B$`)
+
+// numCols marks the columns whose cells are all whole numbers or byte sizes.
 func numCols(t core.Table, rows [][]string) []bool {
 	out := make([]bool, len(t.Columns))
 	for i := range out {
@@ -175,6 +179,10 @@ func numCols(t core.Table, rows [][]string) []bool {
 		out[i] = len(rows) > 0
 		for _, r := range rows {
 			if i >= len(r) || r[i] == "" {
+				continue
+			}
+			if sizeCell.MatchString(r[i]) {
+				n++
 				continue
 			}
 			if _, err := strconv.Atoi(r[i]); err != nil || len(r[i]) > 9 || len(r[i]) > 1 && r[i][0] == '0' { // not an account ID
@@ -189,9 +197,11 @@ func numCols(t core.Table, rows [][]string) []bool {
 }
 
 // createFor is the Create button of a service: its Create* forms, else all its forms.
-func (ui *UI) createFor(name string) *createBtn {
+// back is the page the button is on: an ARM editor opened from it returns there.
+func (ui *UI) createFor(name, back string) *createBtn {
 	if name == "arm" {
-		return &createBtn{Label: "Create resource", Href: "/_pogi/arm/new"}
+		return &createBtn{Label: "Create…", Menu: []menuItem{{Title: "Create resource group", Href: "/_pogi/arm/group?back=" + url.QueryEscape(back)},
+			{Title: "Create resource", Href: "/_pogi/arm/new?back=" + url.QueryEscape(back)}}}
 	}
 	var items, rest []menuItem
 	for _, f := range ui.formOps(name) {
@@ -203,6 +213,7 @@ func (ui *UI) createFor(name string) *createBtn {
 			rest = append(rest, m)
 		}
 	}
+	items = append(items, ui.armCreateItems(name, back)...) // after the service's own forms
 	if len(items) == 0 {
 		items, rest = rest, nil
 	}
@@ -220,20 +231,40 @@ func (ui *UI) createFor(name string) *createBtn {
 }
 
 // scopeFor says what the table is filtered by, for the scope bar.
-func scopeFor(cloud string, sc scope, back string) scopeBar {
-	val, key, all1, plural := sc.Account+" / "+sc.Region, "region", sc.Region, "regions"
+// hidden rows of the table are named, with the thing that hides them: "2 topics in other projects".
+func scopeFor(cloud string, sc scope, back, noun string, hidden int) scopeBar {
+	text, keys, plural, other := sc.text(cloud), map[string]string{"region": sc.Region}, "regions", "regions or accounts"
 	switch cloud {
 	case core.GCP:
-		val, key, all1, plural = sc.Project, "project", sc.Project, "projects"
+		keys, plural, other = map[string]string{"project": sc.Project, "location": sc.Location}, "projects and locations", "projects or locations"
 	case core.Azure:
-		val, key, all1, plural = sc.Subscription, "subscription", sc.Subscription, "subscriptions"
+		keys, plural, other = map[string]string{"subscription": sc.Subscription, "group": sc.Group, "azlocation": sc.AzLocation}, "subscriptions, groups and locations", "subscriptions, groups or locations"
+		text = show(sc.Subscription, "subscriptions") + " · " + text
 	}
-	b := scopeBar{Text: strings.ReplaceAll(val, all, "all "+plural)}
-	if all1 != all {
-		v, _ := json.Marshal(map[string]string{key: all, "back": back})
-		b.AllLabel, b.Vals = "Show all "+plural, string(v)
+	b := scopeBar{Text: text}
+	if hidden > 0 {
+		b.Hidden = plural1(hidden, noun) + " in other " + other
+	}
+	vals := map[string]string{"back": back}
+	for k, v := range keys {
+		if v != all {
+			vals[k] = all
+		}
+	}
+	if len(vals) > 1 {
+		j, _ := json.Marshal(vals)
+		b.AllLabel, b.Vals = "Show all "+plural, string(j)
 	}
 	return b
+}
+
+// plural1 is "1 topic", "2 topics" for a lowercase table name that may already be plural.
+func plural1(n int, noun string) string {
+	noun = strings.ToLower(noun)
+	if n == 1 {
+		noun = strings.TrimSuffix(noun, "s")
+	}
+	return fmt.Sprintf("%d %s", n, noun)
 }
 
 func (ui *UI) servicePage(w http.ResponseWriter, r *http.Request, name string) {
@@ -244,18 +275,25 @@ func (ui *UI) servicePage(w http.ResponseWriter, r *http.Request, name string) {
 	}
 	info, sc, cov := svc.Info(), ui.scope(r), coverage().Services[name]
 	p := &svcPage{Name: name, Title: info.Title, Cloud: info.Cloud, CloudName: cloudNames[info.Cloud], Depth: cov.Depth, Back: r.URL.RequestURI(),
-		Pinned: pinned(r)[name], Covered: upFirst(cov.Covered), NotYet: upFirst(cov.NotYet), Create: ui.createFor(name), Endpoint: "http://" + r.Host}
+		Pinned: pinned(r)[name], Covered: upFirst(cov.Covered), NotYet: upFirst(cov.NotYet), Create: ui.createFor(name, r.URL.RequestURI()), Endpoint: "http://" + r.Host}
 	if info.Cloud == core.AWS {
 		p.CLI = "pogi aws " + name
 	}
 	rowScope := sc.forCloud(info.Cloud)
 	var tables []tbl
+	hidden := map[string]int{} // rows the scope hides, by table
+	nHidden := 0
 	if b, ok := svc.(core.Browsable); ok {
 		for _, t := range b.Resources() {
 			x := tbl{Table: core.Table{Name: t.Name, Columns: t.Columns}}
 			for _, row := range t.Rows {
-				if rowScope.allows(t.Columns, row) {
+				if rowScope.keeps(t, row) {
 					x.Rows, x.Enc = append(x.Rows, row), append(x.Enc, encRow(row))
+				} else {
+					hidden[t.Name]++
+					if !t.Log {
+						nHidden++
+					}
 				}
 			}
 			x.Del, x.Tag = ui.bulkable(name, t.Name)
@@ -273,7 +311,11 @@ func (ui *UI) servicePage(w http.ResponseWriter, r *http.Request, name string) {
 	if res == 0 && reqs == 0 {
 		p.Sub = "Nothing here yet"
 	} else {
-		p.Sub = plural(res, "resource") + " · " + plural(reqs, "request")
+		p.Sub = plural(res, "resource")
+		if nHidden > 0 {
+			p.Sub += " (" + strconv.Itoa(nHidden) + " hidden by the scope)"
+		}
+		p.Sub += " · " + plural(reqs, "request")
 		if last := ui.hub.Requests.Query(0, 1, name, "", false); len(last) > 0 {
 			p.Sub += " · last call " + ago(last[0].Time)
 		}
@@ -304,7 +346,7 @@ func (ui *UI) servicePage(w http.ResponseWriter, r *http.Request, name string) {
 	default:
 		if i := slices.IndexFunc(tables, func(t tbl) bool { return t.Name == p.Tab }); i >= 0 {
 			p.Table, p.Num = &tables[i], numCols(tables[i].Table, tables[i].Rows)
-			p.Scope = scopeFor(info.Cloud, sc, p.Back)
+			p.Scope = scopeFor(info.Cloud, sc, p.Back, p.Tab, hidden[p.Tab])
 		} else {
 			p.Frag = explorerTabs[name].URL
 		}

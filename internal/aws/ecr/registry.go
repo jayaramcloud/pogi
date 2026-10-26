@@ -577,7 +577,9 @@ func (s *Service) open() (func(), error) {
 		return nil, err
 	}
 	name := docker.Name("ecr", port)
-	d.Remove(s.ctx, name) // a leftover of a crashed run
+	if err := d.RemoveLeftover(s.ctx, name); err != nil { // another pogi's forwarder holds the port
+		return nil, err
+	}
 	id, err := d.Run(s.ctx, &docker.Container{Name: name, Image: "alpine/socat", Service: "ecr", Resource: port, Ports: map[int]int{4510: s.hub.Cfg.ECRPort},
 		Cmd: []string{"tcp-listen:4510,fork,reuseaddr", "tcp-connect:" + d.HostAddr() + ":" + u.Port()}})
 	if err != nil {

@@ -7,11 +7,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/licensemanager"
 	"github.com/aws/aws-sdk-go-v2/service/licensemanager/types"
+	"github.com/nrndev/pogi/internal/aws/generic"
 	"github.com/nrndev/pogi/internal/awstest"
 )
 
 func TestLicenseManager(t *testing.T) {
-	_, url := start(t, "license-manager")
+	h, url := start(t, "license-manager")
 	ctx := context.Background()
 	c := licensemanager.NewFromConfig(awstest.Config(t, url))
 
@@ -36,6 +37,10 @@ func TestLicenseManager(t *testing.T) {
 	l, err := c.ListLicenseConfigurations(ctx, &licensemanager.ListLicenseConfigurationsInput{})
 	if err != nil || len(l.LicenseConfigurations) != 1 {
 		t.Fatalf("list: %v %+v", err, l)
+	}
+	// the console and pogi ls show its name, though an ARN identifies it
+	if rows := h.Service("license-manager").(*generic.Service).Resources()[0].Rows; rows[0][1] != "cores" {
+		t.Fatalf("console row: %v", rows)
 	}
 	if _, err := c.CreateLicenseConfiguration(ctx, &licensemanager.CreateLicenseConfigurationInput{}); err == nil {
 		t.Fatal("empty create succeeded")

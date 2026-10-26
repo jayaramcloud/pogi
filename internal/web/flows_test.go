@@ -52,7 +52,7 @@ func TestFlowsFromSNSPublish(t *testing.T) {
 
 	page := c.get("/_pogi/flows")
 	want(t, page, "Flows", "Publish", "SNS", "SQS", `data-drawer="/_pogi/flows/`+trace+`"`, `hx-get="/_pogi/flows?frag=1"`)
-	if m := regexp.MustCompile(`(?s)<td class="num">(\d+)</td>`).FindStringSubmatch(page); m == nil || m[1] != "2" {
+	if m := regexp.MustCompile(`(?s)<td class="num col-narrow">(\d+)</td>`).FindStringSubmatch(page); m == nil || m[1] != "2" {
 		t.Fatalf("a publish reaching one queue is 2 steps: %v", m)
 	}
 	// a request with no second step is not a flow

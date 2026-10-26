@@ -7,7 +7,8 @@
 // a revision starts on its first request and runs until the service is
 // deleted. Jobs run one container per task and finish when all tasks have.
 // Without a container engine services and jobs are metadata only: requests get
-// 503 and executions fail.
+// 503 and executions fail. The Knative v1 Service API (gcloud run deploy) is a view over
+// the same services; it reads the region from a <region>- prefix on the host.
 package run
 
 import (
@@ -103,15 +104,31 @@ func (s *Service) RegisterGRPC(g *grpc.Server) {
 	runpb.RegisterExecutionsServer(g, s)
 }
 
+// v1IAM matches the IAM calls of the Admin API v1 (.../services/s:getIamPolicy and the like). gcloud makes them:
+// functions deploy --allow-unauthenticated binds the invoker role with them. Their bodies are v2's, so they
+// are served as v2 calls. Only the Knative Service of v1 is served (knative.go).
+var v1IAM = regexp.MustCompile(`^/v1/(projects/[^/]+/locations/[^/]+/(services|jobs)/[^/:]+:(getIamPolicy|setIamPolicy|testIamPermissions))$`)
+
 // match claims the Admin API and the data plane (hosts and paths).
 func (s *Service) match(r *http.Request) bool {
-	return s.rest.Match(r) || isData(r)
+	return s.rest.Match(r) || knativeRE.MatchString(r.URL.Path) || r.Method == "GET" && v1All.MatchString(r.URL.Path) ||
+		v1IAM.MatchString(r.URL.Path) || isData(r)
 }
 
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if isData(r) {
 		s.serveData(w, r)
 		return
+	}
+	if m := v1All.FindStringSubmatch(r.URL.Path); m != nil && r.Method == "GET" { // same list, same reply
+		r.URL.Path, r.URL.RawPath = "/apis/serving.knative.dev/v1/namespaces/"+m[1]+"/services", ""
+	}
+	if knativeRE.MatchString(r.URL.Path) {
+		s.serveKnative(w, r)
+		return
+	}
+	if m := v1IAM.FindStringSubmatch(r.URL.Path); m != nil {
+		r.URL.Path, r.URL.RawPath = "/v2/"+m[1], ""
 	}
 	s.rest.ServeHTTP(w, r)
 }

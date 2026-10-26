@@ -247,7 +247,7 @@ func TestCacheClusterLifecycle(t *testing.T) {
 		t.Fatalf("delete %+v", r.R.Cluster)
 	}
 	fails(t, base, 404, "CacheClusterNotFound", "Action", "DescribeCacheClusters", "CacheClusterId", "sessions")
-	eventually(t, "docker rm", 10*time.Second, func() bool { return len(f.Called("rm -f -v pogi-elasticache-sessions")) == 2 })
+	eventually(t, "docker rm", 10*time.Second, func() bool { return len(f.Called("rm -f -v pogi-elasticache-sessions")) == 1 }) // no leftover before run, so only the delete
 }
 
 func TestReplicationGroups(t *testing.T) {
@@ -321,7 +321,7 @@ func TestReplicationGroups(t *testing.T) {
 	}
 	fails(t, base, 404, "ReplicationGroupNotFoundFault", "Action", "DescribeReplicationGroups", "ReplicationGroupId", "cart")
 	fails(t, base, 404, "CacheClusterNotFound", "Action", "DescribeCacheClusters", "CacheClusterId", "cart-001")
-	eventually(t, "group container removed", 10*time.Second, func() bool { return len(f.Called("rm -f -v pogi-elasticache-cart")) == 2 })
+	eventually(t, "group container removed", 10*time.Second, func() bool { return len(f.Called("rm -f -v pogi-elasticache-cart")) == 1 })
 }
 
 func TestQueryShape(t *testing.T) {

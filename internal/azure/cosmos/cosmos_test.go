@@ -390,7 +390,7 @@ func TestSQL(t *testing.T) {
 	if got := svc.Containers(); len(got) != 2 || got[1] != [2]string{"lab", "t"} {
 		t.Fatalf("containers = %v", got)
 	}
-	if tabs := svc.Resources(); len(tabs) != 2 || tabs[1].Rows[1][2] != "3" || svc.Inspect("Containers", "t") == nil {
+	if tabs := svc.Resources(); len(tabs) != 3 || tabs[2].Rows[1][2] != "3" || svc.Inspect("Containers", "t") == nil {
 		t.Fatalf("resources = %+v", tabs)
 	}
 	state := must(svc.Save())

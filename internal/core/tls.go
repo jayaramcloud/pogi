@@ -21,7 +21,10 @@ import (
 
 // certNames are the host names pogi's certificate covers; a stored certificate
 // with a different list is reissued.
-var certNames = []string{"localhost", "*.localhost", "host.docker.internal", "*.lambda-url.us-east-1.localhost", "*.execute-api.localhost", "*.vault.localhost", "*.blob.localhost", "*.queue.localhost", "*.table.localhost", "*.file.localhost", "*.dfs.localhost"}
+// A wildcard covers one label, so every <name>.<service>.localhost address a service hands out over HTTPS
+// needs its own entry.
+var certNames = []string{"localhost", "*.localhost", "host.docker.internal", "*.lambda-url.us-east-1.localhost", "*.execute-api.localhost", "*.vault.localhost", "*.blob.localhost", "*.queue.localhost", "*.table.localhost", "*.file.localhost", "*.dfs.localhost",
+	"*.eventgrid.localhost", "*.azurewebsites.localhost", "*.scm.azurewebsites.localhost", "*.service.signalr.localhost", "*.azure-api.localhost", "*.communication.localhost"}
 
 // CertPaths are the files of pogi's local certificate authority.
 func (h *Hub) CertPaths() (ca, cert, key string) {

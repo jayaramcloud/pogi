@@ -230,12 +230,12 @@ var services = []factory{
 	{"iotdata", core.AWS, func(h *core.Hub) core.Service { return iot.NewData(h) }}, // after iot: it shares iot's broker
 	{"servicediscovery", core.AWS, func(h *core.Hub) core.Service { return servicediscovery.New(h) }},
 	{"sqladmin", core.GCP, func(h *core.Hub) core.Service { return gcpsql.New(h) }},    // before operations: it claims the polls of its own /v1/projects/p/operations/<id>
+	{"container", core.GCP, func(h *core.Hub) core.Service { return gke.New(h) }},      // before operations: it claims the polls of its own operations; before managedkafka: both have projects/p/locations/l/clusters, and its matcher claims only what is GKE's
 	{"operations", core.GCP, func(h *core.Hub) core.Service { return gapi.NewOps(h) }}, // shared google.longrunning.Operations
 	{"pubsub", core.GCP, func(h *core.Hub) core.Service { return pubsub.New(h) }},      // before gcs: its matcher claims Google clients
 	{"secretmanager", core.GCP, func(h *core.Hub) core.Service { return secretmanager.New(h) }},
 	{"cloudkms", core.GCP, func(h *core.Hub) core.Service { return gcpkms.New(h) }},
 	{"firebaseauth", core.GCP, func(h *core.Hub) core.Service { return firebaseauth.New(h) }},
-	{"container", core.GCP, func(h *core.Hub) core.Service { return gke.New(h) }}, // before managedkafka: both have projects/p/locations/l/clusters; its matcher claims only what is GKE's
 	{"managedkafka", core.GCP, func(h *core.Hub) core.Service { return managedkafka.New(h) }},
 	{"redis", core.GCP, func(h *core.Hub) core.Service { return memorystore.New(h) }},
 	{"cloudtasks", core.GCP, func(h *core.Hub) core.Service { return tasks.New(h) }}, // these three before gcs: its matcher claims Google clients

@@ -90,8 +90,8 @@ func (ui *UI) noteRows(off []string, seen int64) []noteRow {
 			n.Kind, n.Icon, n.Title, n.Text = "warn", "bolt", "Chaos fault injected", strings.TrimSpace(strconv.Itoa(e.Status)+" "+e.Error)+" on "+e.Service+" "+e.Op
 		case strings.HasPrefix(e.IAM, "deny"):
 			n.Kind, n.Icon, n.Title, n.Text = "warn", "lock", "IAM would deny "+e.Service+" "+e.Op, strings.TrimPrefix(strings.TrimPrefix(e.IAM, "deny"), ": ")
-		case e.Status >= 400:
-			n.Kind, n.Icon, n.Title, n.Text, n.Quiet = "bad", "x", e.Service+" "+e.Op+" failed", strings.TrimSpace(strconv.Itoa(e.Status)+" "+e.Error), e.Console
+		case e.Alarming():
+			n.Kind, n.Icon, n.Title, n.Text, n.Quiet = "bad", "x", svcTitle(e.Service)+" "+e.Op+" failed", strings.TrimSpace(strconv.Itoa(e.Status)+" "+e.Error), e.Console
 		default:
 			continue
 		}
@@ -110,10 +110,11 @@ func (ui *UI) noteRows(off []string, seen int64) []noteRow {
 	return out
 }
 
-var bellTmpl = template.Must(template.New("bell").Funcs(funcs).Parse(`<header>Notifications<a hx-post="/_pogi/notes" hx-vals='{"read":"1"}' hx-target="#bell" hx-swap="innerHTML">Mark all read</a></header>
+var bellTmpl = template.Must(template.New("bell").Funcs(funcs).Parse(`<header>Notifications<button type="button" class="linkbtn" hx-post="/_pogi/notes" hx-vals='{"read":"1"}' hx-target="#bell" hx-swap="innerHTML">Mark all read</button></header>
 <div style="max-height:360px;overflow-y:auto">{{range .Items}}<a class="note-it {{if .Unread}}unread{{end}}" href="{{.Href}}" {{if .Drawer}}data-drawer{{end}}><span class="ico {{.Kind}}">{{icon .Icon}}</span><span><b>{{.Title}}</b><small>{{.Text}}</small></span><span class="ago">{{.Ago}}</span></a>
 {{else}}<div class="empty" style="padding:30px">Failed calls, failed flows, IAM denials, chaos faults and your resources being ready or failing show up here.</div>{{end}}</div>
-<footer>Notify me about{{range .Kinds}}<span class="chip {{if .On}}on{{end}}" hx-post="/_pogi/notes" hx-vals='{"toggle":"{{.Key}}"}' hx-target="#bell" hx-swap="innerHTML">{{.Label}}</span>{{end}}</footer>
+<a class="allerr" href="/_pogi/requests?errors=1">See all errors in Activity</a>
+<footer>Notify me about{{range .Kinds}}<button type="button" class="chip {{if .On}}on{{end}}" aria-pressed="{{.On}}" hx-post="/_pogi/notes" hx-vals='{"toggle":"{{.Key}}"}' hx-target="#bell" hx-swap="innerHTML">{{.Label}}</button>{{end}}</footer>
 {{if .OOB}}<span class="badge-dot" id="bellN" hx-swap-oob="true">{{if .Unread}}{{.Unread}}{{end}}</span>{{end}}`))
 
 // notes is the bell popover. A post marks everything read ("read") or mutes and unmutes a kind ("toggle").
@@ -168,17 +169,46 @@ func (ui *UI) notesPoll(w http.ResponseWriter, r *http.Request) {
 		New    []map[string]string `json:"new"`
 		Mail   *newestMail         `json:"mail"` // the newest captured message, for the live inbox
 	}{Now: time.Now().UnixMilli(), New: []map[string]string{}}
+	var fresh []noteRow
 	for _, n := range ui.noteRows(offKinds(r), notesSeen(w, r)) {
 		if n.Unread {
 			out.Unread++
 		}
 		if n.Time.UnixMilli() > since && !n.Quiet {
-			out.New = append(out.New, map[string]string{"msg": n.Title + " · " + n.Text, "kind": n.Kind, "href": n.Href})
+			fresh = append(fresh, n)
 		}
 	}
+	out.New = toastsFor(fresh)
 	if l := ui.mailbox(); len(l) > 0 {
 		out.Mail = &newestMail{ID: strconv.FormatInt(l[0].Time.UnixNano(), 10) + "/" + strconv.Itoa(len(l)), To: l[0].To, Subject: l[0].Subject, At: l[0].Time.UnixMilli()}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(out)
+}
+
+// toastsFor is what a poll toasts: one note as it is, several as one summary that opens the bell.
+func toastsFor(fresh []noteRow) []map[string]string {
+	switch len(fresh) {
+	case 0:
+		return []map[string]string{}
+	case 1:
+		n := fresh[0]
+		return []map[string]string{{"msg": n.Title + " · " + n.Text, "kind": n.Kind, "href": n.Href}}
+	}
+	kind, msg := "bad", strconv.Itoa(len(fresh))+" calls failed"
+	for _, n := range fresh {
+		if n.Kind != "bad" {
+			kind, msg = "warn", strconv.Itoa(len(fresh))+" new notifications"
+			break
+		}
+	}
+	return []map[string]string{{"msg": msg + " · ", "kind": kind, "href": "#bell"}}
+}
+
+// svcTitle is the registry title of a service ("Cloud Storage"), or its internal name when unknown.
+func svcTitle(svc string) string {
+	if t, ok := titles.Load(svc); ok {
+		return t.(string)
+	}
+	return svc
 }

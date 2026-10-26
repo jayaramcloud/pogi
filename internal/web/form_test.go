@@ -73,7 +73,7 @@ func TestLookup(t *testing.T) {
 }
 
 func TestScopeAllows(t *testing.T) {
-	sc := scope{"000000000000", "us-east-1", "pogi", core.AzureSubscription}
+	sc := scope{Account: "000000000000", Region: "us-east-1", Project: "pogi", Subscription: core.AzureSubscription, Location: all, Group: all, AzLocation: all}
 	for _, c := range []struct {
 		cols, row []string
 		want      bool
@@ -94,11 +94,11 @@ func TestScopeAllows(t *testing.T) {
 			t.Errorf("allows(%v, %v) = %v", c.cols, c.row, got)
 		}
 	}
-	if !(scope{all, all, all, all}).allows([]string{"Region"}, []string{"mars-1"}) {
+	if !(scope{all, all, all, all, all, all, all}).allows([]string{"Region"}, []string{"mars-1"}) {
 		t.Error("* did not allow everything")
 	}
 	// an Azure storage account or a GCP region is not the switcher's AWS account or region
-	if aws := (scope{"000000000000", "us-east-1", all, all}); !aws.forCloud(core.Azure).allows([]string{"Account", "Region"}, []string{"mystore", "eastus"}) {
+	if aws := (scope{"000000000000", "us-east-1", all, all, all, all, all}); !aws.forCloud(core.Azure).allows([]string{"Account", "Region"}, []string{"mystore", "eastus"}) {
 		t.Error("an Azure row was filtered by the AWS scope")
 	}
 }

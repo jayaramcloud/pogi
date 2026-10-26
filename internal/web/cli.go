@@ -90,7 +90,7 @@ func curlCmd(verb, url string, body []byte) string {
 func (ui *UI) cliCommand(r *http.Request, svc, op string) string {
 	endpoint := "http://" + r.Host
 	if svc == "arm" && op == "new" { // the JSON editor: a PUT of the body to the resource ID
-		path, body := strings.TrimSpace(r.PostFormValue("path")), strings.TrimSpace(r.PostFormValue("body"))
+		path, body := armFillName(strings.TrimSpace(r.PostFormValue("path")), r.PostFormValue("name")), strings.TrimSpace(r.PostFormValue("body"))
 		var buf json.RawMessage
 		if json.Unmarshal([]byte(body), &buf) == nil {
 			b, _ := json.Marshal(buf)

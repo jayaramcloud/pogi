@@ -96,7 +96,7 @@ func TestCostOtherClouds(t *testing.T) {
 	do(t, c, "POST", "/storage/v1/b?project=pogi", "", `{"name":"assets"}`)
 	do(t, c, "PUT", "/files?restype=container", "dev.blob.localhost", "")
 	page := c.get("/_pogi/cost")
-	want(t, page, `dot gcp"></span> <span class="faint">Cloud Storage`, ">assets<", `dot azure"></span> <span class="faint">Blob Storage`, ">files<")
+	want(t, page, `dot gcp"></span> <span class="faint col-narrow">Cloud Storage`, ">assets<", `dot azure"></span> <span class="faint col-narrow">Blob Storage`, ">files<")
 	wantNot(t, page, ">not priced<")
 }
 

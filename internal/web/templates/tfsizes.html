@@ -5,11 +5,11 @@
 {{define "tfsizesbody"}}
 <p class="dim" style="margin-top:0">Every size sold in <b>{{.Region}}</b>, cheapest first. Picking one prices this view again; your <code>.tf</code> file is not changed.</p>
 <div class="toolbar tfsizefilter" data-tf-sizes>
-  <div class="field" style="margin:0"><label for="tf-fc">Min vCPU</label><input class="input" id="tf-fc" type="number" min="0" step="1" style="width:84px" data-tf-f="c"></div>
-  <div class="field" style="margin:0"><label for="tf-fm">Min memory (GiB)</label><input class="input" id="tf-fm" type="number" min="0" step="1" style="width:110px" data-tf-f="m"></div>
-  <div class="field" style="margin:0"><label for="tf-ff">Family or name</label><input class="input" id="tf-ff" type="search" style="width:140px" data-tf-f="q" autocomplete="off"></div>
-  <label class="switch" style="margin-bottom:2px"><input type="checkbox" data-tf-f="old"><i></i>Show older generations</label>
-  <span class="faint" id="tf-fcount" role="status" aria-live="polite" style="margin-bottom:6px"></span>
+  <div class="field tb-sm"><label for="tf-fc">Min vCPU</label><input class="input" id="tf-fc" type="number" min="0" step="1" data-tf-f="c"></div>
+  <div class="field tb-md"><label for="tf-fm">Min memory (GiB)</label><input class="input" id="tf-fm" type="number" min="0" step="1" data-tf-f="m"></div>
+  <div class="field tb-md"><label for="tf-ff">Family or name</label><input class="input" id="tf-ff" type="search" data-tf-f="q" autocomplete="off"></div>
+  <label class="switch"><input type="checkbox" data-tf-f="old"><i></i>Show older generations</label>
+  <span class="faint" id="tf-fcount" role="status" aria-live="polite"></span>
 </div>
 <div class="tablecard"><table class="dt tfsizes"><thead><tr><th>Size</th><th class="num">vCPU</th><th class="num">Memory</th><th class="num">Per month</th><th class="num">vs now</th><th></th></tr></thead><tbody>
 {{range .Rows}}<tr data-n="{{.Name}} {{.Family}}" data-c="{{.VCPU}}" data-m="{{.MemGB}}" data-old="{{.Old}}" {{if .Current}}class="sel" aria-current="true"{{end}}>

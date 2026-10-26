@@ -409,3 +409,27 @@ func TestOrphan(t *testing.T) {
 		}
 	}
 }
+
+// TestMine: RemoveLeftover takes only a container this pogi or its data dir made, or an orphan. Never another
+// running pogi's (two pogis once took turns removing the ECR forwarder they both named pogi-ecr-4510), nor one
+// that pogi did not make.
+func TestMine(t *testing.T) {
+	host, _ := os.Hostname()
+	dead := host + "/" + strconv.Itoa(deadPID(t)) + "/x"
+	dir := t.TempDir()
+	c, other := New(Options{DataDir: dir}), New(Options{})
+	for name, tc := range map[string]struct {
+		labels map[string]string
+		want   bool
+	}{
+		"its own":                {map[string]string{LabelManaged: "true", LabelOwner: c.owner}, true},
+		"its data dir's":         {map[string]string{LabelManaged: "true", LabelOwner: dead, LabelData: dir}, true},
+		"an orphan":              {map[string]string{LabelManaged: "true", LabelOwner: dead}, true},
+		"another running pogi's": {map[string]string{LabelManaged: "true", LabelOwner: other.owner}, false},
+		"not made by pogi":       {map[string]string{LabelOwner: c.owner}, false},
+	} {
+		if got := c.mine(tc.labels); got != tc.want {
+			t.Errorf("%s: mine = %v, want %v", name, got, tc.want)
+		}
+	}
+}

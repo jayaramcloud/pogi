@@ -4,9 +4,16 @@
   <noscript><button>Show</button></noscript>
 </form>
 {{if .Err}}<div class="flash" role="alert">{{.Err}}</div>{{end}}
+{{if .Machines}}<details class="more"><summary>Start execution</summary>
+<form hx-post="/_pogi/sfn/start" hx-target="#xtab" hx-swap="outerHTML" style="margin:8px 0">
+  <input type="hidden" name="machine" value="{{.Machine}}">
+  <div class="field"><label for="sfn-name">Name (optional) for {{.Machine}}</label><input class="input" id="sfn-name" name="name" autocomplete="off" maxlength="80"></div>
+  <div class="field"><label for="sfn-input">Input (JSON)</label><textarea class="input" id="sfn-input" name="input" rows="3">{}</textarea></div>
+  <button class="btn primary">{{icon "play"}}Start execution</button>
+</form></details>{{end}}
 {{if .Executions}}<p>Colour the graph with an execution:
 {{range .Executions}}<a href="/_pogi/sfn?machine={{q $.Data.Machine}}&execution={{q (index . "name")}}" hx-get="/_pogi/sfn?machine={{q $.Data.Machine}}&execution={{q (index . "name")}}" hx-target="#xtab" hx-swap="outerHTML" class="badge {{if eq (index . "status") "SUCCEEDED"}}s2{{else if eq (index . "status") "RUNNING"}}s3{{else}}s5{{end}}">{{index . "name"}}</a> {{end}}</p>{{end}}
-{{if .Execution}}<p>Execution <b>{{.Execution}}</b> <span class="badge s3">{{.Status}}</span> <a href="/_pogi/sfn?machine={{q .Machine}}" hx-get="/_pogi/sfn?machine={{q .Machine}}" hx-target="#xtab" hx-swap="outerHTML">clear</a></p>{{end}}
+{{if .Execution}}<p>Execution <b>{{.Execution}}</b> <span class="badge s3">{{.Status}}</span>{{if eq .Status "RUNNING"}} <button type="button" class="btn sm danger" hx-post="/_pogi/sfn/stop" hx-vals='{"machine":"{{.Machine}}","execution":"{{.Execution}}"}' hx-target="#xtab" hx-swap="outerHTML" hx-confirm="Stop execution {{.Execution}}?">Stop</button>{{end}} <a href="/_pogi/sfn?machine={{q .Machine}}" hx-get="/_pogi/sfn?machine={{q .Machine}}" hx-target="#xtab" hx-swap="outerHTML">clear</a></p>{{end}}
 {{with .Graph}}<div style="overflow:auto"><svg class="graph" width="{{.Width}}" height="{{.Height}}" viewBox="0 0 {{.Width}} {{.Height}}" role="img" aria-label="State machine graph">
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--dim)"/></marker></defs>
 {{range .Edges}}<path class="edge {{.Class}}" d="{{.D}}" marker-end="url(#arrow)"/>{{end}}

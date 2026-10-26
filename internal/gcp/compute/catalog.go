@@ -4,11 +4,12 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/nrndev/pogi/internal/gcp/gapi"
 )
 
 // regions and their zones: <region>-a, -b and -c.
-var regionNames = []string{"us-central1", "us-east1", "us-east4", "us-west1", "us-west2", "europe-west1", "europe-west2", "europe-west3",
-	"europe-west4", "asia-east1", "asia-northeast1", "asia-south1", "asia-southeast1", "australia-southeast1", "southamerica-east1"}
+var regionNames = gapi.Regions
 
 func zonesOf(region string) []string { return []string{region + "-a", region + "-b", region + "-c"} }
 

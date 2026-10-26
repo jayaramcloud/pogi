@@ -79,6 +79,9 @@ type Table struct {
 	// Log marks a record of activity, such as CloudTrail events or log entries, not resources the user made.
 	// Status does not count its rows, so a service is not "in use" just because other calls were logged.
 	Log bool `json:"log,omitempty"`
+	// Global marks a list that spans every region, like S3's bucket list. The console's region switcher
+	// does not hide its rows (the account still does).
+	Global bool `json:"global,omitempty"`
 }
 
 // ObjectInfo is one row of the console's object browser (S3, GCS, Blob).

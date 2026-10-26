@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/nrndev/pogi/internal/aws/rds"
+	"github.com/nrndev/pogi/internal/azure/arm"
 	"github.com/nrndev/pogi/internal/azure/armres"
 	"github.com/nrndev/pogi/internal/core"
 )
@@ -1357,6 +1358,19 @@ func pkRanges(w http.ResponseWriter, r *http.Request, c *Container) (int, any, e
 func (s *Service) Resources() []core.Table {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	accts := core.Table{Name: "Accounts", Columns: []string{"Name", "Resource group", "Location", "API kind"}}
+	for _, k := range core.SortedKeys(s.st.ARM) {
+		r := s.st.ARM[k]
+		if !strings.EqualFold(armres.Str(r, "type"), accounts) {
+			continue
+		}
+		id, _ := arm.ParseID(armres.Str(r, "id"))
+		api := "SQL"
+		if isMongo(r) {
+			api = "MongoDB"
+		}
+		accts.Rows = append(accts.Rows, []string{armres.Str(r, "name"), id.ResourceGroup, armres.Str(r, "location"), api})
+	}
 	dbs := core.Table{Name: "Databases", Columns: []string{"Name", "Containers"}}
 	colls := core.Table{Name: "Containers", Columns: []string{"Name", "Database", "Items", "Partition key"}}
 	now := time.Now()
@@ -1368,7 +1382,7 @@ func (s *Service) Resources() []core.Table {
 			colls.Rows = append(colls.Rows, []string{cn, dn, strconv.Itoa(len(c.live("", now))), strings.Join(c.Paths, ", ")})
 		}
 	}
-	return []core.Table{dbs, colls}
+	return []core.Table{accts, dbs, colls}
 }
 
 // Inspect returns a database, or a container's settings and first 20 items
@@ -1376,6 +1390,14 @@ func (s *Service) Resources() []core.Table {
 func (s *Service) Inspect(table, id string) any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if table == "Accounts" {
+		for _, k := range core.SortedKeys(s.st.ARM) {
+			if r := s.st.ARM[k]; strings.EqualFold(armres.Str(r, "type"), accounts) && strings.EqualFold(armres.Str(r, "name"), id) {
+				return s.accountView(&core.Ctx{Hub: s.hub, Internal: true}, armres.Clone(r))
+			}
+		}
+		return nil
+	}
 	if table == "Databases" {
 		if db := s.st.DBs[id]; db != nil {
 			return map[string]any{"database": db.Props, "containers": core.SortedKeys(db.Colls)}

@@ -202,7 +202,12 @@ test('with a table, fresh rows swap in', () => assert.deepEqual(posts, [['trigge
 posts.length = 0; doc.activeElement = new El({ tagName: 'INPUT' });
 revFetch('4-6'); await F.checkRev();
 test('someone typing is left alone, and the old rev stays so it retries', () => { assert.deepEqual(posts, []); assert.equal(ph.dataset.rev, '3-5'); });
-doc.activeElement = null; revFetch(undefined); await F.checkRev();
+const note = new El({ hidden: true }); bySel['[data-rev-paused]'] = note;
+posts.length = 0; doc.activeElement = new El({ tagName: 'INPUT' }); revFetch('5-7'); await F.checkRev();
+test('a paused refresh shows the hint', () => { assert.deepEqual(posts, []); assert.equal(note.hidden, false); });
+doc.activeElement = null; await F.checkRev();
+test('the next free tick refreshes and hides the hint', () => { assert.deepEqual(posts, [['trigger', 'pogi-rows']]); assert.equal(note.hidden, true); assert.equal(ph.dataset.rev, '5-7'); });
+posts.length = 0; doc.activeElement = null; revFetch(undefined); await F.checkRev();
 test('garbage from /_pogi/rev is ignored', () => assert.deepEqual(posts, []));
 delete bySel['[data-rev-svc]'];
 

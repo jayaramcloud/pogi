@@ -73,6 +73,14 @@ func init() {
 				t["resourceName"] = c.name() + "/" + t["id"].(string)
 			}
 		}},
+		methods: map[string]hook{
+			// the account builds run as when none is named: the Compute default, as for new projects on
+			// Google Cloud; gcloud functions deploy reads it
+			"cloudbuild.projects.locations.getDefaultServiceAccount": func(c *call) (any, error) {
+				p := c.segs[1]
+				return map[string]any{"name": c.name(), "serviceAccountEmail": "projects/" + p + "/serviceAccounts/" + p + "-compute@developer.gserviceaccount.com"}, nil
+			},
+		},
 	}
 
 	apiHooks["apikeys"] = hooks{

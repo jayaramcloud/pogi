@@ -26,8 +26,9 @@ type Engine struct {
 
 	mu    sync.Mutex
 	calls []string
-	ports map[string][]string // container → its published ports ("5432/tcp")
-	vols  map[string]bool     // named volumes that exist
+	ports map[string][]string          // container → its published ports ("5432/tcp"); every container made and not removed
+	label map[string]map[string]string // container → its labels
+	vols  map[string]bool              // named volumes that exist
 }
 
 // DropVolume forgets a volume, as if someone removed it behind pogi's back.
@@ -79,7 +80,7 @@ func (e *Engine) volume(w http.ResponseWriter, r *http.Request, p []string) {
 
 // Start serves a fake engine until the test ends and points DOCKER_HOST at it.
 func Start(t testing.TB, port int, down bool) *Engine {
-	e := &Engine{Port: port, Down: down, ports: map[string][]string{}, vols: map[string]bool{}}
+	e := &Engine{Port: port, Down: down, ports: map[string][]string{}, label: map[string]map[string]string{}, vols: map[string]bool{}}
 	srv := httptest.NewServer(e)
 	t.Cleanup(srv.Close)
 	t.Setenv("DOCKER_HOST", "tcp://"+srv.Listener.Addr().String())
@@ -127,7 +128,11 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case path == "/containers/json":
 		io.WriteString(w, "[]")
 	case p[0] == "containers" && r.Method == http.MethodDelete:
-		e.add("rm -f -v " + p[1])
+		e.mu.Lock()
+		delete(e.ports, p[1])
+		delete(e.label, p[1])
+		e.calls = append(e.calls, "rm -f -v "+p[1])
+		e.mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	case path == "/commit":
 		e.add("commit " + r.URL.Query().Get("container") + " " + r.URL.Query().Get("repo") + ":" + r.URL.Query().Get("tag"))
@@ -137,13 +142,19 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "[]")
 	case p[0] == "containers" && len(p) == 3 && p[2] == "json":
 		e.mu.Lock()
+		keys, made := e.ports[p[1]]
 		ports := map[string][]map[string]string{}
-		for _, k := range e.ports[p[1]] {
+		for _, k := range keys {
 			ports[k] = []map[string]string{{"HostIp": "127.0.0.1", "HostPort": strconv.Itoa(e.Port)}}
 		}
+		labels := e.label[p[1]]
 		e.mu.Unlock()
+		if !made {
+			http.Error(w, `{"message":"No such container: `+p[1]+`"}`, http.StatusNotFound)
+			return
+		}
 		json.NewEncoder(w).Encode(map[string]any{"Id": p[1], "State": map[string]any{"Status": "running", "Running": true},
-			"NetworkSettings": map[string]any{"Ports": ports}})
+			"Config": map[string]any{"Labels": labels}, "NetworkSettings": map[string]any{"Ports": ports}})
 	case p[0] == "containers" && len(p) == 3 && p[2] == "exec":
 		var x struct{ Cmd []string }
 		json.NewDecoder(r.Body).Decode(&x)
@@ -165,6 +176,7 @@ func (e *Engine) create(w http.ResponseWriter, r *http.Request) {
 	var c struct {
 		Image      string
 		Env, Cmd   []string
+		Labels     map[string]string
 		HostConfig struct {
 			PortBindings map[string][]struct{ HostIp, HostPort string }
 			Binds        []string
@@ -184,7 +196,7 @@ func (e *Engine) create(w http.ResponseWriter, r *http.Request) {
 	}
 	call += " " + strings.Join(append([]string{c.Image}, c.Cmd...), " ")
 	e.mu.Lock()
-	e.calls, e.ports[name] = append(e.calls, call), keys
+	e.calls, e.ports[name], e.label[name] = append(e.calls, call), keys, c.Labels
 	for _, b := range c.HostConfig.Binds {
 		e.calls = append(e.calls, "bind "+name+" "+b)
 	}

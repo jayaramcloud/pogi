@@ -11,15 +11,15 @@
   <input type="hidden" name="run" value="1"><input type="hidden" name="kind" value="{{.Kind}}">
   <div class="card" style="margin-bottom:12px"><div class="body">
   {{if eq .Kind "gcp"}}
-    <div class="toolbar"><input class="input mono" name="project" value="{{$v.Get "project"}}" placeholder="project (default)" style="width:220px">
-      <input class="input mono" name="filter" value="{{$v.Get "filter"}}" placeholder='severity>=ERROR AND textPayload:"timeout"' style="flex:1;min-width:260px">
-      <input class="input" name="limit" type="number" min="1" value="{{$v.Get "limit"}}" placeholder="limit" style="width:90px">
-      <button class="btn primary">{{icon "play"}}Run <span class="kbd">⌘↵</span></button></div>
+    <div class="toolbar"><input class="input mono tb-md" name="project" value="{{$v.Get "project"}}" placeholder="project (default)">
+      <input class="input mono tb-lg" name="filter" value="{{$v.Get "filter"}}" placeholder='severity>=ERROR AND textPayload:"timeout"'>
+      <input class="input tb-sm" name="limit" type="number" min="1" value="{{$v.Get "limit"}}" placeholder="limit">
+      <button class="btn primary" title="Run (⌘↵ or Ctrl↵)" aria-keyshortcuts="Meta+Enter Control+Enter">{{icon "play"}}Run</button></div>
   {{else}}
-    <div class="toolbar"><select class="input" name="target" style="width:320px" title="{{if eq .Kind "kql"}}Workspace{{else}}Log group{{end}}">{{$t := $v.Get "target"}}{{range .Targets}}<option value="{{.Value}}" {{if eq .Value $t}}selected{{end}}>{{.Label}}</option>{{else}}<option value="">(none yet)</option>{{end}}</select>
-      {{if eq .Kind "cwl"}}<select class="input" name="mode" style="width:150px"><option value="insights">Logs Insights</option><option value="filter" {{if eq ($v.Get "mode") "filter"}}selected{{end}}>Filter pattern</option></select>
-      <input class="input" name="minutes" type="number" min="1" value="{{$v.Get "minutes"}}" placeholder="last 1440 min" style="width:140px">{{end}}
-      <span class="spacer"></span><button class="btn primary">{{icon "play"}}Run <span class="kbd">⌘↵</span></button></div>
+    <div class="toolbar"><select class="input tb-lg" name="target" title="{{if eq .Kind "kql"}}Workspace{{else}}Log group{{end}}">{{$t := $v.Get "target"}}{{range .Targets}}<option value="{{.Value}}" {{if eq .Value $t}}selected{{end}}>{{.Label}}</option>{{else}}<option value="">(none yet)</option>{{end}}</select>
+      {{if eq .Kind "cwl"}}<select class="input tb-md" name="mode"><option value="insights">Logs Insights</option><option value="filter" {{if eq ($v.Get "mode") "filter"}}selected{{end}}>Filter pattern</option></select>
+      <input class="input tb-md" name="minutes" type="number" min="1" value="{{$v.Get "minutes"}}" placeholder="last 1440 min">{{end}}
+      <button class="btn primary" title="Run (⌘↵ or Ctrl↵)" aria-keyshortcuts="Meta+Enter Control+Enter">{{icon "play"}}Run</button></div>
     <textarea class="input" name="query" style="min-height:90px" placeholder="{{if eq .Kind "kql"}}Custom_CL | where Level == 'error' | take 20{{else}}fields @timestamp, @message | filter @message like /error/ | sort @timestamp desc | limit 50{{end}}">{{$v.Get "query"}}</textarea>
   {{end}}
   </div></div>

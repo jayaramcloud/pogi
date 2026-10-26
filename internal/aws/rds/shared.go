@@ -357,7 +357,7 @@ func (b *Box) up(sp Spec, verb, seed, resource string) (port int, note string, e
 		for _, a := range sp.Args {
 			ct.Cmd = append(ct.Cmd, strings.ReplaceAll(a, "{port}", strconv.Itoa(host)))
 		}
-		if err = b.d.Remove(b.ctx, sp.Name); docker.EngineDown(err) { // a leftover of a crashed run
+		if err = b.d.RemoveLeftover(b.ctx, sp.Name); err != nil { // a leftover of a crashed run
 			return 0, "", err
 		}
 		if verb == "run" && sp.Data != "" {

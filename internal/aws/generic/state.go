@@ -123,17 +123,27 @@ func (s *Service) Resources() []core.Table {
 			t = &core.Table{Name: r.Type, Columns: []string{"Id", "Name", "Region", "Created"}}
 			by[r.Type] = t
 		}
-		name := r.Name
-		if name == "" {
-			name = r.ID
-		}
-		t.Rows = append(t.Rows, []string{r.identity(), name, r.Region, r.Created.Format(time.DateTime)})
+		t.Rows = append(t.Rows, []string{r.identity(), r.label(), r.Region, r.Created.Format(time.DateTime)})
 	}
 	var out []core.Table
 	for _, n := range core.SortedKeys(by) {
 		out = append(out, *by[n])
 	}
 	return out
+}
+
+// label is the resource's name for the console: its own, else the one it was created with (a resource whose
+// identifier is an ARN or an id keeps its name only in its data, as a License Manager configuration does), else its id.
+func (r *Resource) label() string {
+	if r.Name != "" {
+		return r.Name
+	}
+	for _, k := range []string{"Name", "name", r.Type + "Name", lowerFirst(r.Type) + "Name"} {
+		if s, ok := r.Data[k].(string); ok && s != "" {
+			return s
+		}
+	}
+	return r.ID
 }
 
 func (r *Resource) identity() string {

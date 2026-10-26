@@ -41,6 +41,18 @@ func (c *console) traffic() {
 	}
 }
 
+// loud makes one error that counts: an invalid bucket name (a 400). traffic's missing key is a quiet 404.
+func (c *console) loud() {
+	c.t.Helper()
+	req, _ := http.NewRequest("PUT", c.base+"/Bad_Bucket", nil)
+	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=test/20260101/us-east-1/s3/aws4_request")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	res.Body.Close()
+}
+
 func TestFirstRunHome(t *testing.T) {
 	c := start(t, "s3", "sqs")
 	want(t, c.get("/_pogi/"), "Welcome to pogi", "Waiting for the first request", "Create an SQS queue", "Popular services", `data-pane="tf"`)
@@ -92,16 +104,17 @@ func TestRequestDrawer(t *testing.T) {
 func TestNotes(t *testing.T) {
 	c := start(t, "s3")
 	c.traffic()
+	c.loud()
 	// no cookie yet: the old error is listed, not unread; the first render sets the baseline
-	want(t, c.get("/_pogi/notes"), "GetObject failed")
+	want(t, c.get("/_pogi/notes"), "CreateBucket failed")
 	wantNot(t, c.get("/_pogi/notes"), "note-it unread")
 	c.cookie("pogi-notes-seen", "1")
-	want(t, c.get("/_pogi/notes"), "note-it unread", "GetObject failed", "/_pogi/requests/2", "SDK errors")
+	want(t, c.get("/_pogi/notes"), "note-it unread", "CreateBucket failed", "/_pogi/requests/3", "SDK errors")
 	var poll struct {
 		Unread int
 		New    []struct{ Msg, Kind, Href string }
 	}
-	if err := json.Unmarshal([]byte(c.get("/_pogi/notes/poll?since=0")), &poll); err != nil || poll.Unread != 1 || len(poll.New) != 1 || poll.New[0].Kind != "bad" || !strings.Contains(poll.New[0].Msg, "GetObject") {
+	if err := json.Unmarshal([]byte(c.get("/_pogi/notes/poll?since=0")), &poll); err != nil || poll.Unread != 1 || len(poll.New) != 1 || poll.New[0].Kind != "bad" || !strings.Contains(poll.New[0].Msg, "CreateBucket") {
 		t.Fatalf("poll = %+v, %v", poll, err)
 	}
 	// mark all read: the cookie hides the unread state
@@ -111,5 +124,5 @@ func TestNotes(t *testing.T) {
 	wantNot(t, c.get("/_pogi/notes"), "note-it unread")
 	// muting a kind drops it
 	c.post("/_pogi/notes", map[string][]string{"toggle": {"sdk"}})
-	wantNot(t, c.get("/_pogi/notes"), "GetObject failed")
+	wantNot(t, c.get("/_pogi/notes"), "CreateBucket failed")
 }

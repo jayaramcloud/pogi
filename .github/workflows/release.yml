@@ -125,7 +125,7 @@ jobs:
         with:
           egress-policy: audit
       - name: brew install
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && !contains(github.ref_name, '-') # a pre-release (v0.2.0-rc.1) isn't in the tap
         run: brew install nrndev/tap/pogi && pogi version | grep -F "${GITHUB_REF_NAME#v}"
       - name: release binary
         if: runner.os == 'Linux'

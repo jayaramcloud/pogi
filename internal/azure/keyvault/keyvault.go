@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nrndev/pogi/internal/azure/arm"
 	"github.com/nrndev/pogi/internal/azure/armres"
 	"github.com/nrndev/pogi/internal/core"
 )
@@ -618,6 +619,25 @@ func (s *Service) setSecret(c *call) (any, error) {
 func (s *Service) Resources() []core.Table {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	vt := core.Table{Name: "Vaults", Columns: []string{"Name", "Resource group", "Location", "Secrets", "Keys", "Certificates"}}
+	for _, k := range core.SortedKeys(s.st.ARM) {
+		r := s.st.ARM[k]
+		if !strings.EqualFold(armres.Str(r, "type"), vaults) {
+			continue
+		}
+		id, _ := arm.ParseID(armres.Str(r, "id"))
+		row := []string{armres.Str(r, "name"), id.ResourceGroup, armres.Str(r, "location")}
+		for _, coll := range []string{"secrets", "keys", "certificates"} {
+			n := 0
+			for _, o := range s.st.Vaults[id.Name()][coll] {
+				if o.Deleted == 0 {
+					n++
+				}
+			}
+			row = append(row, strconv.Itoa(n))
+		}
+		vt.Rows = append(vt.Rows, row)
+	}
 	tables := map[string]*core.Table{
 		"secrets":      {Name: "Secrets", Columns: []string{"Vault", "Name", "Versions", "Enabled", "Updated"}},
 		"keys":         {Name: "Keys", Columns: []string{"Vault", "Name", "Type", "Versions"}},
@@ -643,7 +663,7 @@ func (s *Service) Resources() []core.Table {
 			}
 		}
 	}
-	return []core.Table{*tables["secrets"], *tables["keys"], *tables["certificates"]}
+	return []core.Table{vt, *tables["secrets"], *tables["keys"], *tables["certificates"]}
 }
 
 // Inspect returns metadata, never secret values or key material: of one
@@ -651,6 +671,16 @@ func (s *Service) Resources() []core.Table {
 // vault named by id (the tables' first column).
 func (s *Service) Inspect(table, id string) any {
 	coll := strings.ToLower(table)
+	if coll == "vaults" {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		for _, k := range core.SortedKeys(s.st.ARM) {
+			if r := s.st.ARM[k]; strings.EqualFold(armres.Str(r, "type"), vaults) && strings.EqualFold(armres.Str(r, "name"), id) {
+				return s.vaultView(&core.Ctx{Hub: s.hub, Internal: true}, armres.Clone(r))
+			}
+		}
+		return nil
+	}
 	vault, name, one := strings.Cut(id, "/")
 	s.mu.Lock()
 	defer s.mu.Unlock()

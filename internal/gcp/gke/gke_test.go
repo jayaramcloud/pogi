@@ -80,6 +80,10 @@ func TestMetadata(t *testing.T) {
 	if got := must(c.GetOperation(ctx, &containerpb.GetOperationRequest{Name: loc + "/operations/" + op.Name})); got.Name != op.Name || got.Status != containerpb.Operation_DONE {
 		t.Fatalf("get operation: %v", got)
 	}
+	// gcloud polls over REST, where the shared Operations service has the same paths
+	if got, err := rest.GetOperation(ctx, &containerpb.GetOperationRequest{Name: loc + "/operations/" + op.Name}); err != nil || got.Name != op.Name {
+		t.Fatalf("get operation over REST: %v, %v", got, err)
+	}
 	cl := must(c.GetCluster(ctx, &containerpb.GetClusterRequest{Name: name}))
 	if cl.Name != "web" || cl.Location != "us-central1" || cl.Status != containerpb.Cluster_RUNNING || cl.StatusMessage == "" || cl.Id == "" ||
 		cl.CurrentNodeCount != 2 || len(cl.NodePools) != 1 || cl.NodePools[0].Name != "default-pool" || cl.NodePools[0].Status != containerpb.NodePool_RUNNING ||
@@ -98,6 +102,10 @@ func TestMetadata(t *testing.T) {
 	list := must(rest.ListClusters(ctx, &containerpb.ListClustersRequest{Parent: loc}))
 	if len(list.Clusters) != 2 || list.Clusters[0].Name != "api" || list.Clusters[1].Name != "web" {
 		t.Fatalf("list: %v", list)
+	}
+	// every location, as gcloud container clusters list asks without --location
+	if all := must(rest.ListClusters(ctx, &containerpb.ListClustersRequest{Parent: "projects/p/locations/-"})); len(all.Clusters) != 2 {
+		t.Fatalf("list of every location: %v", all)
 	}
 	_, err = rest.GetCluster(ctx, &containerpb.GetClusterRequest{Name: loc + "/clusters/nope"})
 	wantCode(t, err, codes.NotFound)

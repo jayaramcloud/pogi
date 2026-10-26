@@ -30,10 +30,7 @@ var curated = map[string][]curatedForm{
 	"logs": {{"Logs_20140328", "CreateLogGroup", "Create log group", []core.Field{
 		req(str("logGroupName")), str("kmsKeyId"), dict("tags")}}},
 	"events": {
-		{"AWSEvents", "CreateEventBus", "Create event bus", []core.Field{req(str("Name")), str("Description"), tags("Tags")}},
-		{"AWSEvents", "PutRule", "Put rule", []core.Field{
-			req(str("Name")), str("EventBusName"), text("EventPattern"), str("ScheduleExpression"), enum("State", "ENABLED", "DISABLED"),
-			str("Description"), tags("Tags")}}},
+		{"AWSEvents", "CreateEventBus", "Create event bus", []core.Field{req(str("Name")), str("Description"), tags("Tags")}}},
 	"stepfunctions": {{"AWSStepFunctions", "CreateStateMachine", "Create state machine", []core.Field{
 		req(str("name")), req(text("definition")), req(str("roleArn")), enum("type", "STANDARD", "EXPRESS"),
 		list("tags", obj("", req(str("key")), str("value")))}}},

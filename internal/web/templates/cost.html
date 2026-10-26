@@ -3,17 +3,17 @@
     <select class="input" name="region" style="width:150px" data-autosubmit>{{$r := .Region}}{{range .Regions}}<option {{if eq . $r}}selected{{end}}>{{.}}</option>{{end}}</select></form>{{end}}</div>{{end}}{{end}}
 
 {{define "content"}}<div class="tabs"><a href="/_pogi/cost" class="on" aria-current="page">Running in pogi</a><a href="/_pogi/cost/terraform">Terraform</a></div>{{with .Data}}
-<div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,2fr);align-items:start">
-  <section class="card"><div class="body"><div class="dim">Estimated monthly cost</div><div class="bigcost">${{printf "%.2f" .Total}}</div><div class="faint">≈ ${{printf "%.2f" .PerDay}} / day · on-demand · no free tier</div><div class="faint" style="margin-top:4px">Traffic: {{.Basis}}.</div>
-    <div class="svcbars" style="margin-top:14px">{{range .Bars}}<div><span>{{.Service}}</span><span><span class="hbar" style="width:{{.Pct}}%"></span></span><span>${{printf "%.2f" .Monthly}}</span></div>
+<div class="grid2 costgrid">
+  <section class="card"><div class="body"><div class="dim">Estimated monthly cost</div><div class="bigcost">${{printf "%.2f" .Total}}</div><div class="faint">≈ ${{printf "%.2f" .PerDay}} / day · on-demand · no free tier</div><div class="faint mt4">Traffic: {{.Basis}}.</div>
+    <div class="svcbars mt14">{{range .Bars}}<div><span>{{.Service}}</span><span><span class="hbar" style="width:{{.Pct}}%"></span></span><span>${{printf "%.2f" .Monthly}}</span></div>
     {{else}}<div class="faint" style="display:block">Nothing priced yet: create a bucket, queue, table, function or instance.</div>{{end}}</div></div></section>
   <div>
-  {{with .Clouds}}<div class="metrics" style="grid-template-columns:repeat(3,1fr)">{{range .}}<div class="metric"><span class="k"><span class="dot {{.Service}}"></span>{{cloudName .Service}}</span><span class="v">${{printf "%.2f" .Monthly}}</span></div>{{end}}</div>{{end}}
+  {{with .Clouds}}<div class="metrics m3">{{range .}}<div class="metric"><span class="k"><span class="dot {{.Service}}"></span>{{cloudName .Service}}</span><span class="v">${{printf "%.2f" .Monthly}}</span></div>{{end}}</div>{{end}}
   <section class="card"><header>By resource</header>
     <table class="dt"><thead><tr><th>Resource</th><th>What drives it</th><th class="num">Per month</th></tr></thead><tbody>
-    {{range .Rows}}<tr><td><span class="dot {{.Cloud}}"></span> <span class="faint">{{.Service}}</span> <a class="name mono" href="{{.Href}}">{{.Name}}</a></td><td class="dim">{{.Detail}}</td>
-      <td class="num">{{if .Priced}}<span class="hbar" style="width:{{.Pct}}px"></span>${{printf "%.2f" .Monthly}}{{else}}<span class="faint">not priced</span>{{end}}</td></tr>
-    {{else}}<tr><td colspan="3"><div class="empty" style="padding:24px">No resources yet.</div></td></tr>{{end}}
+    {{range .Rows}}<tr><td><span class="dot {{.Cloud}}"></span> <span class="faint col-narrow">{{.Service}}</span> <a class="name mono" href="{{.Href}}">{{.Name}}</a></td><td class="dim trunc">{{.Detail}}</td>
+      <td class="num">{{if .Priced}}<span class="hbar col-narrow" style="width:{{.Pct}}px"></span>${{printf "%.2f" .Monthly}}{{else}}<span class="faint">not priced</span>{{end}}</td></tr>
+    {{else}}<tr><td colspan="3"><div class="empty roomy">No resources yet.</div></td></tr>{{end}}
     {{if .More}}<tr><td colspan="3" class="faint">+{{.More}} more, not priced</td></tr>{{end}}
     </tbody></table></section></div></div>
 <div class="banner">{{icon "file"}}On-demand list prices, no free tier. AWS prices come from the real AWS price list built into pogi, for the region you pick. Azure prices are for East US. Google Cloud prices are typed-in estimates for us-central1. A service's requests are its counter over the uptime, as a rate for 30 days, split among its resources. Anything else is listed, not priced.</div>

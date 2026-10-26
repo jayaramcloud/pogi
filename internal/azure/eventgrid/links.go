@@ -14,11 +14,11 @@ func (s *Service) Links() []core.Link {
 	var out []core.Link
 	for _, k := range core.SortedKeys(s.st.Subs) {
 		sub := s.st.Subs[k]
-		from := resourceID(sub.Scope)
+		from := s.topicID(sub.Scope)
 		if name, ok := strings.CutPrefix(sub.Scope, "systemTopics/"); ok && s.st.System[name] != nil {
 			from = s.st.System[name].Source
 		}
-		to := sub.Destination.ResourceID
+		to := sub.Destination.target()
 		if sub.Destination.Type == "WebHook" {
 			to = sub.Destination.Endpoint
 		}

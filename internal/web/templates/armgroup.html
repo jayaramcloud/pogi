@@ -1,0 +1,24 @@
+{{define "drawer"}}{{with .Data}}
+<header><div class="eyebrow">{{$.Eyebrow}}</div><div class="title"><h2 id="dtitle">Create resource group</h2><button class="btn icon ghost" data-close title="Close (esc)" aria-label="Close">{{icon "x"}}</button></div></header>
+<form id="dform" hx-post="/_pogi/arm/group" hx-target="#drawer" style="display:contents">
+  <div class="dbody">
+    <p class="dim" style="margin-top:0">A resource group holds related resources. Delete the group to delete them all.</p>
+    {{if .Err}}<div class="flash" role="alert" id="apierr">{{.Err}}</div>{{end}}
+    <input type="hidden" name="back" value="{{.Back}}">
+    <div class="field"><label for="gname">Name <span class="req">*</span></label><input class="input mono" id="gname" name="name" value="{{.Name}}" required autofocus></div>
+    <div class="field"><label for="gloc">Location <span class="req">*</span></label><input class="input mono" id="gloc" name="location" value="{{.Location}}" list="glocs" required><datalist id="glocs">{{range .Locations}}<option value="{{.}}">{{end}}</datalist></div>
+  </div>
+</form>
+<footer><button class="btn" data-close>Cancel</button><button class="btn primary" form="dform">Create resource group</button></footer>
+{{end}}{{end}}
+
+{{define "content"}}{{with .Data}}
+<p class="crumbs"><a href="/_pogi/resources/arm">Resource Manager</a> / new resource group</p>
+{{if .Err}}<div class="flash" role="alert" id="apierr">{{.Err}}</div>{{end}}
+<form class="stack" method="post" action="/_pogi/arm/group">
+  <input type="hidden" name="back" value="{{.Back}}">
+  <label class="fld"><span>Name<b class="req">*</b></span><input name="name" value="{{.Name}}" required></label>
+  <label class="fld"><span>Location<b class="req">*</b></span><input name="location" value="{{.Location}}" list="glocs" required><datalist id="glocs">{{range .Locations}}<option value="{{.}}">{{end}}</datalist></label>
+  <div><button>Create resource group</button></div>
+</form>
+{{end}}{{end}}

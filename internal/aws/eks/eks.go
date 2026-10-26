@@ -849,6 +849,35 @@ func (s *Service) Resources() []core.Table {
 	return []core.Table{t}
 }
 
+// Versions are the Kubernetes versions pogi can run, newest last, and the one a cluster gets by default.
+func Versions() (all []string, def string) { return core.SortedKeys(k3sTags), defaultVersion }
+
+// Kubeconfig is a kubeconfig for the cluster of that name. kubectl gets its token by running
+// `aws eks get-token`, with the test credentials of pogi's root user (the ones in `pogi env`).
+// It answers 404 for an unknown cluster and 409 for one that is not ACTIVE with an API server yet.
+func (s *Service) Kubeconfig(name string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, k := range core.SortedKeys(s.st.Clusters) {
+		cl := s.st.Clusters[k]
+		if cl.Doc["name"] != name {
+			continue
+		}
+		ca := str(object(cl.Doc["certificateAuthority"])["data"])
+		if str(cl.Doc["status"]) != "ACTIVE" || ca == "" {
+			return "", core.Errorf(409, "ResourceNotReady", "Cluster %s has no API server yet. Try again when its status is ACTIVE.", name)
+		}
+		region := strings.SplitN(k, "/", 3)[1]
+		return fmt.Sprintf("apiVersion: v1\nkind: Config\nclusters:\n- name: %[1]s\n  cluster:\n    server: %[2]s\n    certificate-authority-data: %[3]s\n"+
+			"users:\n- name: %[1]s\n  user:\n    exec:\n      apiVersion: client.authentication.k8s.io/v1beta1\n      command: aws\n"+
+			"      args: [eks, get-token, --cluster-name, %[4]s, --region, %[5]s]\n      env:\n      - {name: AWS_ACCESS_KEY_ID, value: test}\n"+
+			"      - {name: AWS_SECRET_ACCESS_KEY, value: test}\n      interactiveMode: Never\n"+
+			"contexts:\n- name: %[1]s\n  context:\n    cluster: %[1]s\n    user: %[1]s\ncurrent-context: %[1]s\n",
+			str(cl.Doc["arn"]), str(cl.Doc["endpoint"]), ca, name, region), nil
+	}
+	return "", core.Errorf(404, "ResourceNotFoundException", "No cluster named %s.", name)
+}
+
 // Inspect returns a cluster with its parts and pogi's side: its container
 // and pogiNote (never its k3s token).
 func (s *Service) Inspect(_, id string) any {

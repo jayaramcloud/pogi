@@ -11,6 +11,7 @@
 package eventgrid
 
 import (
+	"cmp"
 	"encoding/json"
 	"net/http"
 	"slices"
@@ -46,13 +47,15 @@ type state struct {
 // Topic is a custom topic.
 type Topic struct {
 	Name        string    `json:"name"`
-	InputSchema string    `json:"inputSchema"` // EventGridSchema | CloudEventSchemaV1_0 | CustomEventSchema; not enforced
+	Group       string    `json:"resourceGroup,omitempty"` // the resource group its ARM ID names; empty: pogi's default
+	InputSchema string    `json:"inputSchema"`             // EventGridSchema | CloudEventSchemaV1_0 | CustomEventSchema; not enforced
 	Created     time.Time `json:"created"`
 }
 
 // Domain groups domain topics behind one endpoint.
 type Domain struct {
 	Name        string    `json:"name"`
+	Group       string    `json:"resourceGroup,omitempty"`
 	InputSchema string    `json:"inputSchema"`
 	Topics      []string  `json:"topics"`
 	Created     time.Time `json:"created"`
@@ -61,6 +64,7 @@ type Domain struct {
 // SystemTopic carries the events of an Azure resource, such as a storage account.
 type SystemTopic struct {
 	Name      string    `json:"name"`
+	Group     string    `json:"resourceGroup,omitempty"`
 	Source    string    `json:"source"` // resource ID of the publisher
 	TopicType string    `json:"topicType"`
 	Created   time.Time `json:"created"`
@@ -86,6 +90,16 @@ type Destination struct {
 	Type       string `json:"endpointType"`
 	Endpoint   string `json:"endpointUrl,omitempty"` // WebHook
 	ResourceID string `json:"resourceId,omitempty"`  // everything else
+	QueueName  string `json:"queueName,omitempty"`   // StorageQueue: the queue in the storage account ResourceID names
+}
+
+// target is the resource a destination other than a webhook delivers to. ARM names a storage queue by
+// queueName beside the account's ID; an ID that ends in the queue itself works too.
+func (d Destination) target() string {
+	if d.Type == "StorageQueue" && d.QueueName != "" {
+		return strings.TrimSuffix(d.ResourceID, "/") + "/queueServices/default/queues/" + d.QueueName
+	}
+	return d.ResourceID
 }
 
 // Filter selects the events of a topic a subscription receives.
@@ -199,9 +213,27 @@ func (s *Service) Load(b []byte) error {
 
 // ---- management ----
 
-// resourceID is the ARM ID of a scope (topics/t, domains/d/topics/t, systemTopics/s).
-func resourceID(scope string) string {
-	return "/subscriptions/" + core.AzureSubscription + "/resourceGroups/" + core.AzureResourceGroup + "/providers/Microsoft.EventGrid/" + scope
+// topicID is the ARM ID of a scope (topics/t, domains/d/topics/t, systemTopics/s), in the resource group of
+// its topic, domain or system topic. Lock held.
+func (s *Service) topicID(scope string) string {
+	kind, rest, _ := strings.Cut(scope, "/")
+	name, _, _ := strings.Cut(rest, "/")
+	group := ""
+	switch kind {
+	case "topics":
+		if t := s.st.Topics[name]; t != nil {
+			group = t.Group
+		}
+	case "domains":
+		if d := s.st.Domains[name]; d != nil {
+			group = d.Group
+		}
+	case "systemTopics":
+		if t := s.st.System[name]; t != nil {
+			group = t.Group
+		}
+	}
+	return "/subscriptions/" + core.AzureSubscription + "/resourceGroups/" + cmp.Or(group, core.AzureResourceGroup) + "/providers/Microsoft.EventGrid/" + scope
 }
 
 // scopeOf accepts a scope or a full resource ID of a topic, domain, domain topic or system topic.
@@ -441,7 +473,7 @@ func (d Destination) check() error {
 			return bad("The webhook endpoint %q is not an HTTP URL.", d.Endpoint)
 		}
 	case "ServiceBusQueue", "ServiceBusTopic", "EventHub", "StorageQueue", "AzureFunction":
-		if svc, ok := core.DeliverTarget(d.ResourceID); !ok || svc == "" {
+		if svc, ok := core.DeliverTarget(d.target()); !ok || svc == "" {
 			return bad("The resource ID %q of the %s destination is not valid.", d.ResourceID, d.Type)
 		}
 	default:
@@ -481,7 +513,7 @@ func (s *Service) Resources() []core.Table {
 	subs := core.Table{Name: "Subscriptions", Columns: []string{"Subscription", "Destination", "Schema"}}
 	for _, k := range core.SortedKeys(s.st.Subs) {
 		d := s.st.Subs[k].Destination
-		subs.Rows = append(subs.Rows, []string{k, d.Type + " " + orStr(d.Endpoint, d.ResourceID), s.st.Subs[k].Schema})
+		subs.Rows = append(subs.Rows, []string{k, d.Type + " " + orStr(d.Endpoint, d.target()), s.st.Subs[k].Schema})
 	}
 	pending := core.Table{Name: "Retries", Columns: []string{"Subscription", "Event", "Attempts", "Next attempt", "Last failure"}}
 	for _, d := range s.st.Pending {
@@ -508,19 +540,19 @@ func (s *Service) Inspect(table, id string) any {
 	switch table {
 	case "Topics":
 		if t := s.st.Topics[id]; t != nil {
-			return map[string]any{"topic": t, "id": resourceID("topics/" + id)}
+			return map[string]any{"topic": t, "id": s.topicID("topics/" + id)}
 		}
 	case "Domains":
 		if d := s.st.Domains[id]; d != nil {
-			return map[string]any{"domain": d, "id": resourceID("domains/" + id)}
+			return map[string]any{"domain": d, "id": s.topicID("domains/" + id)}
 		}
 	case "System topics":
 		if t := s.st.System[id]; t != nil {
-			return map[string]any{"systemTopic": t, "id": resourceID("systemTopics/" + id)}
+			return map[string]any{"systemTopic": t, "id": s.topicID("systemTopics/" + id)}
 		}
 	case "Subscriptions":
 		if sub := s.st.Subs[id]; sub != nil {
-			return map[string]any{"subscription": sub, "id": resourceID(id)}
+			return map[string]any{"subscription": sub, "id": s.topicID(id)}
 		}
 	}
 	return nil

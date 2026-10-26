@@ -1,7 +1,6 @@
 package web
 
 import (
-	"bytes"
 	"cmp"
 	"encoding/base64"
 	"encoding/json"
@@ -103,14 +102,7 @@ func file(n string) core.Field { return fld(n, "file") }
 
 // rest sends a JSON call to a service in-process and turns a failure into its message.
 func (ui *UI) rest(sc scope, svc, verb, path string, body any) error {
-	b, _ := json.Marshal(body)
-	req, _ := http.NewRequest(verb, "http://localhost"+path, bytes.NewReader(b))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set(core.ConsoleHeader, "1")
-	if status, resp := ui.hub.DoServiceAs(svc, sc.acct(), sc.region(ui.hub.Cfg.Region), req); status >= 300 {
-		return fmt.Errorf("%d: %s", status, apiMessage(resp))
-	}
-	return nil
+	return ui.restJSON(sc, svc, verb, path, body, nil)
 }
 
 func init() {
@@ -210,4 +202,164 @@ func (ui *UI) choices(svc, table string) []string {
 		}
 	}
 	return out
+}
+
+// eventSources are the queues, streams and DynamoDB streams a Lambda function can read from, as ARNs.
+func (ui *UI) eventSources() []string {
+	var out []string
+	each := func(svc, table string, f func(row []string)) {
+		if b, ok := ui.hub.Service(svc).(core.Browsable); ok {
+			for _, t := range b.Resources() {
+				for _, row := range t.Rows {
+					if t.Name == table && len(row) > 2 {
+						f(row)
+					}
+				}
+			}
+		}
+	}
+	each("sqs", "Queues", func(r []string) { out = append(out, core.ARN("sqs", r[1], r[2], r[0])) })
+	each("kinesis", "Streams", func(r []string) { out = append(out, core.ARN("kinesis", r[1], r[2], "stream/"+r[0])) })
+	each("dynamodb", "Tables", func(r []string) {
+		if len(r) > 6 && r[6] != "" { // only a table with a stream on
+			if arn := dig(ui.inspectMap("dynamodb", "Tables", r[0]), "Table", "LatestStreamArn"); arn != "" {
+				out = append(out, arn)
+			}
+		}
+	})
+	return out
+}
+
+// jsonOrEmpty checks that text, when there is any, is a JSON value.
+func jsonOrEmpty(label, text string) error {
+	if text = strings.TrimSpace(text); text != "" && !json.Valid([]byte(text)) {
+		return fmt.Errorf("%s is not valid JSON", label)
+	}
+	return nil
+}
+
+func init() {
+	specials["lambda"] = append(specials["lambda"], special{Op: "CreateEventSourceMapping", Title: "Create event source mapping",
+		Fields: func(ui *UI) []core.Field {
+			start := enum("StartingPosition", "LATEST", "TRIM_HORIZON")
+			start.Default, start.Help = "LATEST", "For Kinesis and DynamoDB streams. Queues ignore it."
+			return []core.Field{req(enum("FunctionName", ui.choices("lambda", "Functions")...)), req(enum("EventSourceArn", ui.eventSources()...)),
+				withDefault(num("BatchSize"), "10"), start}
+		},
+		Submit: func(ui *UI, sc scope, in map[string]any) error {
+			if _, ok := in["BatchSize"]; ok && in["BatchSize"].(int64) < 1 {
+				return fmt.Errorf("Batch size must be 1 or more")
+			}
+			return ui.rest(sc, "lambda", http.MethodPost, "/2015-03-31/event-source-mappings", in)
+		},
+		CLI: func(_ string, in map[string]any) string {
+			c := "pogi aws lambda create-event-source-mapping --function-name " + shellArg(cmp.Or(str1(in, "FunctionName"), "<function-name>")) +
+				" --event-source-arn " + shellArg(cmp.Or(str1(in, "EventSourceArn"), "<source-arn>"))
+			if v, ok := in["BatchSize"]; ok {
+				c += fmt.Sprintf(" --batch-size %d", v)
+			}
+			if p := str1(in, "StartingPosition"); p != "" {
+				c += " --starting-position " + p
+			}
+			return c
+		}})
+
+	specials["sns"] = append(specials["sns"], special{Op: "CreateSubscription", Title: "Create subscription",
+		Fields: func(ui *UI) []core.Field {
+			raw := flag("RawMessageDelivery")
+			raw.Help = "Send the message as it is, without the SNS JSON envelope."
+			filter := text("FilterPolicy")
+			filter.Help = `JSON, for example {"kind": ["order"]}. Only matching messages are delivered.`
+			ep := req(str("Endpoint"))
+			ep.Help = "A queue or function ARN, a URL, or an email address, to match the protocol."
+			return []core.Field{req(enum("TopicArn", ui.choices("sns", "Topics")...)), req(enum("Protocol", "sqs", "lambda", "http", "https", "email")), ep, raw, filter}
+		},
+		Submit: func(ui *UI, _ scope, in map[string]any) error {
+			_, region, account, _, ok := core.ParseARN(str1(in, "TopicArn"))
+			if !ok {
+				return fmt.Errorf("Pick a topic")
+			}
+			if err := jsonOrEmpty("Filter policy", str1(in, "FilterPolicy")); err != nil {
+				return err
+			}
+			attrs := map[string]string{}
+			if raw, ok := in["RawMessageDelivery"].(bool); ok {
+				attrs["RawMessageDelivery"] = fmt.Sprint(raw)
+			}
+			if f := strings.TrimSpace(str1(in, "FilterPolicy")); f != "" {
+				attrs["FilterPolicy"] = f
+			}
+			call := map[string]any{"TopicArn": in["TopicArn"], "Protocol": in["Protocol"], "Endpoint": strings.TrimSpace(str1(in, "Endpoint")), "ReturnSubscriptionArn": true}
+			if len(attrs) > 0 {
+				call["Attributes"] = attrs
+			}
+			return ui.hub.ConsoleCall(account, region, snsTarget, "Subscribe", call, nil)
+		},
+		CLI: func(_ string, in map[string]any) string {
+			c := "pogi aws sns subscribe --topic-arn " + shellArg(cmp.Or(str1(in, "TopicArn"), "<topic-arn>")) +
+				" --protocol " + shellArg(cmp.Or(str1(in, "Protocol"), "<protocol>")) + " --notification-endpoint " + shellArg(cmp.Or(str1(in, "Endpoint"), "<endpoint>"))
+			var attrs []string
+			if raw, ok := in["RawMessageDelivery"].(bool); ok {
+				attrs = append(attrs, fmt.Sprintf("RawMessageDelivery=%t", raw))
+			}
+			if f := strings.TrimSpace(str1(in, "FilterPolicy")); f != "" {
+				attrs = append(attrs, "FilterPolicy="+f)
+			}
+			if len(attrs) > 0 {
+				c += " --attributes " + shellArg(strings.Join(attrs, ","))
+			}
+			return c
+		}})
+
+	specials["events"] = append(specials["events"], special{Op: "PutRule", Title: "Put rule",
+		Fields: func(ui *UI) []core.Field {
+			arn := req(str("Arn"))
+			arn.Help = "What the rule calls: a queue, topic, function or state machine ARN."
+			in := str("Input")
+			in.Help = "JSON sent instead of the event. Leave empty to send the event."
+			return []core.Field{req(str("Name")), str("EventBusName"), text("EventPattern"), str("ScheduleExpression"), enum("State", "ENABLED", "DISABLED"),
+				str("Description"), list("Targets", obj("", req(str("Id")), arn, in)), tags("Tags")}
+		},
+		Submit: func(ui *UI, sc scope, in map[string]any) error {
+			targets, _ := in["Targets"].([]any)
+			delete(in, "Targets")
+			for i, t := range targets { // check them all before anything is saved
+				m, _ := t.(map[string]any)
+				if str1(m, "Id") == "" || str1(m, "Arn") == "" {
+					return fmt.Errorf("Target %d needs an Id and an ARN", i+1)
+				}
+				if err := jsonOrEmpty(fmt.Sprintf("Target %d input", i+1), str1(m, "Input")); err != nil {
+					return err
+				}
+				if str1(m, "Input") == "" {
+					delete(m, "Input")
+				}
+			}
+			acct, region := sc.acct(), sc.region(ui.hub.Cfg.Region)
+			if err := ui.hub.ConsoleCall(acct, region, "AWSEvents", "PutRule", in, nil); err != nil {
+				return err
+			}
+			if len(targets) == 0 {
+				return nil
+			}
+			err := ui.hub.ConsoleCall(acct, region, "AWSEvents", "PutTargets", map[string]any{"Rule": in["Name"], "EventBusName": in["EventBusName"], "Targets": targets}, nil)
+			if err != nil {
+				return fmt.Errorf("Rule %s was saved, but its targets were not: %s", in["Name"], errText(err))
+			}
+			return nil
+		},
+		CLI: func(_ string, in map[string]any) string {
+			c := "pogi aws events put-rule --name " + shellArg(cmp.Or(str1(in, "Name"), "<name>"))
+			if p := str1(in, "EventPattern"); p != "" {
+				c += " --event-pattern " + shellArg(p)
+			}
+			if p := str1(in, "ScheduleExpression"); p != "" {
+				c += " --schedule-expression " + shellArg(p)
+			}
+			if ts, _ := in["Targets"].([]any); len(ts) > 0 {
+				b, _ := json.Marshal(ts)
+				c += "\npogi aws events put-targets --rule " + shellArg(cmp.Or(str1(in, "Name"), "<name>")) + " --targets " + shellArg(string(b))
+			}
+			return c
+		}})
 }

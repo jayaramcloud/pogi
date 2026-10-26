@@ -170,7 +170,7 @@ func TestSecrets(t *testing.T) {
 
 	// The console sees metadata, never values.
 	svc := h.Service("keyvault")
-	rows := svc.(core.Browsable).Resources()[0].Rows
+	rows := svc.(core.Browsable).Resources()[1].Rows
 	info := must(json.Marshal(svc.(core.Inspectable).Inspect("Secrets", "default/db-pass")))
 	if len(rows) != 32 || rows[0][0] != "default" || rows[0][1] != "db-pass" || rows[31][0] != "other" ||
 		!strings.Contains(string(info), v1.ID.Version()) || strings.Contains(string(info), "s3cret") {

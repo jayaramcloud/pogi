@@ -352,7 +352,7 @@ func TestEngineContainer(t *testing.T) {
 	mu.Unlock()
 
 	must(client.DeleteDomain(ctx, &aos.DeleteDomainInput{DomainName: aws.String("search")}))(t)
-	eventually(t, "docker rm", 10*time.Second, func() bool { return len(f.Called("rm -f -v pogi-opensearch-search")) == 2 })
+	eventually(t, "docker rm", 10*time.Second, func() bool { return len(f.Called("rm -f -v pogi-opensearch-search")) == 1 }) // no leftover before run, so only the delete
 }
 
 // TestOpenSearchInDocker indexes and searches through a domain endpoint

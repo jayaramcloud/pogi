@@ -35,11 +35,21 @@ type queryData struct {
 	Next    string // DynamoDB: link to the next page
 	Idx     []string
 	Ops     []string
+	Items   []ddbRow // DynamoDB: the rows' items, for Edit and Delete
+	ItemErr string   // DynamoDB: why Add item failed
+	AddItem string   // DynamoDB: the text of the Add item box
 }
 
 func (ui *UI) queryPage(w http.ResponseWriter, r *http.Request) {
-	kind, q := r.PathValue("kind"), r.URL.Query()
+	ui.queryRender(w, r, r.PathValue("kind"), r.URL.Query(), nil)
+}
+
+// queryRender shows an explorer for the form values q; after a DynamoDB item write, fl carries its outcome.
+func (ui *UI) queryRender(w http.ResponseWriter, r *http.Request, kind string, q url.Values, fl *itemFlash) {
 	d := &queryData{Kind: kind, V: q, Idx: []string{"1", "2", "3"}, Ops: []string{"==", "!=", "<", "<=", ">", ">=", "array-contains", "in"}}
+	if fl != nil {
+		d.Err, d.ItemErr, d.AddItem = fl.Err, fl.ItemErr, fl.Item
+	}
 	var run func(url.Values) (*result, error)
 	switch kind {
 	case "dynamodb":
@@ -47,7 +57,8 @@ func (ui *UI) queryPage(w http.ResponseWriter, r *http.Request) {
 			d.Targets = append(d.Targets, choice{t[2] + "/" + t[1] + "/" + t[0], t[0]})
 		}
 		run = func(q url.Values) (*result, error) {
-			res, next, err := ui.ddbRun(q)
+			res, items, next, err := ui.ddbRun(q)
+			d.Items = ddbRows(items)
 			if next != "" {
 				n := url.Values{}
 				for k, v := range q {
@@ -72,11 +83,22 @@ func (ui *UI) queryPage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if q.Get("target") == "" && len(d.Targets) > 0 { // the select shows the first one, so the page acts on it
+		d.V = url.Values{}
+		for k, v := range q {
+			d.V[k] = v
+		}
+		d.V.Set("target", d.Targets[0].Value)
+		q = d.V
+	}
 	if q.Get("run") != "" {
 		res, err := run(q)
 		d.Res = res
 		if err != nil {
 			d.Err = err.Error()
+		}
+		if res == nil {
+			d.Items = nil
 		}
 	}
 	ui.xrender(w, r, "x-query", map[string]string{"dynamodb": "DynamoDB", "cosmos": "Cosmos DB", "firestore": "Firestore"}[kind], kind, d)
@@ -161,10 +183,10 @@ func decodeJSON(s string, out any) error {
 }
 
 // ddbRun runs the form's Query, Scan or PartiQL SELECT on a table.
-func (ui *UI) ddbRun(q url.Values) (*result, string, error) {
+func (ui *UI) ddbRun(q url.Values) (*result, []map[string]any, string, error) {
 	t := strings.SplitN(q.Get("target"), "/", 3) // account/region/table
 	if len(t) != 3 {
-		return nil, "", errors.New("choose a table")
+		return nil, nil, "", errors.New("choose a table")
 	}
 	account, region, table := t[0], t[1], t[2]
 	in := map[string]any{"TableName": table}
@@ -172,7 +194,7 @@ func (ui *UI) ddbRun(q url.Values) (*result, string, error) {
 	if s := strings.TrimSpace(q.Get("values")); s != "" {
 		var m map[string]any
 		if err := decodeJSON(s, &m); err != nil {
-			return nil, "", fmt.Errorf("values is not a JSON object: %v", err)
+			return nil, nil, "", fmt.Errorf("values is not a JSON object: %v", err)
 		}
 		for k, v := range m {
 			values[k] = av(v)
@@ -180,7 +202,7 @@ func (ui *UI) ddbRun(q url.Values) (*result, string, error) {
 	}
 	names := map[string]any{}
 	if s := strings.TrimSpace(q.Get("names")); s != "" && json.Unmarshal([]byte(s), &names) != nil {
-		return nil, "", errors.New("names is not a JSON object")
+		return nil, nil, "", errors.New("names is not a JSON object")
 	}
 	switch q.Get("mode") {
 	case "query":
@@ -192,7 +214,7 @@ func (ui *UI) ddbRun(q url.Values) (*result, string, error) {
 	case "partiql":
 		var err error
 		if in, err = partiql(q.Get("stmt"), values); err != nil {
-			return nil, "", err
+			return nil, nil, "", err
 		}
 		op, filter, names = in["op"].(string), "", nil
 		delete(in, "op")
@@ -226,7 +248,7 @@ func (ui *UI) ddbRun(q url.Values) (*result, string, error) {
 		ScannedCount     int
 	}
 	if err := ui.hub.Call(account, region, "DynamoDB_20120810", op, in, &out); err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
 	docs := make([]any, len(out.Items))
 	for i, it := range out.Items {
@@ -243,7 +265,7 @@ func (ui *UI) ddbRun(q url.Values) (*result, string, error) {
 		b, _ := json.Marshal(out.LastEvaluatedKey)
 		next = string(b)
 	}
-	return res, next, nil
+	return res, out.Items, next, nil
 }
 
 var (

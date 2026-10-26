@@ -1,7 +1,9 @@
 package web
 
 import (
+	"bytes"
 	"cmp"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -45,6 +48,10 @@ func (ui *UI) serviceRoutes(m *http.ServeMux) {
 	m.HandleFunc("POST /_pogi/sqs/{account}/{region}/{name}/purge", ui.sqsPurge)
 	m.HandleFunc("GET /_pogi/lambda/{account}/{region}/{name}", ui.lambdaPage)
 	m.HandleFunc("POST /_pogi/lambda/{account}/{region}/{name}/invoke", ui.lambdaInvoke)
+	m.HandleFunc("POST /_pogi/lambda/{account}/{region}/{name}/code", ui.lambdaCode)
+	m.HandleFunc("POST /_pogi/lambda/{account}/{region}/{name}/env", ui.lambdaEnv)
+	m.HandleFunc("POST /_pogi/sfn/start", ui.sfnStart)
+	m.HandleFunc("POST /_pogi/sfn/stop", ui.sfnStop)
 	m.HandleFunc("POST /_pogi/sns/publish", ui.snsPublish)
 	m.HandleFunc("POST /_pogi/events/put", ui.eventsPut)
 	m.HandleFunc("GET /_pogi/inbox", ui.inbox)
@@ -397,8 +404,73 @@ func (ui *UI) lambdaPage(w http.ResponseWriter, r *http.Request) {
 		back(w, r, "/_pogi/resources/lambda", fmt.Errorf("function %s not found", name))
 		return
 	}
+	env := [][2]string{}
+	vars, _ := ui.inspectMap("lambda", "Functions", name)["configuration"].(map[string]any)
+	vars, _ = vars["Environment"].(map[string]any)
+	vars, _ = vars["Variables"].(map[string]any)
+	for _, k := range core.SortedKeys(vars) {
+		env = append(env, [2]string{k, fmt.Sprint(vars[k])})
+	}
+	for i := 0; i < 3; i++ { // empty rows to add to
+		env = append(env, [2]string{})
+	}
 	ui.renderX(w, r, "lambda", name, "lambda", "Lambda function · "+region, map[string]any{"Account": acct, "Region": region, "Name": name,
-		"Info": info, "Logs": l.RecentLogs(acct, region, name)})
+		"Info": info, "Logs": l.RecentLogs(acct, region, name), "Env": env})
+}
+
+// lambdaCode replaces a function's code with an uploaded zip.
+func (ui *UI) lambdaCode(w http.ResponseWriter, r *http.Request) {
+	acct, region, name := r.PathValue("account"), r.PathValue("region"), r.PathValue("name")
+	var err error
+	if err = ui.parseUpload(w, r, false); err == nil {
+		var data []byte
+		if data, err = formFile(r, "file"); err == nil {
+			if !bytes.HasPrefix(data, []byte("PK")) {
+				err = fmt.Errorf("Pick a .zip file with the function's code")
+			} else {
+				err = ui.rest(scope{Account: acct, Region: region}, "lambda", http.MethodPut, "/2015-03-31/functions/"+url.PathEscape(name)+"/code",
+					map[string]any{"ZipFile": base64.StdEncoding.EncodeToString(data)})
+			}
+		}
+	}
+	stay(w, r, "/_pogi/lambda/"+acct+"/"+region+"/"+url.PathEscape(name), "Code of "+name+" updated", err)
+}
+
+// formFile is the bytes of an uploaded file of a form.
+func formFile(r *http.Request, field string) ([]byte, error) {
+	f, _, err := r.FormFile(field)
+	if err != nil {
+		return nil, fmt.Errorf("Pick a file to upload")
+	}
+	defer f.Close()
+	return io.ReadAll(f)
+}
+
+// envName is what Lambda allows as the name of an environment variable.
+var envName = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]*$`)
+
+// lambdaEnv replaces a function's environment variables with the pairs of the form.
+func (ui *UI) lambdaEnv(w http.ResponseWriter, r *http.Request) {
+	acct, region, name := r.PathValue("account"), r.PathValue("region"), r.PathValue("name")
+	vars := map[string]string{}
+	var err error
+	for i := 0; i < 50 && err == nil; i++ {
+		k := strings.TrimSpace(r.FormValue("k" + strconv.Itoa(i)))
+		if k == "" {
+			continue
+		}
+		if _, dup := vars[k]; dup {
+			err = fmt.Errorf("%s is listed twice", k)
+		} else if !envName.MatchString(k) {
+			err = fmt.Errorf("%q is not a valid name. Start with a letter, then use letters, digits and underscores.", k)
+		}
+		vars[k] = r.FormValue("v" + strconv.Itoa(i))
+	}
+	if err == nil {
+		err = ui.rest(scope{Account: acct, Region: region}, "lambda", http.MethodPut, "/2015-03-31/functions/"+url.PathEscape(name)+"/configuration",
+			map[string]any{"Environment": map[string]any{"Variables": vars}})
+	}
+	stay(w, r, "/_pogi/lambda/"+acct+"/"+region+"/"+url.PathEscape(name), "Environment variables of "+name+" saved", err)
 }
 
 func (ui *UI) lambdaInvoke(w http.ResponseWriter, r *http.Request) {

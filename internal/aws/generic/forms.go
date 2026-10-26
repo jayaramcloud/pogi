@@ -35,7 +35,7 @@ func (s *Service) Form(op string) *core.Form {
 	if err != nil || m.ops[op] == nil || m.ops[op].in == nil {
 		return nil
 	}
-	return &core.Form{Op: op, Title: core.Label(op), Fields: members(m.ops[op].in, formDepth)}
+	return &core.Form{Op: op, Title: core.Sentence(op), Fields: members(m.ops[op].in, formDepth)}
 }
 
 // members are a structure's fields, required ones first.

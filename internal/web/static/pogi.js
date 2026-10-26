@@ -49,16 +49,40 @@
   document.addEventListener('DOMContentLoaded', () => sideTitle());
 
   // ---- toasts ----
-  let tt;
+  // Toasts queue (at most 3 waiting; the oldest is dropped) and show one at a time.
+  // The hide timer stops while the toast is hovered or has focus.
+  let tt, shown = false, held = false; const tq = [];
   function toast(msg, kind, href, label) {
-    const t = $('#toast'); if (!t) return;
+    tq.push([msg, kind, href, label]); if (tq.length > 3) tq.shift();
+    if (!shown) nextToast();
+  }
+  function hideLater(ms) {
+    clearTimeout(tt);
+    tt = setTimeout(() => {
+      const t = $('#toast'); if (t) t.classList.remove('on');
+      setTimeout(() => { shown = false; if (tq.length) nextToast(); else if (t && !t.classList.contains('on')) t.textContent = ''; }, 300);
+    }, ms);
+  }
+  function nextToast() {
+    const t = $('#toast'), [msg, kind, href, label] = tq.shift() || []; if (!t || msg == null) return;
+    shown = true;
     t.innerHTML = '';
     if (kind) { const d = document.createElement('span'); d.className = 'dot'; d.style.background = `var(--${kind})`; t.append(d); }
     t.append(document.createTextNode(msg));
-    if (href) { const a = document.createElement('a'); a.textContent = label || 'View'; a.href = href; if (href.includes('/_pogi/requests/')) a.dataset.drawer = ''; t.append(a); }
-    t.classList.add('on'); clearTimeout(tt);
-    tt = setTimeout(() => { t.classList.remove('on'); setTimeout(() => { if (!t.classList.contains('on')) t.textContent = ''; }, 300); }, kind === 'bad' ? 5000 : 2500);
+    if (href) {
+      const a = document.createElement('a'); a.textContent = label || 'View'; a.href = href;
+      if (href.includes('/_pogi/requests/')) a.dataset.drawer = '';
+      if (href === '#bell') a.dataset.js = 'bell';
+      t.append(a);
+    }
+    t.classList.add('on'); t.dataset.ms = kind === 'bad' ? 5000 : 2500;
+    if (!held) hideLater(+t.dataset.ms);
   }
+  const hold = (on, e) => { const t = $('#toast'); if (!t || !shown || !t.contains(e.target)) return; held = on; if (on) clearTimeout(tt); else hideLater(+t.dataset.ms); };
+  document.addEventListener('mouseover', e => hold(true, e));
+  document.addEventListener('mouseout', e => hold(false, e));
+  document.addEventListener('focusin', e => hold(true, e));
+  document.addEventListener('focusout', e => hold(false, e));
 
   // ---- overlays ----
   // Each overlay is a dialog or menu: opening moves focus into it, Tab stays inside a modal one (the page behind is inert),
@@ -132,13 +156,22 @@
     if (it.hasAttribute('data-drawer')) return openDrawer(it.getAttribute('href'));
     location.assign(it.getAttribute('href'));
   }
+  // Fill the scope popover's lists with every value pogi holds (name, with how many resources use it).
+  function scopeValues() {
+    fetch('/_pogi/scope/values').then(r => r.ok ? r.json() : {}).then(v => {
+      for (const k in v) {
+        const dl = $('#dl-' + k);
+        if (dl) dl.replaceChildren(...v[k].map(o => { const e = document.createElement('option'); e.value = o.Value; e.label = o.Label; e.textContent = o.Label; return e; }));
+      }
+    }).catch(() => {});
+  }
   function js(name, el) {
     switch (name) {
       case 'palette': return openPalette();
       case 'theme': return toggleTheme();
       case 'side': return toggleSide();
       case 'keys': { const k = $('#keys'), on = k.classList.contains('on'); mark(); on ? dismiss() : (closeAll(), scrim(), show(k)); return; }
-      case 'scope': { const p = $('#pop'), on = p.classList.contains('on'); mark(); if (on) return dismiss(); closeAll(); anchor($('#scopeBtn'), p, 340); show(p); return; }
+      case 'scope': { const p = $('#pop'), on = p.classList.contains('on'); mark(); if (on) return dismiss(); closeAll(); anchor($('#scopeBtn'), p, 340); show(p); scopeValues(); return; }
       case 'bell': {
         const p = $('#bell'), on = p.classList.contains('on'); mark(); if (on) return dismiss(); closeAll();
         anchor($('#bellBtn'), p, 390); show(p);
@@ -275,7 +308,7 @@
   document.addEventListener('DOMContentLoaded', initTabs);
   document.addEventListener('htmx:afterSettle', initTabs);
 
-  // the bell badge and toasts: poll for failed calls, IAM denials and chaos faults (one toast per 8 s)
+  // the bell badge and toasts: poll for failed calls, IAM denials and chaos faults (one toast per 8 s; several new ones make one summary)
   let noteSince = Date.now(), noteToast = 0;
   function pollNotes() {
     if (document.hidden) return;
@@ -346,7 +379,7 @@
     ["st", "code", "p", "lat"].forEach((k, i) => { const f = field(k); if (f) f.value = b.dataset.preset.split(',')[i]; });
     mirror();
   });
-  // ⌘↵ runs the query of a tool page
+  // ⌘↵ or Ctrl↵ runs the query of a tool page (the Run button says so in its tooltip)
   document.addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { const f = e.target.closest && e.target.closest('form[data-run]'); if (f) { e.preventDefault(); f.requestSubmit(); } }
   });

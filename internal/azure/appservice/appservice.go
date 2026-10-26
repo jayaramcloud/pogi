@@ -323,11 +323,44 @@ func (s *Service) Resources() []core.Table {
 		t.Rows = append(t.Rows, []string{armres.Str(r, "name"), armres.Str(r, "kind"), plan[strings.LastIndexByte(plan, '/')+1:],
 			cmp.Or(armres.Str(p, "state"), "Running"), map[bool]string{true: "running", false: "none"}[s.insts[k] != nil]})
 	}
-	return []core.Table{t}
+	return []core.Table{t, s.planTable()}
+}
+
+// plans lists the App Service plans of every subscription, through the provider that holds them.
+func (s *Service) plans() []map[string]any {
+	p := arm.Lookup(s.hub, typPlan)
+	a, _ := s.hub.Service("arm").(*arm.Service)
+	if p == nil || p.List == nil || a == nil {
+		return nil
+	}
+	var out []map[string]any
+	for _, sub := range a.SubscriptionIDs() {
+		items, _ := p.List(&core.Ctx{Hub: s.hub, Internal: true}, arm.ID{Subscription: sub})
+		out = append(out, items...)
+	}
+	return out
+}
+
+func (s *Service) planTable() core.Table {
+	t := core.Table{Name: "App Service plans", Columns: []string{"Name", "Resource group", "Location", "SKU"}}
+	for _, r := range s.plans() {
+		id, _ := arm.ParseID(armres.Str(r, "id"))
+		sku, _ := r["sku"].(map[string]any)
+		t.Rows = append(t.Rows, []string{armres.Str(r, "name"), id.ResourceGroup, armres.Str(r, "location"), armres.Str(sku, "name")})
+	}
+	return t
 }
 
 // Inspect shows a web app as the API returns it, with its configuration, why it did not start, and its logs.
 func (s *Service) Inspect(table, name string) any {
+	if table == "App Service plans" {
+		for _, r := range s.plans() {
+			if strings.EqualFold(armres.Str(r, "name"), name) {
+				return r
+			}
+		}
+		return nil
+	}
 	if table != "Web apps" {
 		return nil
 	}

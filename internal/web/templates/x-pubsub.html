@@ -1,0 +1,26 @@
+{{define "content"}}{{with .Data}}<div class="x" id="xtab">{{template "xcss"}}
+<form method="post" action="/_pogi/pubsub/messages" class="stack" hx-post="/_pogi/pubsub/messages" hx-target="#xtab" hx-swap="outerHTML">
+  <div class="row">
+    <label class="wide">Subscription
+      <select name="sub">{{$s := .Sub}}{{range .Subs}}<option value="{{.Value}}" {{if eq .Value $s}}selected{{end}}>{{.Label}}</option>{{else}}<option value="">(no pull subscriptions yet)</option>{{end}}</select></label>
+    <label>Messages to pull <input name="n" type="number" min="1" max="100" value="{{.N}}" style="max-width:90px"></label>
+  </div>
+  <p class="note">Pull leaves the messages unacked: they come back after the ack deadline. Tick the ones to ack, or use Pull and ack.</p>
+  {{if .Err}}<div class="flash" role="alert">{{.Err}}</div>{{end}}
+  {{if .Msg}}<div class="flash ok" role="status">{{.Msg}}</div>{{end}}
+  <div class="row">
+    <button class="btn primary" name="act" value="pull">Pull</button>
+    <button class="btn" name="act" value="pullack">Pull and ack</button>
+    {{if .Msgs}}<button class="btn" name="act" value="ack">Ack ticked</button>{{end}}
+  </div>
+  {{if .Msgs}}<div style="overflow:auto"><table><thead><tr><th aria-label="Ack"></th><th>Data</th><th>Attributes</th><th>Published</th><th>Ack ID</th></tr></thead><tbody>
+  {{range .Msgs}}<tr>
+    <td><input type="checkbox" name="ack" value="{{.AckID}}" aria-label="Ack this message"></td>
+    <td class="mono body">{{.Data}}{{if .Binary}} <span class="tag">base64</span>{{end}}</td>
+    <td class="mono">{{range $k, $v := .Attrs}}{{$k}}={{$v}} {{end}}</td>
+    <td>{{.Published}}</td>
+    <td class="mono trunc" style="max-width:160px" title="{{.AckID}}">{{.AckID}}</td></tr>{{end}}
+  </tbody></table></div>
+  {{else if .Pulled}}<p class="empty">No messages to pull.</p>{{end}}
+</form>
+</div>{{end}}{{end}}

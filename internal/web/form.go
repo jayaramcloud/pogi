@@ -310,7 +310,7 @@ func (ui *UI) renderForm(w http.ResponseWriter, r *http.Request, svc string, f *
 	if s := ui.hub.Service(svc); s != nil {
 		title = s.Info().Title
 	}
-	ui.render(w, r, "form", f.Title, svc, formData{svc, f, root, errMsg, sc, base, title + " · " + sc.Account + " / " + sc.Region})
+	ui.render(w, r, "form", f.Title, svc, formData{svc, f, root, errMsg, sc, base, title + " · " + sc.target(ui.formCloud(svc), ui.hub.Cfg.Region)})
 }
 
 func (ui *UI) newSubmit(w http.ResponseWriter, r *http.Request) {
@@ -387,6 +387,9 @@ func blank(w http.ResponseWriter, r *http.Request) {}
 // doneText says what a finished form did to which resource: "Bucket photos created", "Rule saved".
 // A form whose verb or name it cannot tell gets "<title>: done".
 func doneText(f *core.Form, in map[string]any) string {
+	if m, _ := in["_msg"].(string); m != "" { // a special form that says it itself
+		return m
+	}
 	verb := ""
 	for prefix, v := range map[string]string{"Create": "created", "Delete": "deleted", "Remove": "removed", "Update": "updated",
 		"Put": "saved", "Set": "saved", "Modify": "updated", "Add": "added"} {
@@ -411,4 +414,12 @@ func doneText(f *core.Form, in map[string]any) string {
 		return f.Title + ": done"
 	}
 	return strings.ToUpper(out[:1]) + out[1:] + " " + verb
+}
+
+// formCloud is the cloud a service's form belongs to; its drawer says that cloud's scope.
+func (ui *UI) formCloud(svc string) string {
+	if s := ui.hub.Service(svc); s != nil {
+		return s.Info().Cloud
+	}
+	return core.AWS
 }

@@ -136,10 +136,6 @@ func chaosCatalog() []arm.Provider {
 		return nil, false
 	}
 	return []arm.Provider{
-		// every region exists, so that its target types can be listed
-		{Type: ns, Get: func(c *core.Ctx, id arm.ID) (map[string]any, error) {
-			return map[string]any{"id": id.String(), "name": id.Name(), "type": id.Type()}, nil
-		}},
 		{Type: ns + "/targetTypes",
 			Get: func(c *core.Ctx, id arm.ID) (map[string]any, error) {
 				if _, ok := find(id.Name()); !ok {

@@ -1,0 +1,25 @@
+{{define "content"}}{{with .Data}}<div class="x" id="xtab">{{template "xcss"}}{{$v := .V}}
+<form method="post" action="/_pogi/kinesis/records" class="stack" hx-post="/_pogi/kinesis/records" hx-target="#xtab" hx-swap="outerHTML">
+  <div class="row">
+    <label class="wide">Stream
+      <select name="stream">{{$s := index $v "stream"}}{{range .Streams}}<option value="{{.Value}}" {{if eq .Value $s}}selected{{end}}>{{.Label}}</option>{{else}}<option value="">(no streams yet)</option>{{end}}</select></label>
+  </div>
+  <fieldset class="row"><legend>Put a record</legend>
+    <label>Partition key <input name="key" value="{{index $v "key"}}"></label>
+    <label class="wide">Data <input name="data" value="{{index $v "data"}}"></label>
+    <button class="btn primary" name="act" value="put">Put record</button>
+  </fieldset>
+  <fieldset class="row"><legend>Get records</legend>
+    <label>Shard <input name="shard" value="{{index $v "shard"}}"></label>
+    <label>From <select name="from"><option value="oldest" {{if eq (index $v "from") "oldest"}}selected{{end}}>oldest</option><option value="latest" {{if eq (index $v "from") "latest"}}selected{{end}}>latest (new records only)</option></select></label>
+    <label>Limit <input name="limit" type="number" min="1" max="1000" value="{{index $v "limit"}}" style="max-width:90px"></label>
+    <button class="btn" name="act" value="get">Get records</button>
+  </fieldset>
+  {{if .Err}}<div class="flash" role="alert">{{.Err}}</div>{{end}}
+  {{if .Msg}}<div class="flash ok" role="status">{{.Msg}}</div>{{end}}
+</form>
+{{if .Recs}}<div style="overflow:auto"><table><thead><tr><th>Sequence number</th><th>Partition key</th><th>Data</th><th>Arrived</th></tr></thead><tbody>
+{{range .Recs}}<tr><td class="mono">{{.Seq}}</td><td class="mono">{{.Key}}</td><td class="mono body">{{.Data}}{{if .Binary}} <span class="tag">base64</span>{{end}}</td><td>{{.Arrived}}</td></tr>{{end}}
+</tbody></table></div>
+{{else if .Got}}<p class="empty">No records.</p>{{end}}
+</div>{{end}}{{end}}

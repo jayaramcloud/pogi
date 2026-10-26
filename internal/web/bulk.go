@@ -42,7 +42,11 @@ func decRow(s string) ([]string, error) {
 
 // bulkSpec is how the rows of a hand-written AWS service's table are deleted and tagged.
 type bulkSpec struct {
+	Target   string // the JSON target the service answers to, for hub.ConsoleCall
 	Del, Tag string
+	// DelFn deletes a row in its own way (Lambda is a REST API; an EventBridge rule needs two calls). It
+	// replaces Del and DelIn.
+	DelFn func(ui *UI, c bulkCtx) error
 	// DelIn and TagIn build the call's input from the row, keyed by column name.
 	DelIn func(ui *UI, c bulkCtx) (map[string]any, error)
 	TagIn func(ui *UI, c bulkCtx, tags map[string]string) (map[string]any, error)
@@ -98,26 +102,69 @@ func queueIn(ui *UI, c bulkCtx) (map[string]any, error) {
 }
 
 var bulkSpecs = map[string]bulkSpec{
-	"sqs/Queues":      {"DeleteQueue", "TagQueue", queueIn, tagged(queueIn, "Tags", "map")},
-	"sns/Topics":      {"DeleteTopic", "TagResource", arnIn("TopicArn", "sns", ""), tagged(arnIn("ResourceArn", "sns", ""), "Tags", "list")},
-	"dynamodb/Tables": {"DeleteTable", "TagResource", id("TableName", "Name"), tagged(arnIn("ResourceArn", "dynamodb", "table/"), "Tags", "list")},
-	"kinesis/Streams": {"DeleteStream", "AddTagsToStream", id("StreamName", "Name"), tagged(id("StreamName", "Name"), "Tags", "map")},
-	"logs/Log groups": {"DeleteLogGroup", "TagLogGroup", id("logGroupName", "Name"), tagged(id("logGroupName", "Name"), "tags", "map")},
-	"ssm/Parameters": {"DeleteParameter", "AddTagsToResource", id("Name", "Name"), func(ui *UI, c bulkCtx, t map[string]string) (map[string]any, error) {
+	"sqs/Queues":      {Target: "AmazonSQS", Del: "DeleteQueue", Tag: "TagQueue", DelIn: queueIn, TagIn: tagged(queueIn, "Tags", "map")},
+	"sns/Topics":      {Target: snsTarget, Del: "DeleteTopic", Tag: "TagResource", DelIn: arnIn("TopicArn", "sns", ""), TagIn: tagged(arnIn("ResourceArn", "sns", ""), "Tags", "list")},
+	"dynamodb/Tables": {Target: "DynamoDB_20120810", Del: "DeleteTable", Tag: "TagResource", DelIn: id("TableName", "Name"), TagIn: tagged(arnIn("ResourceArn", "dynamodb", "table/"), "Tags", "list")},
+	"kinesis/Streams": {Target: "Kinesis_20131202", Del: "DeleteStream", Tag: "AddTagsToStream", DelIn: id("StreamName", "Name"), TagIn: tagged(id("StreamName", "Name"), "Tags", "map")},
+	"logs/Log groups": {Target: "Logs_20140328", Del: "DeleteLogGroup", Tag: "TagLogGroup", DelIn: id("logGroupName", "Name"), TagIn: tagged(id("logGroupName", "Name"), "tags", "map")},
+	"ssm/Parameters": {Target: "AmazonSSM", Del: "DeleteParameter", Tag: "AddTagsToResource", DelIn: id("Name", "Name"), TagIn: func(ui *UI, c bulkCtx, t map[string]string) (map[string]any, error) {
 		in, _ := tagged(id("ResourceId", "Name"), "Tags", "list")(ui, c, t)
 		in["ResourceType"] = "Parameter"
 		return in, nil
 	}},
-	"secretsmanager/Secrets": {"DeleteSecret", "TagResource", func(_ *UI, c bulkCtx) (map[string]any, error) {
+	"secretsmanager/Secrets": {Target: "secretsmanager", Del: "DeleteSecret", Tag: "TagResource", DelIn: func(_ *UI, c bulkCtx) (map[string]any, error) {
 		return map[string]any{"SecretId": c.row["Name"], "ForceDeleteWithoutRecovery": true}, nil
-	}, tagged(id("SecretId", "Name"), "Tags", "list")},
-	"events/Buses": {Del: "DeleteEventBus", DelIn: id("Name", "Name")},
-	"ecr/Repositories": {Del: "DeleteRepository", DelIn: func(_ *UI, c bulkCtx) (map[string]any, error) {
+	}, TagIn: tagged(id("SecretId", "Name"), "Tags", "list")},
+	"events/Buses": {Target: "AWSEvents", Del: "DeleteEventBus", DelIn: id("Name", "Name")},
+	"events/Rules": {DelFn: deleteRule},
+	"ecr/Repositories": {Target: "AmazonEC2ContainerRegistry_V20150921", Del: "DeleteRepository", DelIn: func(_ *UI, c bulkCtx) (map[string]any, error) {
 		return map[string]any{"repositoryName": c.row["Repository"], "force": true}, nil
 	}},
-	"ecs/Clusters": {Del: "DeleteCluster", DelIn: id("cluster", "Cluster")},
-	"iam/Users":    {Del: "DeleteUser", DelIn: id("UserName", "Name")},
-	"iam/Roles":    {Del: "DeleteRole", DelIn: id("RoleName", "Name")},
+	"ecs/Clusters":      {Target: "AmazonEC2ContainerServiceV20141113", Del: "DeleteCluster", DelIn: id("cluster", "Cluster")},
+	"iam/Users":         {Target: iamTarget, Del: "DeleteUser", DelIn: id("UserName", "Name")},
+	"iam/Roles":         {Target: iamTarget, Del: "DeleteRole", DelIn: id("RoleName", "Name")},
+	"lambda/Functions":  {DelFn: deleteFunction},
+	"sns/Subscriptions": {DelFn: unsubscribe},
+}
+
+const (
+	snsTarget = "AmazonSimpleNotificationService"
+	iamTarget = "AWSIdentityManagementV20100508"
+)
+
+// deleteFunction is Lambda's REST DeleteFunction, called the way the console's other Lambda writes are.
+func deleteFunction(ui *UI, c bulkCtx) error {
+	return ui.rest(scope{Account: c.account, Region: c.region}, "lambda", http.MethodDelete, "/2015-03-31/functions/"+url.PathEscape(c.row["Name"]), nil)
+}
+
+// unsubscribe deletes an SNS subscription: its ARN says which account and region it lives in.
+func unsubscribe(ui *UI, c bulkCtx) error {
+	arn := c.row["ARN"]
+	_, region, account, _, ok := core.ParseARN(arn)
+	if !ok {
+		return fmt.Errorf("%q is not a subscription ARN", arn)
+	}
+	return ui.hub.ConsoleCall(account, region, snsTarget, "Unsubscribe", map[string]any{"SubscriptionArn": arn}, nil)
+}
+
+// deleteRule removes a rule's targets, then the rule (EventBridge refuses to delete a rule that has targets).
+func deleteRule(ui *UI, c bulkCtx) error {
+	rule := map[string]any{"Rule": c.row["Name"], "EventBusName": c.row["Bus"]}
+	var out struct{ Targets []struct{ Id string } }
+	if err := ui.hub.ConsoleCall(c.account, c.region, "AWSEvents", "ListTargetsByRule", rule, &out); err != nil {
+		return err
+	}
+	if len(out.Targets) > 0 {
+		ids := make([]string, len(out.Targets))
+		for i, t := range out.Targets {
+			ids[i] = t.Id
+		}
+		rule["Ids"] = ids
+		if err := ui.hub.ConsoleCall(c.account, c.region, "AWSEvents", "RemoveTargets", rule, nil); err != nil {
+			return err
+		}
+	}
+	return ui.hub.ConsoleCall(c.account, c.region, "AWSEvents", "DeleteRule", map[string]any{"Name": c.row["Name"], "EventBusName": c.row["Bus"]}, nil)
 }
 
 // bulkable says what the rows of a table support.
@@ -219,6 +266,9 @@ func (ui *UI) bulkOne(svc, table, action string, sc scope, cols, row []string, t
 	}
 	if sp, ok := bulkSpecs[svc+"/"+table]; ok {
 		c := bulkCtx{svc, orElse(rec["Account"], sc.acct()), orElse(rec["Region"], sc.region(ui.hub.Cfg.Region)), rec}
+		if action == "delete" && sp.DelFn != nil {
+			return sp.DelFn(ui, c)
+		}
 		op, build := sp.Del, sp.DelIn
 		var in map[string]any
 		var err error
@@ -231,7 +281,7 @@ func (ui *UI) bulkOne(svc, table, action string, sc scope, cols, row []string, t
 		if err != nil {
 			return err
 		}
-		return ui.hub.ConsoleCall(c.account, c.region, curated[svc][0].Target, op, in, nil)
+		return ui.hub.ConsoleCall(c.account, c.region, sp.Target, op, in, nil)
 	}
 	return ui.gcpBulkDelete(svc, table, row[0])
 }

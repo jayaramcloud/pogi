@@ -543,7 +543,7 @@ func (s *Service) TaggedResources(account, region string) map[string]map[string]
 func (s *Service) Resources() []core.Table {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	t := core.Table{Name: "Buckets", Columns: []string{"Name", "Region", "Account", "Objects", "Size", "Versioning", "Created"}}
+	t := core.Table{Name: "Buckets", Global: true, Columns: []string{"Name", "Region", "Account", "Objects", "Size", "Versioning", "Created"}}
 	for _, name := range core.SortedKeys(s.st.Buckets) {
 		b := s.st.Buckets[name]
 		n, size := 0, 0

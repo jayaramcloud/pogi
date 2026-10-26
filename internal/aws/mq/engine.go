@@ -199,7 +199,9 @@ func reuse(ctx context.Context, d *docker.Client, name string, files []byte, ver
 func fresh(ctx context.Context, d *docker.Client, ct *docker.Container, files []byte) error {
 	var err error
 	for try := range 2 {
-		d.Remove(ctx, ct.Name) // a leftover, or the container being replaced
+		if err := d.RemoveLeftover(ctx, ct.Name); err != nil { // a leftover, or the container being replaced
+			return err
+		}
 		for p, h := range ct.Ports {
 			if try > 0 {
 				h = 0 // a port picked free was taken by the time the engine bound it

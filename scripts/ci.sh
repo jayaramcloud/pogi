@@ -17,9 +17,10 @@
 #   conformance [block ...]   scripts/conformance.sh (Terraform and CDK against a fresh pogi)
 #   security [tool ...]       scripts/security-scan.sh
 #   notes <version>  prints that version's CHANGELOG.md section, the release page notes (links made absolute)
-#   gate             the full pre-release gate: go test -race ./... with Docker ON, then scripts/conformance.sh
+#   e2e [playwright args]   the console's browser tests (test/e2e)
+#   gate             the full pre-release gate: go test -race ./... with Docker ON, scripts/conformance.sh, then e2e
 #
-# test, conformance and security take the rest of the arguments, so put them last.
+# test, conformance, security and e2e take the rest of the arguments, so put them last.
 #
 # A missing tool is skipped with a hint on your machine, and fails the step when CI=true (GitHub sets it).
 # When GITHUB_STEP_SUMMARY is set, "test" also writes JUnit XML and JSON to test-results/ and adds a table
@@ -243,15 +244,24 @@ step_security() {
 # at the tagged tree on GitHub, since the release page has no files next to it. Fails when the section is missing.
 step_notes() {
   v=${1:?usage: scripts/ci.sh notes <version>}; v=${v#v}
-  out=$(awk -v h="## [$v]" 'index($0, h) == 1 { on = 1; next } on && /^## \[/ { exit } on && !/^\[[^]]*\]: /' CHANGELOG.md |
+  base=${v%%-*} # a pre-release such as 0.2.0-rc.1 uses the section of the version it leads to
+  out=$(awk -v h="## [$base]" 'index($0, h) == 1 { on = 1; next } on && /^## \[/ { exit } on && !/^\[[^]]*\]: /' CHANGELOG.md |
     sed "s#](docs/#](https://github.com/nrndev/pogi/blob/v$v/docs/#g")
-  [ -n "$(printf '%s' "$out" | tr -d '[:space:]')" ] || die "CHANGELOG.md has no section for $v"
+  [ -n "$(printf '%s' "$out" | tr -d '[:space:]')" ] || die "CHANGELOG.md has no section for $base"
+  [ "$base" = "$v" ] || printf 'A release candidate for v%s. Install it from this page: Homebrew, Scoop and the `latest` image stay on the last release.\n\n' "$base"
   printf '%s\n' "$out"
+}
+
+# Browser tests of the console against a real pogi (test/e2e, Playwright). Extra arguments go to "playwright test".
+step_e2e() {
+  need npm node || return 0
+  (cd test/e2e && npm ci && npx playwright install chromium && npx playwright test "$@")
 }
 
 step_gate() {
   go test -race -count=1 ./...
   sh scripts/conformance.sh
+  step_e2e
 }
 
 # --- run ---------------------------------------------------------------------
@@ -266,8 +276,8 @@ while [ $# -gt 0 ]; do
       step_cross $ps ;;
     release-check) step_release_check ;;
     report) step_report "$@"; exit 0 ;;
-    test|conformance|security) "step_$s" "$@"; exit $? ;; # these take the rest of the arguments
+    test|conformance|security|e2e) "step_$s" "$@"; exit $? ;; # these take the rest of the arguments
     notes) step_notes "${1:-}"; exit $? ;;
-    *) die "unknown step: $s (fmt vet build cross release-check lint workflows coverage groups test conformance security notes gate)" ;;
+    *) die "unknown step: $s (fmt vet build cross release-check lint workflows coverage groups test conformance security e2e notes gate)" ;;
   esac
 done

@@ -124,7 +124,8 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) { s.rest.Ser
 // same paths (and so does every service that follows Google's resource names),
 // so a call on a cluster is claimed only when it can only be GKE's: a node pool,
 // a PUT, a :verb, a create without ?clusterId, a call on a GKE cluster, or the
-// list of a location that has one. Operations are claimed when they are GKE's.
+// list of a location that has one (of any location, "-", when the project has one).
+// Operations are claimed when they are GKE's.
 // ponytail: a GKE list in a location with no GKE cluster yet goes to Managed Kafka (an empty list either way).
 func (s *Service) match(r *http.Request) bool {
 	project, parts, ok := s.rest.Split(r.URL.Path)
@@ -143,7 +144,11 @@ func (s *Service) match(r *http.Request) bool {
 		case len(rest) == 0 && r.Method == http.MethodPost:
 			return !r.URL.Query().Has("clusterId")
 		case len(rest) == 0:
-			return r.Method == http.MethodGet && slices.ContainsFunc(core.SortedKeys(s.st.clusters), func(k string) bool { return strings.HasPrefix(k, project+"/"+loc+"/") })
+			prefix := project + "/" + loc + "/"
+			if loc == "-" { // gcloud container clusters list without --location
+				prefix = project + "/"
+			}
+			return r.Method == http.MethodGet && slices.ContainsFunc(core.SortedKeys(s.st.clusters), func(k string) bool { return strings.HasPrefix(k, prefix) })
 		case len(rest) > 1:
 			return rest[1] == "nodePools"
 		}
@@ -682,23 +687,44 @@ func (s *Service) kubeconfig(w http.ResponseWriter, r *http.Request) {
 	project, rest, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/_gcp/gke/kubeconfig/"), "/")
 	loc, name, _ := strings.Cut(rest, "/")
 	s.mu.Lock()
-	cl := s.st.clusters[project+"/"+loc+"/"+name]
-	var endpoint, ca string
-	if cl != nil {
-		endpoint, ca = cl.p.Endpoint, cl.p.MasterAuth.ClusterCaCertificate
-	}
+	cfg, err := s.config(project, loc, name)
 	s.mu.Unlock()
+	if err != nil {
+		http.Error(w, core.AsError(err).Msg, core.AsError(err).Status)
+		return
+	}
+	io.WriteString(w, cfg)
+}
+
+// Kubeconfig is the kubeconfig of the cluster of that name, for the console. It answers 404 for an
+// unknown cluster and 409 for one without an API server yet.
+func (s *Service) Kubeconfig(name string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, k := range core.SortedKeys(s.st.clusters) {
+		if cl := s.st.clusters[k]; cl.p.Name == name {
+			project, rest, _ := strings.Cut(k, "/")
+			loc, _, _ := strings.Cut(rest, "/")
+			return s.config(project, loc, name)
+		}
+	}
+	return "", core.Errorf(http.StatusNotFound, "NOT_FOUND", "No cluster named %s.", name)
+}
+
+// config builds the kubeconfig. Lock held.
+func (s *Service) config(project, loc, name string) (string, error) {
+	cl := s.st.clusters[project+"/"+loc+"/"+name]
 	switch {
 	case cl == nil:
-		http.Error(w, fmt.Sprintf("no cluster %s", clusterName(project, loc, name)), http.StatusNotFound)
-	case endpoint == "":
-		http.Error(w, "the cluster has no API server (yet): see its status and statusMessage", http.StatusConflict)
-	default:
-		ctx := "gke_" + project + "_" + loc + "_" + name
-		tok := gapi.AccessToken("kubectl@"+project+".iam.gserviceaccount.com", scope, 10*365*24*time.Hour)
-		fmt.Fprintf(w, "apiVersion: v1\nkind: Config\nclusters:\n- name: %[1]s\n  cluster:\n    server: https://%[2]s\n    certificate-authority-data: %[3]s\n"+
-			"users:\n- name: %[1]s\n  user:\n    token: %[4]s\ncontexts:\n- name: %[1]s\n  context:\n    cluster: %[1]s\n    user: %[1]s\ncurrent-context: %[1]s\n", ctx, endpoint, ca, tok)
+		return "", core.Errorf(http.StatusNotFound, "NOT_FOUND", "no cluster %s", clusterName(project, loc, name))
+	case cl.p.Endpoint == "":
+		return "", core.Errorf(http.StatusConflict, "FAILED_PRECONDITION", "the cluster has no API server (yet): see its status and statusMessage")
 	}
+	ctx := "gke_" + project + "_" + loc + "_" + name
+	tok := gapi.AccessToken("kubectl@"+project+".iam.gserviceaccount.com", scope, 10*365*24*time.Hour)
+	return fmt.Sprintf("apiVersion: v1\nkind: Config\nclusters:\n- name: %[1]s\n  cluster:\n    server: https://%[2]s\n    certificate-authority-data: %[3]s\n"+
+		"users:\n- name: %[1]s\n  user:\n    token: %[4]s\ncontexts:\n- name: %[1]s\n  context:\n    cluster: %[1]s\n    user: %[1]s\ncurrent-context: %[1]s\n",
+		ctx, cl.p.Endpoint, cl.p.MasterAuth.ClusterCaCertificate, tok), nil
 }
 
 // ---- persistence, console, shutdown ----

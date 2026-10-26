@@ -20,6 +20,7 @@ type qtag struct {
 	flat     bool
 	key, val string
 	omit     bool
+	empty    bool // an empty list is written as <Name/>, not left out
 }
 
 func tagOf(f reflect.StructField) qtag {
@@ -45,6 +46,8 @@ func tagOf(f reflect.StructField) qtag {
 			switch {
 			case p == "flat":
 				t.flat = true
+			case p == "empty":
+				t.empty = true
 			case strings.HasPrefix(p, "key="):
 				t.key = p[4:]
 			case strings.HasPrefix(p, "val="):
@@ -245,7 +248,8 @@ func QueryResponse(op, xmlns, requestID string, out any) []byte {
 
 // WriteXMLFields writes the fields of a struct (or the entries of a map) as
 // query-protocol XML elements. Empty strings, nil pointers and empty
-// lists/maps are omitted, as AWS does.
+// lists/maps are omitted, as AWS mostly does; a list tagged query:",empty" is
+// written empty, for the outputs where AWS sends one.
 func WriteXMLFields(b *strings.Builder, v reflect.Value) {
 	for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
 		if v.IsNil() {
@@ -305,6 +309,9 @@ func writeXML(b *strings.Builder, name string, v reflect.Value, t qtag) {
 		b.WriteString("</" + name + ">")
 	case reflect.Slice:
 		if v.Len() == 0 {
+			if t.empty {
+				b.WriteString("<" + name + "/>")
+			}
 			return
 		}
 		if v.Type().Elem().Kind() == reflect.Uint8 {

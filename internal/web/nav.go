@@ -166,7 +166,13 @@ func (ui *UI) nav(r *http.Request, st core.Status) nav {
 	}
 	disambiguate(n.InUse, n.Pinned)
 	slices.SortFunc(n.InUse, func(a, b navSvc) int { return strings.Compare(a.Title, b.Title) })
-	if e := len(ui.hub.Requests.Query(0, 500, "", "", true)); e > 0 {
+	e := 0
+	for _, x := range ui.hub.Requests.Query(0, 500, "", "", true) {
+		if x.Alarming() {
+			e++
+		}
+	}
+	if e > 0 {
 		n.Badges["requests"] = badge{plural(e, "error"), "bad"}
 	}
 	if c := len(ui.hub.Chaos.List()); c > 0 {

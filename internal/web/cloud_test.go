@@ -35,6 +35,7 @@ func TestCloudSelectorCookie(t *testing.T) {
 func TestCloudSelectorFilters(t *testing.T) {
 	c := start(t, "s3", "sqs", "pubsub", "iam")
 	c.traffic() // s3: one good call and one failing call
+	c.loud()
 	req, _ := http.NewRequest("PUT", c.base+"/v1/projects/pogi/topics/events", strings.NewReader("{}"))
 	if res, err := http.DefaultClient.Do(req); err != nil || res.StatusCode != 200 {
 		t.Fatalf("create topic: %v %v", res, err)
@@ -64,7 +65,7 @@ func TestCloudSelectorFilters(t *testing.T) {
 	// a service page of another cloud says so
 	want(t, c.get("/_pogi/resources/s3"), "This service is on AWS; the console is showing <b>Google Cloud</b> only")
 	// the bell is not filtered
-	want(t, c.get("/_pogi/notes"), "GetObject failed")
+	want(t, c.get("/_pogi/notes"), "CreateBucket failed")
 
 	c.cookie("pogi-cloud", "aws")
 	wantNot(t, c.get("/_pogi/services"), `href="/_pogi/resources/pubsub"`)

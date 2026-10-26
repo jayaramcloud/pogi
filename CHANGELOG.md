@@ -21,6 +21,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Google create forms work.** The field the URL needs (such as `parent`) is now first in the form, and a `locations/*` part is filled in (`projects/pogi/locations/us-central1`). GKE "Create cluster" no longer fails for a missing parent.
+- **Empty pages only offer Create when there is a button.** Otherwise they say to use the CLI, SDK or Terraform.
+- **Saving an Azure resource names it** ("Managed cluster aks1 saved") and opens the service page that lists it.
+- **Generated form titles use sentence case** ("Create node pool"), like the hand-made ones.
+- **S3 buckets show in every region.** A bucket made in another region no longer vanishes from the S3 page when the region switcher is on `us-east-1`. Real AWS lists every bucket in the account, and so does pogi now.
+- **A paused live refresh says so.** While you type, or have a drawer, dialog or ticked row open, a service page waits to refresh and now shows "Updates paused while you work here".
+- **gcloud's GKE and Artifact Registry commands reach pogi.** `pogi env` sets their endpoint overrides; before, `gcloud container …` went to Google and failed with 401.
+- **GKE: `gcloud container clusters create` and `delete` wait for their operation**, with no `--async`, and `clusters list` works without `--location`.
+- **Cloud Functions: `gcloud functions deploy` needs no `--build-service-account`**, and `--allow-unauthenticated` works.
+- **CloudFormation: a stack with no parameters can be updated with `aws cloudformation deploy`.** `GetTemplateSummary` sends an empty `Parameters` list, as AWS does.
+- **Event Grid honours `queueName`** on Storage queue destinations, names a topic in its real resource group, and pogi's certificate covers the topic's own HTTPS endpoint.
+- **Cloud Tasks lists locations.**
+- **A pogi never removes another running pogi's containers**, such as the shared ECR forwarder.
+- **`pogi ls` and the console show a long-tail resource's name.**
+- **The Run buttons of the SQL editor and Logs** keep the shortcut (⌘↵ or Ctrl↵) in their tooltip instead of a key chip.
 - **Numbers too big for their field are refused, not wrapped.** A Service Bus `MaxDeliveryCount` of 4294967297 was stored as 1, and a non-number became the default. Google `maxResults` and page sizes above 2147483647, Firebase Auth's `maxResults`, Cloud Logging severities and the console's Firestore limit wrapped the same way. They now get the cloud's 400, or are ignored where a number is optional.
 - **Extra arguments are an error, and flags work anywhere.** Commands used to ignore words they do not take, so `pogi start version` started the server, and a flag after an argument was dropped, so `pogi ls s3 --endpoint URL` quietly used the default endpoint. Now pogi names the argument it did not expect. Flags may come before or after the arguments (`pogi snapshot --endpoint URL ls` works too), and `-h` at the end of any command prints its help.
 - **`pogi reset` refuses empty and unknown names.** `pogi reset ""`, as from an unset variable in a script, used to reset every service, and a misspelled name reported success while resetting nothing. Both now fail with a message. `pogi reset` with no name still resets everything.
@@ -94,6 +109,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Azure pages list what Create makes.** Key Vault has a Vaults tab, Cosmos DB an Accounts tab, and App Service an App Service plans tab, so a saved resource shows up on its page.
+- **Azure create everywhere.** Azure service pages have a Create button that opens the resource editor with the page's type picked. The editor has a Name field and builds the ID from the scope, and its starting bodies work as they are for the common types. A save returns to the page you came from. Resource Manager has a "Create resource group" form, and a group's drawer lists its resources.
+- **Account center.** The scope pill now has Google location and Azure resource group and location, each a pick-or-type list filled from what pogi holds. Tables, counts and creates follow them, the bar above a table says how many rows are hidden, and "Reset to defaults" clears them. A create form drawer shows the scope of its own cloud.
+- **Quieter, clearer notifications.** A 404 from a read no longer counts as an error in the bell, the sidebar or Home. The bell's toggles are real buttons, titles use service names, and it links to all errors in Activity. Toasts queue, pause under the pointer, and several new errors become one summary.
+- **Data actions in the console.** DynamoDB's Query tab adds, edits and deletes items. Pub/Sub has a Messages tab to pull and ack messages. Kinesis has a Records tab to put and read records.
+- **Lambda actions in the console.** Delete a function (row menu or bulk), update its code from a `.zip`, edit its environment variables, and create an event source mapping. The Invoke box now really starts with `{"hello": "pogi"}`.
+- **Step Functions: start and stop executions** from the Run tab.
+- **SNS: create and delete subscriptions** in the console.
+- **EventBridge: rules get targets.** "Put rule" has a Targets list, and deleting a rule removes its targets.
+- **Kubernetes in the console.** EKS, GKE and AKS get a short "Create cluster" form (AKS gets a Create button at all). A ready cluster's drawer has "Connect with kubectl": a kubeconfig download, the command to fetch it the cloud's way, and a `kubectl get nodes` line.
+- **Browser tests for the console.** `test/e2e` drives the S3 page in Chromium (Playwright) against a real pogi. Run it with `scripts/ci.sh e2e`; `gate` runs it too.
+- **How-to guides for each kind of service.** Thirteen guides in `docs/how-to/` get a service working in a few minutes, with the commands for AWS, Google Cloud and Azure and the output they print: storage, queues and topics, key-value and document databases, secrets and keys, functions and HTTP APIs, events and workflows, Kubernetes clusters, containers and VMs, SQL databases and caches, sign-in, logs and metrics, CloudFormation, and any Thin service. Rows on the [coverage page](docs/reference/coverage.md) link to them.
+- **The Azure CLI signs in to pogi.** `pogi env` sets `AZURE_CORE_INSTANCE_DISCOVERY=false`. After `az cloud register` and a service-principal `az login` ([how](docs/how-to/connect-your-tools.md#azure-cli)), ARM commands such as `az group`, `az aks`, `az keyvault`, `az network dns`, `az eventgrid` and `az postgres` or `az mysql flexible-server create` reach pogi.
+- **`gcloud run deploy` works.** pogi serves Cloud Run's Knative v1 API on the regional host gcloud calls, and `pogi env` points gcloud's Cloud Run API at `run.localhost` so that host resolves.
+- **The console fits every width from 768px to 1920px.** No page scrolls sideways, toolbar fields stretch and shrink with Run at the end of its row, tables hide the columns you can spare on narrow screens (the drawer still shows them), and the footer sits at the bottom edge. A polish pass lined up headers, cards, drawers and numbers across pages.
 - **JSON from the list commands.** `pogi status`, `services`, `ls`, `snapshot ls` and `chaos ls` take `--json`, `pogi logs --json` prints one JSON object per call, and `pogi cost --json` is short for `--format json`.
 - **Help for each command.** `pogi help <command>` shows that command's flags, the main help names `pogi tf diagram` and links the docs and the issue tracker, and `pogi version -h` works.
 - **Long and short flag names.** `logs --follow` and `--lines` (for `-f` and `-n`), `start -q` (for `--quiet`) and `tf diagram --output` (for `-o`).

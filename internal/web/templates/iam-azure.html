@@ -18,7 +18,7 @@
   <button class="btn">{{icon "pulse"}}Switch to strict and watch</button><span class="faint">then Activity shows what is still denied</span></form>{{end}}
 
 {{if .Principals}}
-<div class="toolbar"><form method="get" action="/_pogi/iam"><input type="hidden" name="c" value="azure"><select class="input mono" name="principal" style="width:360px" data-autosubmit>{{$s := .Selected}}{{range .Principals}}<option value="{{.OID}}" {{if eq .OID $s}}selected{{end}}>{{index $.Data.Labels .OID}}</option>{{end}}</select></form>
+<div class="toolbar"><form method="get" action="/_pogi/iam"><input type="hidden" name="c" value="azure"><select class="input mono tb-principal" name="principal" data-autosubmit>{{$s := .Selected}}{{range .Principals}}<option value="{{.OID}}" {{if eq .OID $s}}selected{{end}}>{{index $.Data.Labels .OID}}</option>{{end}}</select></form>
   <span class="faint">{{.Calls}} calls recorded since {{.Since}}</span><span class="spacer"></span>
   <form method="post" action="/_pogi/iam/azure/restart"><input type="hidden" name="principal" value="{{.Selected}}"><button class="btn">{{icon "reset"}}Restart recording</button></form></div>
 <div class="grid2" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start">

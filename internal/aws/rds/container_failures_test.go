@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -46,7 +47,7 @@ func TestDatabaseCreatedWithoutDockerShowsNoteInTable(t *testing.T) {
 	eventually(t, "container of the new database", func() bool { return len(f.Called("create")) > 0 })
 }
 
-// hungEngine answers pings, inspects and network calls, and never answers container create.
+// hungEngine answers pings, inspects and network calls, and never answers container create. No container exists.
 func hungEngine(t *testing.T) {
 	release := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +63,8 @@ func hungEngine(t *testing.T) {
 			case <-release:
 			case <-r.Context().Done():
 			}
+		case strings.Contains(p, "/containers/pogi-") && strings.HasSuffix(p, "/json"):
+			http.Error(w, `{"message":"No such container"}`, http.StatusNotFound)
 		default:
 			io.WriteString(w, "{}")
 		}
@@ -141,6 +144,7 @@ func TestKilledContainerFailsTheDatabase(t *testing.T) {
 // A container that exits as it starts fails the database at once, with its exit code and last log line, and
 // pogi does not poll for five minutes.
 func TestContainerThatExitsAtStartFailsAtOnce(t *testing.T) {
+	var made atomic.Bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Path
 		switch {
@@ -149,6 +153,7 @@ func TestContainerThatExitsAtStartFailsAtOnce(t *testing.T) {
 		case strings.HasSuffix(p, "/version"):
 			io.WriteString(w, `{"Version":"29.0.0","ApiVersion":"1.54"}`)
 		case strings.Contains(p, "/containers/create"):
+			made.Store(true)
 			w.WriteHeader(http.StatusCreated)
 			io.WriteString(w, `{"Id":"x"}`)
 		case strings.HasSuffix(p, "/start"):
@@ -157,6 +162,8 @@ func TestContainerThatExitsAtStartFailsAtOnce(t *testing.T) {
 			io.WriteString(w, `{"StatusCode":1}`)
 		case strings.HasSuffix(p, "/logs"):
 			w.Write(append([]byte{2, 0, 0, 0, 0, 0, 0, 5}, "boom\n"...))
+		case strings.Contains(p, "/containers/") && !made.Load():
+			http.Error(w, `{"message":"No such container"}`, http.StatusNotFound)
 		case strings.Contains(p, "/containers/"):
 			io.WriteString(w, `{"State":{"Status":"exited","ExitCode":1},"NetworkSettings":{"Ports":{"5432/tcp":[{"HostPort":"54999"}]}}}`)
 		default:

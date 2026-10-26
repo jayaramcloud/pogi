@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -121,6 +122,7 @@ func Env(endpoint, region string, storage ...string) []string {
 		"IDENTITY_ENDPOINT="+endpoint+"/msi/token", // managed identity, App Service style: DefaultAzureCredential finds it
 		"IDENTITY_HEADER=pogi",
 		"AZURE_AUTHORITY_HOST=https://"+hp+"/", // azidentity wants https, and DisableInstanceDiscovery for a host that isn't Microsoft's
+		"AZURE_CORE_INSTANCE_DISCOVERY=false",  // az login: don't ask login.microsoftonline.com about pogi's authority first
 		"ARM_METADATA_HOSTNAME="+hp,            // azurerm: metadata_host
 	), GcloudEnv(endpoint)...)
 }
@@ -133,7 +135,7 @@ const DefaultProject = "pogi"
 // property api_endpoint_overrides/<name>.
 var gcloudAPIs = []string{"pubsub", "storage", "secretmanager", "firestore", "run", "cloudfunctions", "cloudtasks",
 	"cloudscheduler", "eventarc", "managedkafka", "cloudkms", "sql", "datastore", "iam", "iamcredentials",
-	"cloudresourcemanager", "serviceusage", "logging", "monitoring", "bigquery", "compute"}
+	"cloudresourcemanager", "serviceusage", "logging", "monitoring", "bigquery", "compute", "container", "artifactregistry"}
 
 // GcloudEnv points the gcloud CLI at pogi: one CLOUDSDK_API_ENDPOINT_OVERRIDES_<API>
 // per served API, the default project and a dummy access token. The override
@@ -144,7 +146,11 @@ var gcloudAPIs = []string{"pubsub", "storage", "secretmanager", "firestore", "ru
 func GcloudEnv(endpoint string) []string {
 	var out []string
 	for _, api := range gcloudAPIs {
-		out = append(out, "CLOUDSDK_API_ENDPOINT_OVERRIDES_"+strings.ToUpper(api)+"="+strings.TrimSuffix(endpoint, "/")+"/")
+		base := endpoint
+		if api == "run" {
+			base = runEndpoint(endpoint)
+		}
+		out = append(out, "CLOUDSDK_API_ENDPOINT_OVERRIDES_"+strings.ToUpper(api)+"="+strings.TrimSuffix(base, "/")+"/")
 	}
 	for _, api := range SortedKeys(googlePrefixed) { // the APIs served under /<api>/ (googlePrefix)
 		path := "/" + api + "/"
@@ -154,6 +160,23 @@ func GcloudEnv(endpoint string) []string {
 		out = append(out, "CLOUDSDK_API_ENDPOINT_OVERRIDES_"+strings.ToUpper(api)+"="+strings.TrimSuffix(endpoint, "/")+path)
 	}
 	return append(out, "CLOUDSDK_CORE_PROJECT="+DefaultProject, "CLOUDSDK_AUTH_ACCESS_TOKEN=pogi-token", "CLOUDSDK_CORE_DISABLE_PROMPTS=1")
+}
+
+// runEndpoint is the Cloud Run override. `gcloud run deploy` calls Cloud Run's
+// v1 API on a regional host, "<region>-<override host>", so the host must be a
+// name that still resolves with a prefix: run.localhost (us-central1-run.localhost),
+// not localhost (us-central1-localhost). An IP address or another host name
+// stays as it is, because no prefixed form of it would resolve.
+func runEndpoint(endpoint string) string {
+	u, err := url.Parse(endpoint)
+	if err != nil || u.Host == "" {
+		return endpoint
+	}
+	if h := u.Hostname(); h != "localhost" && !strings.HasSuffix(h, ".localhost") {
+		return endpoint
+	}
+	u.Host = "run." + u.Host // keeps the port
+	return u.String()
 }
 
 // Hostport strips the scheme from a URL.

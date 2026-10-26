@@ -112,9 +112,13 @@ func (s *Service) item(k *call, id ID) (int, any, error) {
 		if getErr != nil {
 			status = created
 		}
-		if p != nil && (p.Async || p.AsyncPut) && k.r.Method == http.MethodPut { // a PATCH (update tags) is a plain call
+		if p != nil && (p.Async || p.AsyncPut) && k.r.Method == http.MethodPut {
 			k.async(id.Subscription)
 			status = created
+		}
+		if p != nil && p.AsyncPatch && k.r.Method == http.MethodPatch {
+			k.async(id.Subscription)
+			status = http.StatusAccepted
 		}
 		return status, out, nil
 	case http.MethodDelete:
@@ -144,6 +148,11 @@ func (s *Service) get(c *core.Ctx, id ID, p *Provider) (map[string]any, error) {
 			return nil, methodNotAllowed("GET", id.Type())
 		}
 		return p.Get(c, id)
+	}
+	// Every provider has every region: <Namespace>/locations/<region> exists, so the lists and actions under it
+	// (capabilities, checkNameAvailability) pass the parent check.
+	if len(id.Types) == 1 && len(id.Names) == 1 && strings.EqualFold(id.Types[0], "locations") {
+		return map[string]any{"id": id.String(), "name": id.Name(), "type": id.Type()}, nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

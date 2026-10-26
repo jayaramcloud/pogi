@@ -204,8 +204,9 @@ func (s *Service) boot(path, verb string) error {
 	switch {
 	case verb == "start" && d.Start(ctx, name) == nil, verb == "restart" && d.Restart(ctx, name) == nil:
 	default:
-		d.Remove(ctx, name) // a leftover
-		_, err = d.Run(ctx, ct)
+		if err = d.RemoveLeftover(ctx, name); err == nil {
+			_, err = d.Run(ctx, ct)
+		}
 	}
 	if err != nil {
 		s.hub.Log.Warn("compute instance container failed", "instance", path, "err", err)

@@ -102,3 +102,38 @@ func TestGooglePrefix(t *testing.T) {
 		}
 	}
 }
+
+// TestGcloudEnvCoversGoogleHosts: every Google API that pogi serves by path has its gcloud override in
+// `pogi env`, or gcloud sends its calls to Google (GKE and Artifact Registry once did).
+func TestGcloudEnvCoversGoogleHosts(t *testing.T) {
+	env := strings.Join(GcloudEnv("http://localhost:1"), "\n")
+	// labels with no gcloud property of their own: Firebase Auth's, and Cloud SQL's (gcloud calls it "sql")
+	none := map[string]bool{"identitytoolkit": true, "securetoken": true, "sqladmin": true}
+	for svc, labels := range googleHosts {
+		for _, l := range labels {
+			if !none[l] && !strings.Contains(env, "CLOUDSDK_API_ENDPOINT_OVERRIDES_"+strings.ToUpper(l)+"=") {
+				t.Errorf("%s: pogi env sets no gcloud override for %s", svc, l)
+			}
+		}
+	}
+}
+
+// TestGcloudEnvRunHost: `gcloud run deploy` puts the region in front of the Cloud Run override's host, so a
+// *.localhost endpoint gets run.<host> (us-central1-run.localhost resolves; us-central1-localhost doesn't). Other
+// hosts and the other APIs keep the endpoint as it is.
+func TestGcloudEnvRunHost(t *testing.T) {
+	for endpoint, want := range map[string]string{
+		"http://localhost:7644":     "http://run.localhost:7644/",
+		"http://aws.localhost:7644": "http://run.aws.localhost:7644/",
+		"http://127.0.0.1:7644":     "http://127.0.0.1:7644/",
+		"http://devbox:7644":        "http://devbox:7644/",
+	} {
+		env := strings.Join(GcloudEnv(endpoint), "\n")
+		if !strings.Contains(env, "CLOUDSDK_API_ENDPOINT_OVERRIDES_RUN="+want+"\n") {
+			t.Errorf("%s: want the Run override %s in\n%s", endpoint, want, env)
+		}
+		if !strings.Contains(env, "CLOUDSDK_API_ENDPOINT_OVERRIDES_PUBSUB="+endpoint+"/\n") {
+			t.Errorf("%s: the Pub/Sub override changed", endpoint)
+		}
+	}
+}
