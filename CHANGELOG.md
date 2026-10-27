@@ -7,7 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-10-23
+## [0.2.0] - 2026-10-27
 
 ### Security
 
@@ -21,6 +21,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- **Python's BigQuery client reads TIMESTAMP columns.** `list_rows`, `query().result()` and `to_dataframe()` without the Storage Read API failed with "is not an int": the client sends `formatOptions.useInt64Timestamp=True`, and pogi only read lowercase `true`. Google services now read true/false query values in any case, as Google does (also Cloud Storage `versions`, `includeTrailingDelimiter` and BigQuery `deleteContents`).
+- **Azure `$filter` works on resource and group lists.** `az resource list -g <group>` (with `--resource-type`, `--tag`) and `az group list --tag` now return what they ask for; the resource list used to be empty. A filter pogi cannot read is refused with a 400 `InvalidFilter`, as Azure does, instead of being ignored.
+- **Lambda runs your code with a relative `--data-dir`.** With a path such as `--data-dir ./data`, a function run on your machine (not in Docker) failed with "Runtime exited during init". The runtime starts inside a folder under the data dir, so the relative path to its bootstrap pointed nowhere. pogi now turns the data dir into a full path at start.
 - **Google create forms work.** The field the URL needs (such as `parent`) is now first in the form, and a `locations/*` part is filled in (`projects/pogi/locations/us-central1`). GKE "Create cluster" no longer fails for a missing parent.
 - **Empty pages only offer Create when there is a button.** Otherwise they say to use the CLI, SDK or Terraform.
 - **Saving an Azure resource names it** ("Managed cluster aks1 saved") and opens the service page that lists it.
@@ -109,6 +112,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **ARM templates and Bicep files deploy for real.** `az deployment group create` and `az deployment sub create` now make the template's resources, through pogi's own services and in `dependsOn` order. Templates can use parameters, variables, `copy` loops, conditions, nested deployments (Bicep modules), outputs and the common template functions such as `resourceId`, `reference`, `listKeys` and `uniqueString`. Bicep works too, because `az` turns it into a template first. A deployment ends Succeeded, or Failed with the error of the resource that failed. `az deployment operation group list` shows each step, and `az deployment group validate` checks a template without making anything. Before, a deployment was only stored, and `az deployment group create` failed on its first call.
+- **Azure Resource Graph answers queries.** `az graph query` runs KQL (the Kusto query language) over pogi's resources (the `Resources` table) and its subscriptions and resource groups (`ResourceContainers`), with Azure Monitor's KQL subset. Results come in pages with `$skipToken`, as objects or as a table, and a bad query gets a 400 that says what is wrong. Before, every query answered an empty object.
+- **Azure Policy is evaluated.** A create or update through Resource Manager that a `deny` policy of its subscription or resource group matches is refused with `RequestDisallowedByPolicy` and the policy's name. `az policy state list` and `az policy state summarize` report each resource against each `deny` and `audit` policy in scope, so a test can check that a resource is non-compliant. Rules use `if`/`then`, `field`, `value`, `allOf`, `anyOf`, `not`, all the operators and parameters. A rule with an unknown operator, and an assignment with a missing or unknown parameter, are refused. Before, policies were stored and never applied.
 - **Azure pages list what Create makes.** Key Vault has a Vaults tab, Cosmos DB an Accounts tab, and App Service an App Service plans tab, so a saved resource shows up on its page.
 - **Azure create everywhere.** Azure service pages have a Create button that opens the resource editor with the page's type picked. The editor has a Name field and builds the ID from the scope, and its starting bodies work as they are for the common types. A save returns to the page you came from. Resource Manager has a "Create resource group" form, and a group's drawer lists its resources.
 - **Account center.** The scope pill now has Google location and Azure resource group and location, each a pick-or-type list filled from what pogi holds. Tables, counts and creates follow them, the bar above a table says how many rows are hidden, and "Reset to defaults" clears them. A create form drawer shows the scope of its own cloud.
@@ -196,11 +202,33 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   Application Gateway, Firewall, Data Factory and Databricks.
   Terraform and the SDKs can create, read, update and delete their resources, but nothing runs behind them.
   Azure still refuses a resource type that pogi doesn't list, with a clear error.
-- **<!-- count:total -->355 services: 144 AWS (88 with real behavior, 56 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (29 with real behavior, 74 Thin)<!-- /count -->,** each product counted once. See [Coverage](docs/reference/coverage.md).
+- **<!-- count:total -->355 services: 144 AWS (90 with real behavior, 54 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (30 with real behavior, 73 Thin)<!-- /count -->,** each product counted once. See [Coverage](docs/reference/coverage.md).
 - `pogi env` now points gcloud at every Google API that pogi serves, and sets `SPANNER_EMULATOR_HOST` and
   `BIGTABLE_EMULATOR_HOST`. Some Google APIs share their paths, so pogi tells them apart by a prefix, such as
   `/redis/`. `pogi env` and `pogi tf --cloud gcp` add it for you. See
   [Connect your tools](docs/how-to/connect-your-tools.md#google-cloud).
+- **Cloud Billing accounts (Google Cloud).** pogi has one open billing account, `000000-000000-000000`
+  ("My Billing Account"). `gcloud billing accounts list`, `gcloud billing projects link` and `unlink`,
+  Terraform's `google_billing_account` data source and `google_project.billing_account` work against it.
+  A new project has no billing account until you link one, as in Google Cloud.
+- **BigQuery Storage Read API.** pandas' `to_dataframe` and the Go client's `EnableStorageReadClient` now read
+  tables through it, over gRPC on pogi's port. A read session takes selected fields, a row restriction (this
+  runs on DuckDB, so it needs Docker) and one or more streams, and answers with Arrow record batches.
+- **DynamoDB PartiQL.** `ExecuteStatement`, `BatchExecuteStatement` and `ExecuteTransaction` run `SELECT`, `INSERT`,
+  `UPDATE` and `DELETE`, with `?` parameters, nested paths, `NextToken` paging and `RETURNING`. A bad statement, a
+  failed condition or a duplicate key gets DynamoDB's error.
+- **Aurora DSQL clusters you can connect to.** With Docker, each cluster is a real PostgreSQL 16. Connect on pogi's
+  own port over TLS, as `admin`, with a token from `aws dsql generate-db-connect-admin-auth-token` as the password.
+- **Route 53 private zones answer DNS.** EC2 instances, ECS tasks, Lambda functions and Batch jobs that pogi runs in
+  a VPC resolve names from the private hosted zones of that VPC. Other names go to the host's resolver, and the
+  host's own DNS is not changed. `AssociateVPCWithHostedZone`, `DisassociateVPCFromHostedZone` and
+  `ListHostedZonesByVPC` are new.
+- **CodeDeploy ECS blue/green.** A deployment starts a replacement task set, moves the load balancer listener's
+  traffic all at once, by canary or linearly, runs the lifecycle hooks, then ends the original tasks. A failed hook,
+  an alarm or a stop with rollback puts traffic back. ECS services on the `CODE_DEPLOY` controller have task sets.
+- **Service Quotas defaults.** `GetAWSDefaultServiceQuota`, `GetServiceQuota`, `ListServiceQuotas`,
+  `ListAWSDefaultServiceQuotas` and `ListServices` answer from 73 default quotas for 13 services, each taken from an
+  AWS documentation page.
 
 ### Removed
 

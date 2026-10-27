@@ -30,6 +30,11 @@ type writeInput struct {
 	Expected                            map[string]expected   // legacy
 	AttributeUpdates                    map[string]attrUpdate // legacy
 	ConditionalOperator                 string                // legacy
+
+	// Set by PartiQL statements, which parse their own conditions and updates.
+	cond   *node
+	acts   []action
+	insert bool // a duplicate key is DuplicateItemException, not a failed condition
 }
 
 // change is a planned write: the item before and after (nil when absent).
@@ -39,6 +44,7 @@ type change struct {
 	old, new Item
 	paths    []path // UpdateItem targets, for UPDATED_* return values
 	fail     error  // errCondFailed, or an error found while applying the update
+	dup      bool   // the failed condition was a PartiQL INSERT finding its key
 }
 
 var errCondFailed = errors.New("conditional check failed")
@@ -67,19 +73,23 @@ func (s *Service) plan(c *core.Ctx, op string, in *writeInput) (*change, error) 
 	} else if err := t.checkKey(key); err != nil {
 		return nil, err
 	}
-	cond, err := x.cond(in.ConditionExpression, "ConditionExpression")
-	if err != nil {
-		return nil, err
-	}
+	cond := in.cond
 	if cond == nil {
-		if cond, err = expectedCond(in.Expected, in.ConditionalOperator); err != nil {
+		if cond, err = x.cond(in.ConditionExpression, "ConditionExpression"); err != nil {
 			return nil, err
 		}
+		if cond == nil {
+			if cond, err = expectedCond(in.Expected, in.ConditionalOperator); err != nil {
+				return nil, err
+			}
+		}
 	}
-	var acts []action
+	acts := in.acts
 	if op == "Update" {
-		if acts, err = x.update(in.UpdateExpression); err != nil {
-			return nil, err
+		if acts == nil {
+			if acts, err = x.update(in.UpdateExpression); err != nil {
+				return nil, err
+			}
 		}
 		if acts == nil {
 			if acts, err = legacyUpdates(in.AttributeUpdates); err != nil {
@@ -95,7 +105,7 @@ func (s *Service) plan(c *core.Ctx, op string, in *writeInput) (*change, error) 
 	if err := x.unused(); err != nil {
 		return nil, err
 	}
-	ch := &change{t: t, k: t.key(key)}
+	ch := &change{t: t, k: t.key(key), dup: in.insert}
 	ch.old = t.Items[ch.k]
 	if cond != nil && !cond.test(ch.old) {
 		ch.fail = errCondFailed
@@ -125,6 +135,9 @@ func (s *Service) plan(c *core.Ctx, op string, in *writeInput) (*change, error) 
 func (ch *change) failure(returnValues string) error {
 	if ch.fail != errCondFailed {
 		return ch.fail
+	}
+	if ch.dup {
+		return core.Errorf(400, "DuplicateItemException", "Duplicate primary key exists in table")
 	}
 	e := &apiError{err: core.Errorf(400, "ConditionalCheckFailedException", "The conditional request failed")}
 	if returnValues == "ALL_OLD" && ch.old != nil {
@@ -251,6 +264,13 @@ type readInput struct {
 	QueryFilter               map[string]condition // legacy
 	ScanFilter                map[string]condition // legacy
 	ConditionalOperator       string               // legacy
+
+	// Set by PartiQL SELECT: the whole WHERE (also used to find the
+	// partitions to read), the projected paths and ORDER BY.
+	where   *node
+	proj    []path
+	orderBy string
+	desc    bool
 }
 
 func (s *Service) getItem(c *core.Ctx, in *readInput) (any, error) {
@@ -342,6 +362,15 @@ func (s *Service) read(c *core.Ctx, in *readInput, query bool) (any, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	out, err := s.search(c, in, query)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// search does the work of Query and Scan; lock held.
+func (s *Service) search(c *core.Ctx, in *readInput, query bool) (map[string]any, error) {
 	t, err := s.table(c, in.TableName)
 	if err != nil {
 		return nil, err
@@ -365,6 +394,12 @@ func (s *Service) read(c *core.Ctx, in *readInput, query bool) (any, error) {
 	}
 	nh := hashCount(keys)
 	hashes := keyNames(keys)[:nh]
+	var pin func(Item) bool
+	if in.where != nil || in.orderBy != "" {
+		if pin, err = in.pin(keys); err != nil {
+			return nil, err
+		}
+	}
 	var pks []*Value
 	var sks []*node
 	if query {
@@ -392,6 +427,9 @@ func (s *Service) read(c *core.Ctx, in *readInput, query bool) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	if in.where != nil {
+		filter = in.where
+	}
 	if query && in.FilterExpression != "" {
 		for _, k := range keyNames(keys) {
 			if filter.uses(k) {
@@ -404,6 +442,9 @@ func (s *Service) read(c *core.Ctx, in *readInput, query bool) (any, error) {
 		return nil, err
 	}
 	paths = attrPaths(paths, in.AttributesToGet)
+	if in.proj != nil {
+		paths = in.proj
+	}
 	if err := x.unused(); err != nil {
 		return nil, err
 	}
@@ -430,12 +471,13 @@ func (s *Service) read(c *core.Ctx, in *readInput, query bool) (any, error) {
 	if query {
 		order = order[nh:] // one partition
 	}
-	byOrder := byKeys(order, query && in.ScanIndexForward != nil && !*in.ScanIndexForward)
+	byOrder := byKeys(order, query && in.ScanIndexForward != nil && !*in.ScanIndexForward || in.desc)
 	var items []Item
 	for _, it := range t.Items {
 		switch {
 		case ix != nil && !inIndex(ix, it):
 		case query && !inPartition(it, hashes, pks, sks):
+		case pin != nil && !pin(it):
 		case in.TotalSegments != nil && segment(it[hashes[0]], *in.TotalSegments) != *in.Segment:
 		default:
 			items = append(items, it)
@@ -724,22 +766,7 @@ func (s *Service) transactWrite(c *core.Ctx, in *struct {
 	if n := len(in.TransactItems); n == 0 || n > 100 {
 		return nil, errVal("1 validation error detected: Value at 'transactItems' failed to satisfy constraint: Member must have length less than or equal to 100 and greater than or equal to 1")
 	}
-	b, _ := json.Marshal(in.TransactItems)
-	sum := sha256.Sum256(b)
-	hash, tk := hex.EncodeToString(sum[:]), c.Account+"/"+in.ClientRequestToken
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if old, ok := s.st.Tokens[tk]; ok && in.ClientRequestToken != "" && time.Since(old.At) < 10*time.Minute {
-		if old.Hash != hash {
-			return nil, core.Errorf(400, "IdempotentParameterMismatchException", "Request with the same client token was made with different parameters")
-		}
-		return nil, nil // a retry of a transaction that already succeeded
-	}
-	chs := make([]*change, len(in.TransactItems))
-	reasons := make([]map[string]any, len(in.TransactItems))
-	var codes []string
-	seen := map[string]bool{}
-	failed := false
+	ops := make([]txOp, len(in.TransactItems))
 	for i, ti := range in.TransactItems {
 		op, w := "ConditionCheck", ti.ConditionCheck
 		switch {
@@ -753,6 +780,39 @@ func (s *Service) transactWrite(c *core.Ctx, in *struct {
 		if w == nil {
 			return nil, errVal("TransactItems can only contain one of Check, Put, Update or Delete")
 		}
+		ops[i] = txOp{op, w}
+	}
+	b, _ := json.Marshal(in.TransactItems)
+	return s.transact(c, ops, in.ClientRequestToken, b, in.ReturnConsumedCapacity)
+}
+
+// txOp is one write of a transaction: op is Put, Update, Delete or ConditionCheck.
+type txOp struct {
+	op string
+	w  *writeInput
+}
+
+// transact runs a transaction of writes all or nothing. request is the
+// request's content, which tells a retry from a different request with the
+// same token.
+func (s *Service) transact(c *core.Ctx, ops []txOp, tok string, request []byte, returnCapacity string) (any, error) {
+	sum := sha256.Sum256(request)
+	hash, tk := hex.EncodeToString(sum[:]), c.Account+"/"+tok
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if old, ok := s.st.Tokens[tk]; ok && tok != "" && time.Since(old.At) < 10*time.Minute {
+		if old.Hash != hash {
+			return nil, core.Errorf(400, "IdempotentParameterMismatchException", "Request with the same client token was made with different parameters")
+		}
+		return nil, nil // a retry of a transaction that already succeeded
+	}
+	chs := make([]*change, len(ops))
+	reasons := make([]map[string]any, len(ops))
+	var codes []string
+	seen := map[string]bool{}
+	failed := false
+	for i, o := range ops {
+		op, w := o.op, o.w
 		ch, err := s.plan(c, op, w)
 		if err != nil {
 			return nil, err
@@ -764,6 +824,8 @@ func (s *Service) transactWrite(c *core.Ctx, in *struct {
 		seen[id] = true
 		chs[i], reasons[i] = ch, map[string]any{"Code": "None"}
 		switch {
+		case ch.fail == errCondFailed && ch.dup:
+			reasons[i] = map[string]any{"Code": "DuplicateItem", "Message": "Duplicate primary key exists in table"}
 		case ch.fail == errCondFailed:
 			reasons[i] = map[string]any{"Code": "ConditionalCheckFailed", "Message": "The conditional request failed"}
 			if w.ReturnValuesOnConditionCheckFailure == "ALL_OLD" && ch.old != nil {
@@ -781,12 +843,12 @@ func (s *Service) transactWrite(c *core.Ctx, in *struct {
 	}
 	units := map[string]float64{}
 	for i, ch := range chs {
-		if in.TransactItems[i].ConditionCheck == nil {
+		if ops[i].op != "ConditionCheck" {
 			s.commit(ch)
 		}
 		units[ch.t.Name] += 2 * writeUnits(ch) // transactions cost double
 	}
-	if in.ClientRequestToken != "" {
+	if tok != "" {
 		for k, v := range s.st.Tokens {
 			if time.Since(v.At) > 10*time.Minute {
 				delete(s.st.Tokens, k)
@@ -796,7 +858,7 @@ func (s *Service) transactWrite(c *core.Ctx, in *struct {
 		s.st.Tokens[tk] = token{hash, time.Now()}
 		s.j.Put("x/"+tk, s.st.Tokens[tk])
 	}
-	if caps := capacities(in.ReturnConsumedCapacity, units); caps != nil {
+	if caps := capacities(returnCapacity, units); caps != nil {
 		return map[string]any{"ConsumedCapacity": caps}, nil
 	}
 	return nil, nil

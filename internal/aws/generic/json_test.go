@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -353,5 +354,61 @@ func TestServiceQuotaIncreaseRequest(t *testing.T) {
 	var nf interface{ ErrorCode() string }
 	if !errors.As(err, &nf) || nf.ErrorCode() != "NoSuchResourceException" {
 		t.Fatalf("%T %v", err, err)
+	}
+}
+
+// Service Quotas answers from the default-quota catalog.
+func TestServiceQuotaDefaults(t *testing.T) {
+	_, url := start(t, "service-quotas")
+	ctx := context.Background()
+	c := servicequotas.NewFromConfig(awstest.Config(t, url))
+	code := func(err error) string {
+		var e interface{ ErrorCode() string }
+		if errors.As(err, &e) {
+			return e.ErrorCode()
+		}
+		return ""
+	}
+	d, err := c.GetAWSDefaultServiceQuota(ctx, &servicequotas.GetAWSDefaultServiceQuotaInput{ServiceCode: aws.String("lambda"), QuotaCode: aws.String("L-B99A9384")})
+	if err != nil || aws.ToFloat64(d.Quota.Value) != 1000 || strings.Contains(aws.ToString(d.Quota.QuotaArn), "000000000000") {
+		t.Fatalf("%v %+v", err, d)
+	}
+	g, err := c.GetServiceQuota(ctx, &servicequotas.GetServiceQuotaInput{ServiceCode: aws.String("lambda"), QuotaCode: aws.String("L-B99A9384")})
+	if err != nil || aws.ToFloat64(g.Quota.Value) != 1000 || !strings.Contains(aws.ToString(g.Quota.QuotaArn), ":lambda/L-B99A9384") || strings.Contains(aws.ToString(g.Quota.QuotaArn), "::") {
+		t.Fatalf("%v %+v", err, g)
+	}
+	_, err = c.GetAWSDefaultServiceQuota(ctx, &servicequotas.GetAWSDefaultServiceQuotaInput{ServiceCode: aws.String("lambda"), QuotaCode: aws.String("L-NOPE0000")})
+	if code(err) != "NoSuchResourceException" {
+		t.Fatalf("%v", err)
+	}
+	var n int
+	p := servicequotas.NewListServiceQuotasPaginator(c, &servicequotas.ListServiceQuotasInput{ServiceCode: aws.String("dynamodb"), MaxResults: aws.Int32(4)})
+	for p.HasMorePages() {
+		pg, err := p.NextPage(ctx)
+		if err != nil || len(pg.Quotas) > 4 {
+			t.Fatalf("%v %d", err, len(pg.Quotas))
+		}
+		n += len(pg.Quotas)
+	}
+	if n != 6 {
+		t.Fatalf("paged %d quotas, want 6", n)
+	}
+	for _, m := range []int32{0, 101} {
+		_, err = c.ListAWSDefaultServiceQuotas(ctx, &servicequotas.ListAWSDefaultServiceQuotasInput{ServiceCode: aws.String("s3"), MaxResults: aws.Int32(m)})
+		if code(err) == "" || code(err) == "NoSuchResourceException" {
+			t.Fatalf("MaxResults %d: %v", m, err)
+		}
+	}
+	_, err = c.ListServiceQuotas(ctx, &servicequotas.ListServiceQuotasInput{ServiceCode: aws.String("nosuch")})
+	if code(err) != "NoSuchResourceException" {
+		t.Fatalf("%v", err)
+	}
+	_, err = c.ListServiceQuotas(ctx, &servicequotas.ListServiceQuotasInput{ServiceCode: aws.String("s3"), NextToken: aws.String("!!")})
+	if code(err) != "InvalidPaginationTokenException" {
+		t.Fatalf("%v", err)
+	}
+	sv, err := c.ListServices(ctx, &servicequotas.ListServicesInput{})
+	if err != nil || len(sv.Services) != 13 {
+		t.Fatalf("%v %+v", err, sv)
 	}
 }

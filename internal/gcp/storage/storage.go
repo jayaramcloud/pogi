@@ -1056,7 +1056,7 @@ func (s *Service) deleteObject(w http.ResponseWriter, r *http.Request, bucket, n
 func (s *Service) listObjects(w http.ResponseWriter, r *http.Request, bucket string) error {
 	q := r.URL.Query()
 	prefix, delim, token := q.Get("prefix"), q.Get("delimiter"), q.Get("pageToken")
-	versions := q.Get("versions") == "true"
+	versions := gapi.Bool(q.Get("versions"))
 	maxResults := 1000
 	if n, err := strconv.Atoi(q.Get("maxResults")); err == nil && n > 0 {
 		maxResults = min(n, 1000)
@@ -1086,7 +1086,7 @@ func (s *Service) listObjects(w http.ResponseWriter, r *http.Request, bucket str
 				if !seen[p] && (b.live(n) != nil || versions) {
 					seen[p] = true
 					prefixes = append(prefixes, p)
-					if q.Get("includeTrailingDelimiter") == "true" && n == p && b.live(n) != nil {
+					if gapi.Bool(q.Get("includeTrailingDelimiter")) && n == p && b.live(n) != nil {
 						items = append(items, b.live(n).resource(bucket, r.Host))
 					}
 				}

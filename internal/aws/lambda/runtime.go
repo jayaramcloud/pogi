@@ -25,6 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/nrndev/pogi/internal/aws/route53"
 	"github.com/nrndev/pogi/internal/core"
 	"github.com/nrndev/pogi/internal/docker"
 )
@@ -48,6 +49,7 @@ type spec struct {
 	role               string // execution role; the function's credentials act as it
 	timeout            time.Duration
 	memory             int
+	vpcSubnets         []string // VpcConfig.SubnetIds: where the function's container resolves private zones
 }
 
 type invocation struct {
@@ -787,6 +789,9 @@ func (p *pool) dockerRun(s *spec, in *instance, env map[string]string, port, end
 		var n int
 		ct.Entrypoint, n = dockerExtensions(opt)
 		in.ext.init(n)
+	}
+	if ct.Network != "host" {
+		ct.Dns = route53.SubnetDNS(p.svc.hub, s.account, s.region, s.vpcSubnets)
 	}
 	if _, err := d.Run(context.Background(), ct); err != nil {
 		return core.Errorf(502, "InvalidRuntimeException", "cannot start %s in Docker: %v", ct.Image, err)

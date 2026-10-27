@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nrndev/pogi/internal/aws/route53"
 	"github.com/nrndev/pogi/internal/core"
 	"github.com/nrndev/pogi/internal/docker"
 )
@@ -1165,7 +1166,13 @@ func (s *Service) launch(k string, j *Job, engine bool) {
 	}
 	s.wg.Add(1)
 	logs := core.ARN("logs", region, account, "log-group:/aws/batch/job:log-stream:"+j.Container.LogStream)
-	core.Go("batch.run", func() { s.run(ctx, k, ct, logs, timeout) })
+	subnets := batchSubnets(e)
+	core.Go("batch.run", func() {
+		if ct.Network != "host" {
+			ct.Dns = route53.SubnetDNS(s.hub, account, region, subnets)
+		}
+		s.run(ctx, k, ct, logs, timeout)
+	})
 }
 
 // run runs one attempt: the container's output goes to CloudWatch Logs and
@@ -1377,4 +1384,15 @@ func find[T any](m map[string]*T, id string) any {
 		}
 	}
 	return nil
+}
+
+// batchSubnets are the subnets of a compute environment's computeResources.
+func batchSubnets(e *Env) (out []string) {
+	l, _ := e.Resources["subnets"].([]any)
+	for _, v := range l {
+		if sn, ok := v.(string); ok {
+			out = append(out, sn)
+		}
+	}
+	return out
 }

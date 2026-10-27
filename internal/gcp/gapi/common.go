@@ -75,6 +75,9 @@ func PageSizeOK(v string) bool {
 	return v == "" || err == nil
 }
 
+// Bool reads a true/false query value. Google accepts any case, and the Python clients send True.
+func Bool(v string) bool { return strings.EqualFold(v, "true") }
+
 // Page cuts one page from a sorted list; the token is the offset of the next page.
 func Page[T any](items []T, size int32, token string) ([]T, string) {
 	start, _ := strconv.Atoi(token)

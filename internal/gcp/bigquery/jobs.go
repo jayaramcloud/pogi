@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/nrndev/pogi/internal/core"
+	"github.com/nrndev/pogi/internal/gcp/gapi"
 )
 
 type jobRef struct {
@@ -443,7 +444,7 @@ func (s *Service) queryResults(r *http.Request, seg []string) (any, error) {
 		return nil, errf(400, j.Err.Reason, "%s", j.Err.Message)
 	}
 	q := r.URL.Query()
-	return j.resultsPage(atoi(q.Get("startIndex"), 0), atoi(q.Get("maxResults"), 0), q.Get("pageToken"), "bigquery#getQueryResultsResponse", q.Get("formatOptions.useInt64Timestamp") == "true"), nil
+	return j.resultsPage(atoi(q.Get("startIndex"), 0), atoi(q.Get("maxResults"), 0), q.Get("pageToken"), "bigquery#getQueryResultsResponse", gapi.Bool(q.Get("formatOptions.useInt64Timestamp"))), nil
 }
 
 // ---- tables written by jobs ----

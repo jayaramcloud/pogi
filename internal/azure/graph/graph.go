@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/nrndev/pogi/internal/azure/arm"
+	"github.com/nrndev/pogi/internal/azure/odata"
 	"github.com/nrndev/pogi/internal/core"
 )
 
@@ -344,7 +345,7 @@ func (k *call) envelope(coll string, items []map[string]any) map[string]any {
 }
 
 func (s *Service) listColl(k *call, coll string) (int, any, error) {
-	match, err := parseFilter(k.q.Get("$filter"))
+	match, err := odata.Parse(k.q.Get("$filter"))
 	if err != nil {
 		return 0, nil, apiError(http.StatusBadRequest, "BadRequest", "Invalid filter clause: %v", err)
 	}

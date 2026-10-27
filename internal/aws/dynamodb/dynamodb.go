@@ -147,6 +147,9 @@ func New(hub *core.Hub) *Service {
 		"BatchWriteItem":                      core.H(s.batchWrite),
 		"TransactWriteItems":                  core.H(s.transactWrite),
 		"TransactGetItems":                    core.H(s.transactGet),
+		"ExecuteStatement":                    core.H(s.executeStatement),
+		"BatchExecuteStatement":               core.H(s.batchExecuteStatement),
+		"ExecuteTransaction":                  core.H(s.executeTransaction),
 		// DynamoDBStreams_20120810
 		"ListStreams":      core.H(s.listStreams),
 		"DescribeStream":   core.H(s.describeStream),

@@ -1,8 +1,10 @@
 package arm
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
+	"maps"
 	"net/http"
 	"slices"
 	"strings"
@@ -33,6 +35,7 @@ func New(h *core.Hub) *Service {
 	s := &Service{h: h}
 	s.Reset()
 	Register(h, s.roleDefinitions())
+	Register(h, Provider{Type: typDeployment + "/operationStatuses", Get: s.deploymentStatus})
 	return s
 }
 
@@ -73,10 +76,92 @@ func (k *call) payload() map[string]any {
 	if k.body == nil {
 		k.body = map[string]any{}
 		if b := core.Body(k.r); len(b) > 0 {
-			json.Unmarshal(b, &k.body)
+			unmarshal(b, &k.body)
 		}
 	}
 	return k.body
+}
+
+// unmarshal reads a request body: JSON, or the JSON with comments that az sends for a deployment. az splices the
+// template's own text in as {"properties": {..., template:{...}}}: a member name without quotes, and the
+// template's // and /* */ comments with it. Azure reads that, so pogi does too.
+func unmarshal(b []byte, v any) error {
+	err := json.Unmarshal(b, v)
+	if err != nil && json.Unmarshal(jsonc(b), v) == nil {
+		return nil
+	}
+	return err
+}
+
+// jsonc turns JSON with comments, member names without quotes and trailing commas into JSON.
+func jsonc(b []byte) []byte {
+	var out []byte
+	// next is the index of the next byte that is not space or a comment.
+	next := func(i int) int {
+		for i < len(b) {
+			switch {
+			case b[i] == ' ' || b[i] == '\t' || b[i] == '\n' || b[i] == '\r':
+				i++
+			case b[i] == '/' && i+1 < len(b) && b[i+1] == '/':
+				for i < len(b) && b[i] != '\n' {
+					i++
+				}
+			case b[i] == '/' && i+1 < len(b) && b[i+1] == '*':
+				end := bytes.Index(b[i+2:], []byte("*/"))
+				if end < 0 {
+					return len(b)
+				}
+				i += end + 4
+			default:
+				return i
+			}
+		}
+		return i
+	}
+	last := func() byte { // the last byte written that is not space
+		for j := len(out) - 1; j >= 0; j-- {
+			if c := out[j]; c != ' ' && c != '\t' && c != '\n' && c != '\r' {
+				return c
+			}
+		}
+		return 0
+	}
+	for i := 0; i < len(b); i++ {
+		c := b[i]
+		switch {
+		case c == '"':
+			j := i + 1
+			for ; j < len(b) && b[j] != '"'; j++ {
+				if b[j] == '\\' {
+					j++
+				}
+			}
+			out = append(out, b[i:min(j+1, len(b))]...)
+			i = j
+		case c == '/' && i+1 < len(b) && (b[i+1] == '/' || b[i+1] == '*'):
+			i = next(i) - 1
+		case c == ',':
+			if n := next(i + 1); n >= len(b) || b[n] != '}' && b[n] != ']' {
+				out = append(out, c)
+			}
+		case (c == '_' || c == '$' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') && (last() == '{' || last() == ','):
+			j := i
+			for j < len(b) && (b[j] == '_' || b[j] == '$' || b[j] >= 'a' && b[j] <= 'z' || b[j] >= 'A' && b[j] <= 'Z' || b[j] >= '0' && b[j] <= '9') {
+				j++
+			}
+			if n := next(j); n < len(b) && b[n] == ':' {
+				out = append(out, '"')
+				out = append(out, b[i:j]...)
+				out = append(out, '"')
+			} else {
+				out = append(out, b[i:j]...)
+			}
+			i = j - 1
+		default:
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 // members of a resource body that must have one JSON type when they are present and not null.
@@ -103,7 +188,7 @@ func (k *call) check() error {
 		return nil
 	}
 	var v any
-	if err := json.Unmarshal(b, &v); err != nil {
+	if err := unmarshal(b, &v); err != nil {
 		// A body declared as something other than JSON is text (a runbook's script): the resource gets it as "content".
 		if ct := k.r.Header.Get("Content-Type"); ct != "" && !strings.Contains(ct, "json") {
 			k.body = map[string]any{"content": string(b)}
@@ -236,8 +321,14 @@ func (s *Service) subscription(k *call) (int, any, error) {
 		return s.resource(k, k.path())
 	case "resourcegroups":
 		return s.groups(k, sub, rest[1:])
+	case "deployments":
+		return s.resource(k, "/subscriptions/"+sub+"/providers/Microsoft.Resources/"+strings.Join(rest, "/"))
 	case "resources":
-		return http.StatusOK, list(filter(s.allResources(k, ID{Subscription: sub}), k.r.URL.Query().Get("$filter"))...), nil
+		items, err := filter(s.allResources(k.c, ID{Subscription: sub}), k.r.URL.Query().Get("$filter"))
+		if err != nil {
+			return 0, nil, err
+		}
+		return http.StatusOK, list(items...), nil
 	case "operationresults", "operationstatuses":
 		if len(rest) == 2 {
 			return operation(rest[1], rest[0])
@@ -347,15 +438,25 @@ func validGroupName(name string) bool {
 func (s *Service) groups(k *call, sub string, rest []string) (int, any, error) {
 	m := k.r.Method
 	if len(rest) == 0 {
-		return http.StatusOK, list(s.listGroups(sub)...), nil
+		groups, err := filter(s.listGroups(sub), k.r.URL.Query().Get("$filter"))
+		if err != nil {
+			return 0, nil, err
+		}
+		return http.StatusOK, list(groups...), nil
 	}
 	name := rest[0]
 	if len(rest) > 1 {
 		switch strings.ToLower(rest[1]) {
 		case "resources":
-			return http.StatusOK, list(filter(s.allResources(k, ID{Subscription: sub, ResourceGroup: name}), k.r.URL.Query().Get("$filter"))...), nil
+			items, err := filter(s.allResources(k.c, ID{Subscription: sub, ResourceGroup: name}), k.r.URL.Query().Get("$filter"))
+			if err != nil {
+				return 0, nil, err
+			}
+			return http.StatusOK, list(items...), nil
 		case "providers":
 			return s.resource(k, k.path())
+		case "deployments": // the short form of .../providers/Microsoft.Resources/deployments that deployment operations use
+			return s.resource(k, "/subscriptions/"+sub+"/resourceGroups/"+name+"/providers/Microsoft.Resources/"+strings.Join(rest[1:], "/"))
 		}
 		return 0, nil, core.Errorf(http.StatusNotFound, "InvalidRequestUri", "No route registered for '%s'.", k.path())
 	}
@@ -396,6 +497,9 @@ func (s *Service) groups(k *call, sub string, rest []string) (int, any, error) {
 		}
 		if doc["tags"] == nil {
 			doc["tags"] = map[string]any{}
+		}
+		if err := s.checkPolicy(k.c, ID{Subscription: sub, ResourceGroup: name}, doc); err != nil {
+			return 0, nil, err
 		}
 		s.mu.Lock()
 		s.st.Groups[key] = doc
@@ -482,11 +586,11 @@ func (s *Service) topTypes() []string {
 
 // allResources lists everything in a subscription or group: the resources of
 // every Provider and the generic ones.
-func (s *Service) allResources(k *call, scope ID) []map[string]any {
+func (s *Service) allResources(c *core.Ctx, scope ID) []map[string]any {
 	var out []map[string]any
 	for _, typ := range s.topTypes() {
 		if p := Lookup(s.h, typ); p != nil && p.List != nil {
-			items, _ := p.List(k.c, scope)
+			items, _ := p.List(c, scope)
 			out = append(out, items...)
 		}
 	}
@@ -501,10 +605,31 @@ func (s *Service) allResources(k *call, scope ID) []map[string]any {
 	return out
 }
 
+// Inventory is what Resource Graph queries: the resources of the subscriptions named (every subscription pogi
+// knows when none is), and the subscriptions and resource groups themselves.
+func (s *Service) Inventory(c *core.Ctx, subs []string) (resources, containers []map[string]any) {
+	s.mu.Lock()
+	known := maps.Clone(s.st.Subs)
+	s.mu.Unlock()
+	if len(subs) == 0 {
+		subs = core.SortedKeys(known)
+	}
+	for _, sub := range subs {
+		name, ok := known[sub]
+		if !ok {
+			continue
+		}
+		resources = append(resources, s.allResources(c, ID{Subscription: sub})...)
+		containers = append(append(containers, subscriptionObj(sub, name)), s.listGroups(sub)...)
+	}
+	return resources, containers
+}
+
 // isResource is false for what a resources listing leaves out: role
-// definitions and assignments, and deployments.
+// definitions and assignments, and deployments with their operations.
 func isResource(typ string) bool {
-	return !strings.HasPrefix(strings.ToLower(typ), "microsoft.authorization/") && !strings.EqualFold(typ, "Microsoft.Resources/deployments")
+	low := strings.ToLower(typ)
+	return !strings.HasPrefix(low, "microsoft.authorization/") && !strings.HasPrefix(low, "microsoft.resources/deployments")
 }
 
 func str(v any) string { s, _ := v.(string); return s }

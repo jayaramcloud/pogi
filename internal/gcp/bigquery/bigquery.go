@@ -11,6 +11,9 @@
 // The Go client takes the endpoint with its version path:
 //
 //	bigquery.NewClient(ctx, project, option.WithEndpoint(pogi+"/bigquery/v2/"), option.WithoutAuthentication())
+//
+// The Storage Read API (readapi.go) is gRPC on the same port: give the read client host:port and a
+// connection without TLS.
 package bigquery
 
 import (
@@ -35,6 +38,8 @@ type Service struct {
 	eng *duckdb.Engine
 	mu  sync.Mutex
 	st  state
+
+	sessions map[string]*readSession // Storage Read API sessions, by name; not saved
 }
 
 type state struct {
@@ -54,7 +59,7 @@ func New(h *core.Hub) *Service {
 }
 
 func (s *Service) Info() core.Info {
-	return core.Info{Name: "bigquery", Cloud: core.GCP, Title: "BigQuery", Match: match}
+	return core.Info{Name: "bigquery", Cloud: core.GCP, Title: "BigQuery", Match: match, Targets: []string{"google.cloud.bigquery.storage.v1.BigQueryRead"}}
 }
 
 func match(r *http.Request) bool {
@@ -66,7 +71,7 @@ func (s *Service) Close() error { s.eng.Close(); return nil }
 
 func (s *Service) Reset() {
 	s.mu.Lock()
-	s.st = newState()
+	s.st, s.sessions = newState(), nil
 	s.mu.Unlock()
 }
 
@@ -379,7 +384,7 @@ func (s *Service) deleteDataset(r *http.Request, seg []string) (any, int, error)
 	if err != nil {
 		return nil, 0, err
 	}
-	if len(d.tables) > 0 && r.URL.Query().Get("deleteContents") != "true" {
+	if len(d.tables) > 0 && !gapi.Bool(r.URL.Query().Get("deleteContents")) {
 		return nil, 0, errf(400, "resourceInUse", "Dataset %s:%s is still in use", seg[1], seg[3])
 	}
 	delete(s.st.datasets, seg[1]+"/"+seg[3])
@@ -755,7 +760,7 @@ func (s *Service) tableData(r *http.Request, seg []string) (any, error) {
 		start = atoi(q.Get("startIndex"), 0)
 	}
 	page, next := pageOf(rows[min(start, len(rows)):], q.Get("maxResults"), "")
-	out := map[string]any{"kind": "bigquery#tableDataList", "etag": "pogi", "totalRows": strconv.Itoa(len(rows)), "rows": wireRows(fs, page, q.Get("formatOptions.useInt64Timestamp") == "true")}
+	out := map[string]any{"kind": "bigquery#tableDataList", "etag": "pogi", "totalRows": strconv.Itoa(len(rows)), "rows": wireRows(fs, page, gapi.Bool(q.Get("formatOptions.useInt64Timestamp")))}
 	if next != "" {
 		out["pageToken"] = strconv.Itoa(min(start, len(rows)) + atoi(next, 0))
 	}

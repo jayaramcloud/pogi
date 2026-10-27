@@ -592,6 +592,17 @@ func zoneID(az string) string {
 	return abbrev.Replace(az[:len(az)-1]) + "-az" + strconv.Itoa(int(az[len(az)-1]-'a'+1))
 }
 
+// VPCOfSubnet is the VPC of a subnet, or "" when there is none; Route 53 and the
+// services that run containers in a VPC use it to find the private zones to resolve.
+func (s *Service) VPCOfSubnet(account, region, subnet string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if r := s.st.Regions[account+"/"+region]; r != nil && r.Subnets[subnet] != nil {
+		return r.Subnets[subnet].VpcId
+	}
+	return ""
+}
+
 // reg returns the caller's region, creating its default VPC on first use; lock held.
 func (s *Service) reg(c *core.Ctx) *region {
 	k := c.Account + "/" + c.Region

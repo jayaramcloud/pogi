@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nrndev/pogi/internal/azure/odata"
 	"github.com/nrndev/pogi/internal/core"
 )
 
@@ -22,6 +23,10 @@ func (g gid) key() string { return strings.ToLower(g.path) }
 // resource serves a provider path: /.../providers/<Namespace>/<type>/<name>...
 // by the Provider of the type, or by the generic store when there is none.
 func (s *Service) resource(k *call, path string) (int, any, error) {
+	const states = "/providers/microsoft.policyinsights/policystates/"
+	if i := strings.Index(strings.ToLower(path), states); i >= 0 {
+		return s.policyStates(k, path[:i], path[i+len(states):])
+	}
 	if low := strings.ToLower(path); strings.Count(low, "/providers/") > 1 || strings.HasPrefix(low, "/providers/") {
 		return s.extension(k, path)
 	}
@@ -43,6 +48,9 @@ func (s *Service) resource(k *call, path string) (int, any, error) {
 		n := len(id.Types) - 1
 		res := id
 		res.Types = id.Types[:n]
+		if isDeployment(res) && Lookup(s.h, typDeployment) == nil {
+			return s.deploymentAction(k, res, id.Types[n])
+		}
 		return s.action(k, res, id.Types[n])
 	}
 	if m != http.MethodGet {
@@ -60,7 +68,11 @@ func (s *Service) resource(k *call, path string) (int, any, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	return http.StatusOK, list(filter(items, k.r.URL.Query().Get("$filter"))...), nil
+	items, err = filter(items, k.r.URL.Query().Get("$filter"))
+	if err != nil {
+		return 0, nil, err
+	}
+	return http.StatusOK, list(items...), nil
 }
 
 // parentNotFound is ARM's 404 for a PUT of a child whose parent does not exist.
@@ -101,6 +113,12 @@ func (s *Service) item(k *call, id ID) (int, any, error) {
 			}
 			return 0, nil, NotFound(id.Parent())
 		}
+		if p == nil && isDeployment(id) {
+			return s.putDeployment(k, id, in, getErr == nil)
+		}
+		if err := s.checkPolicy(c, id, in); err != nil {
+			return 0, nil, err
+		}
 		out, err := s.put(c, id, p, in)
 		if err != nil {
 			return 0, nil, err
@@ -131,7 +149,7 @@ func (s *Service) item(k *call, id ID) (int, any, error) {
 		if p != nil && p.Deleted != 0 {
 			return p.Deleted, nil, nil
 		}
-		if p != nil && (p.Async || p.AsyncDelete) {
+		if p != nil && (p.Async || p.AsyncDelete) || p == nil && isDeployment(id) {
 			k.async(id.Subscription)
 			return http.StatusAccepted, nil, nil
 		}
@@ -178,9 +196,6 @@ func (s *Service) put(c *core.Ctx, id ID, p *Provider, body map[string]any) (map
 		return p.Put(c, id, body)
 	}
 	doc := genericDoc(gid{path: id.String(), typ: id.Type(), name: id.Name()}, body)
-	if strings.EqualFold(id.Type(), "Microsoft.Resources/deployments") {
-		s.checkTemplate(doc)
-	}
 	s.mu.Lock()
 	s.st.Generic[strings.ToLower(id.String())] = doc
 	s.mu.Unlock()
@@ -218,7 +233,14 @@ func (s *Service) listType(c *core.Ctx, id, parent ID) ([]map[string]any, error)
 		return p.List(c, parent)
 	}
 	prefix := strings.ToLower(parent.String()) + "/"
-	return s.listGeneric(prefix, id.Type()), nil
+	items := s.listGeneric(prefix, id.Type())
+	if isDeployment(id) && parent.ResourceGroup == "" { // a subscription's own deployments, not its groups'
+		items = slices.DeleteFunc(items, func(d map[string]any) bool {
+			did, _ := ParseID(str(d["id"]))
+			return did.ResourceGroup != ""
+		})
+	}
+	return items, nil
 }
 
 func (s *Service) listGeneric(prefix, typ string) []map[string]any {
@@ -313,6 +335,9 @@ func (s *Service) extension(k *call, path string) (int, any, error) {
 	if p := Lookup(s.h, typ); p != nil && p.Get != nil {
 		return s.scoped(k, path, p, len(rest)%2 == 1)
 	}
+	if len(rest) == 1 && m == http.MethodPost { // a namespace's action at this scope: /providers/Microsoft.ResourceGraph/resources
+		return s.nsAction(k, ID{Namespace: ns, Types: rest})
+	}
 	if len(rest)%2 == 1 && m == http.MethodPost { // .../<name>/<action>
 		return http.StatusOK, genericAction(typ, rest[len(rest)-1]), nil
 	}
@@ -320,7 +345,11 @@ func (s *Service) extension(k *call, path string) (int, any, error) {
 		if m != http.MethodGet {
 			return 0, nil, methodNotAllowed(m, typ)
 		}
-		return http.StatusOK, list(filter(s.listGeneric(strings.ToLower(path)+"/", typ), k.r.URL.Query().Get("$filter"))...), nil
+		items, err := filter(s.listGeneric(strings.ToLower(path)+"/", typ), k.r.URL.Query().Get("$filter"))
+		if err != nil {
+			return 0, nil, err
+		}
+		return http.StatusOK, list(items...), nil
 	}
 	g := gid{path: path, typ: typ, name: rest[len(rest)-1]}
 	s.mu.Lock()
@@ -431,42 +460,6 @@ func (s *Service) checkType(ns, typ string) error {
 	return core.Errorf(http.StatusBadRequest, "InvalidResourceType", "The resource type '%s' is not supported by pogi.", typ)
 }
 
-// checkTemplate fails a deployment whose template holds a resource type pogi does not know. Templates are
-// not run, so this is the one thing that is looked at: the deployment ends Failed with the reason, not Succeeded.
-func (s *Service) checkTemplate(dep map[string]any) {
-	props, _ := dep["properties"].(map[string]any)
-	tmpl, _ := props["template"].(map[string]any)
-	var walk func(res any, parent string) error
-	walk = func(res any, parent string) error {
-		list, _ := res.([]any)
-		for _, r := range list {
-			m, _ := r.(map[string]any)
-			typ := str(m["type"])
-			if typ == "" || strings.Contains(typ, "[") { // an expression: unknown until the template runs
-				continue
-			}
-			if first, _, _ := strings.Cut(typ, "/"); !strings.Contains(first, ".") && parent != "" {
-				typ = parent + "/" + typ // a child resource names its type relative to its parent
-			}
-			ns, _, _ := strings.Cut(typ, "/")
-			if !strings.Contains(typ, "/providers/") {
-				if err := s.checkType(ns, typ); err != nil {
-					return err
-				}
-			}
-			if err := walk(m["resources"], typ); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	if err := walk(tmpl["resources"], ""); err != nil {
-		e := core.AsError(err)
-		props["provisioningState"] = "Failed"
-		props["error"] = map[string]any{"code": e.Code, "message": e.Msg}
-	}
-}
-
 // genericDoc is a stored resource: the request body as sent, with the
 // envelope ARM fills in and provisioningState Succeeded.
 func genericDoc(g gid, body map[string]any) map[string]any {
@@ -480,7 +473,7 @@ func genericDoc(g gid, body map[string]any) map[string]any {
 		props = map[string]any{}
 	}
 	props["provisioningState"] = "Succeeded"
-	if strings.EqualFold(g.typ, "Microsoft.Resources/deployments") { // metadata only: templates are not run
+	if strings.EqualFold(g.typ, typDeployment) { // what a deployment has before it runs
 		if props["mode"] == nil {
 			props["mode"] = "Incremental"
 		}
@@ -515,26 +508,71 @@ func merge(dst, src map[string]any) map[string]any {
 	return dst
 }
 
-var eqFilter = regexp.MustCompile(`^\s*([\w/]+)\s+eq\s+'(.*)'\s*$`)
+var (
+	tagPairRe   = regexp.MustCompile(`(?i)\btagname\s+eq\s+'((?:[^']|'')*)'\s+and\s+tagvalue\s+eq\s+'((?:[^']|'')*)'`)
+	tagNameRe   = regexp.MustCompile(`(?i)\btagname\s+eq\s+('(?:[^']|'')*')`)
+	tagPrefixRe = regexp.MustCompile(`(?i)\bstartswith\(\s*tagname\s*,\s*('(?:[^']|'')*')\s*\)`)
+	atScopeRe   = regexp.MustCompile(`(?i)\batScope\(\s*\)`)
+	assignedRe  = regexp.MustCompile(`(?i)\bassignedTo\(\s*('(?:[^']|'')*')\s*\)`)
+)
 
-// filter applies a "$filter=field eq 'value'" to a listing, the one form
-// azurerm uses (roleName eq 'Contributor'); other filters are ignored.
-func filter(items []map[string]any, f string) []map[string]any {
-	m := eqFilter.FindStringSubmatch(f)
-	if m == nil {
-		return items
-	}
-	field := m[1][strings.LastIndexByte(m[1], '/')+1:]
-	if field == "resourceType" { // azurerm lists the Key Vaults of a subscription this way
-		field = "type"
-	}
-	return slices.DeleteFunc(slices.Clone(items), func(it map[string]any) bool {
-		v, ok := it[field]
-		if props, _ := it["properties"].(map[string]any); !ok && props != nil {
-			v = props[field]
+// armFilter turns the tag and role-assignment forms ARM adds to OData into plain OData over the fields
+// itemView adds. tagName with tagValue is one test: the tag has that value.
+func armFilter(f string) string {
+	f = tagPairRe.ReplaceAllString(f, "tagpairs/any(_v: _v eq '$1=$2')")
+	f = tagNameRe.ReplaceAllString(f, "tagnames/any(_v: _v eq $1)")
+	f = tagPrefixRe.ReplaceAllString(f, "tagnames/any(_v: startswith(_v , $1))")
+	f = atScopeRe.ReplaceAllString(f, "_true eq true") // pogi lists no role assignments of a sub-scope, so atScope() keeps every one
+	return assignedRe.ReplaceAllString(f, "principalId eq $1")
+}
+
+// itemView is what a filter reads: the item, its properties, the resource group from its id and its tags.
+func itemView(it map[string]any) map[string]any {
+	v := maps.Clone(it)
+	if props, _ := it["properties"].(map[string]any); props != nil {
+		for k, p := range props {
+			if _, ok := v[k]; !ok {
+				v[k] = p
+			}
 		}
-		return !strings.EqualFold(str(v), m[2])
-	})
+	}
+	if id, ok := ParseID(str(it["id"])); ok {
+		v["resourceGroup"] = id.ResourceGroup
+	}
+	var names, pairs []any
+	tags := tagMap(it["tags"])
+	for _, k := range core.SortedKeys(tags) {
+		names = append(names, k)
+		pairs = append(pairs, k+"="+tags[k])
+	}
+	v["resourceType"] = it["type"] // azurerm and az list by resourceType
+	v["tagnames"], v["tagpairs"], v["_true"] = names, pairs, true
+	return v
+}
+
+func tagMap(v any) map[string]string {
+	out := map[string]string{}
+	switch t := v.(type) {
+	case map[string]string:
+		return t
+	case map[string]any:
+		for k, x := range t {
+			out[k] = str(x)
+		}
+	}
+	return out
+}
+
+// filter applies a $filter to a listing. A filter it cannot read is a 400, as in Azure.
+func filter(items []map[string]any, f string) ([]map[string]any, error) {
+	if strings.TrimSpace(f) == "" {
+		return items, nil
+	}
+	match, err := odata.Parse(armFilter(f))
+	if err != nil {
+		return nil, core.Errorf(http.StatusBadRequest, "InvalidFilter", "The $filter '%s' is not valid: %v.", f, err)
+	}
+	return slices.DeleteFunc(slices.Clone(items), func(it map[string]any) bool { return !match(itemView(it)) }), nil
 }
 
 var _ = maps.Copy[map[string]any, map[string]any]

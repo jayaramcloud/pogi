@@ -27,6 +27,10 @@ type Service struct {
 	mux *http.ServeMux
 	mu  sync.Mutex
 	st  state
+
+	dmu       sync.Mutex         // guards dns
+	dns       map[string]*vpcDNS // account/region/vpc → its DNS server
+	resolvers []string           // upstream resolvers as host:port; nil: the host's (tests set it)
 }
 
 type state struct {
@@ -92,7 +96,7 @@ type HealthCheck struct {
 
 // New creates the Route 53 service.
 func New(hub *core.Hub) *Service {
-	s := &Service{hub: hub, mux: http.NewServeMux()}
+	s := &Service{hub: hub, mux: http.NewServeMux(), dns: map[string]*vpcDNS{}}
 	s.Reset()
 	const p = "/2013-04-01/"
 	s.route("POST "+p+"hostedzone", "CreateHostedZone", s.createZone)
@@ -102,6 +106,9 @@ func New(hub *core.Hub) *Service {
 	s.route("POST "+p+"hostedzone/{id}/rrset", "ChangeResourceRecordSets", s.changeRecords)
 	s.route("POST "+p+"hostedzone/{id}/rrset/", "ChangeResourceRecordSets", s.changeRecords)
 	s.route("GET "+p+"hostedzone/{id}/rrset", "ListResourceRecordSets", s.listRecords)
+	s.route("POST "+p+"hostedzone/{id}/associatevpc", "AssociateVPCWithHostedZone", s.associate)
+	s.route("POST "+p+"hostedzone/{id}/disassociatevpc", "DisassociateVPCFromHostedZone", s.associate)
+	s.route("GET "+p+"hostedzonesbyvpc", "ListHostedZonesByVPC", s.listByVPC)
 	s.route("GET "+p+"hostedzonesbyname", "ListHostedZonesByName", s.listZonesByName)
 	s.route("GET "+p+"hostedzonecount", "GetHostedZoneCount", s.zoneCount)
 	s.route("GET "+p+"change/{id}", "GetChange", s.getChange)
@@ -710,4 +717,68 @@ func (s *Service) Inspect(table, id string) any {
 		return cp
 	}
 	return nil
+}
+
+// associate serves AssociateVPCWithHostedZone and DisassociateVPCFromHostedZone
+// (the operation name says which) for private zones.
+func (s *Service) associate(c *core.Ctx, w http.ResponseWriter, r *http.Request) (any, error) {
+	var in struct{ VPC vpc }
+	if err := decode(r, &in); err != nil {
+		return nil, err
+	}
+	if in.VPC.VPCId == "" || in.VPC.VPCRegion == "" {
+		return nil, core.Errorf(400, "InvalidInput", "VPC with VPCId and VPCRegion is required.")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	z, err := s.zone(c, r.PathValue("id"))
+	if err != nil {
+		return nil, err
+	}
+	if len(z.VPCs) == 0 {
+		return nil, core.Errorf(400, "PublicZoneVPCAssociation", "You can't associate a VPC with a public hosted zone.")
+	}
+	i := slices.Index(z.VPCs, in.VPC)
+	if c.Op == "AssociateVPCWithHostedZone" {
+		if i >= 0 {
+			return nil, core.Errorf(400, "ConflictingDomainExists", "The VPC %s is already associated with the hosted zone %s.", in.VPC.VPCId, z.Id)
+		}
+		z.VPCs = append(z.VPCs, in.VPC)
+	} else {
+		switch {
+		case i < 0:
+			return nil, core.Errorf(400, "VPCAssociationNotFound", "The VPC %s is not associated with the hosted zone %s.", in.VPC.VPCId, z.Id)
+		case len(z.VPCs) == 1:
+			return nil, core.Errorf(400, "LastVPCAssociation", "The VPC %s is the last VPC associated with the hosted zone %s.", in.VPC.VPCId, z.Id)
+		}
+		z.VPCs = slices.Delete(z.VPCs, i, i+1)
+	}
+	return &struct{ ChangeInfo changeInfo }{s.change()}, nil
+}
+
+func (s *Service) listByVPC(c *core.Ctx, w http.ResponseWriter, r *http.Request) (any, error) {
+	q := r.URL.Query()
+	want := vpc{VPCId: q.Get("vpcid"), VPCRegion: q.Get("vpcregion")}
+	if want.VPCId == "" || want.VPCRegion == "" {
+		return nil, core.Errorf(400, "InvalidInput", "vpcid and vpcregion are required.")
+	}
+	type summary struct {
+		HostedZoneId string
+		Name         string
+		Owner        struct{ OwningAccount string }
+	}
+	out := &struct {
+		HostedZoneSummaries []summary `xml:"HostedZoneSummaries>HostedZoneSummary"`
+		MaxItems            int
+	}{MaxItems: maxItems(q.Get("maxitems"), 100)}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, z := range s.zones(c, func(a, b *Zone) int { return strings.Compare(a.Id, b.Id) }) {
+		if slices.Contains(z.VPCs, want) && len(out.HostedZoneSummaries) < out.MaxItems {
+			sm := summary{HostedZoneId: z.Id, Name: z.Name}
+			sm.Owner.OwningAccount = z.Account
+			out.HostedZoneSummaries = append(out.HostedZoneSummaries, sm)
+		}
+	}
+	return out, nil
 }

@@ -77,7 +77,7 @@ func (h *Hub) verify(c *Ctx) *Error {
 	}
 	s3 := c.Service == "s3"
 	code := "SignatureDoesNotMatch" // Query, REST-XML and S3
-	if r.Header.Get("X-Amz-Target") != "" || r.Header.Get("Smithy-Protocol") != "" || h.byName[c.Service].Info().Protocol == "rest-json" {
+	if svc := h.byName[c.Service]; r.Header.Get("X-Amz-Target") != "" || r.Header.Get("Smithy-Protocol") != "" || svc != nil && svc.Info().Protocol == "rest-json" {
 		code = "InvalidSignatureException"
 	}
 

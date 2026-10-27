@@ -324,6 +324,7 @@ var svcIcons = map[string]string{
 	"gcp/bigquerydatatransfer":            "gcp/cat-data-analytics.svg",
 	"gcp/bigtable":                        "gcp/cat-databases.svg",
 	"gcp/billingbudgets":                  "gcp/cat-management-tools.svg",
+	"gcp/cloudbilling":                    "gcp/cat-management-tools.svg",
 	"gcp/binaryauthorization":             "gcp/cat-security-identity.svg",
 	"gcp/blockchainnodeengine":            "gcp/cat-web3.svg",
 	"gcp/certificatemanager":              "gcp/cat-security-identity.svg",

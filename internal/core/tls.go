@@ -130,8 +130,12 @@ func writePEM(path, typ string, der []byte) error {
 
 // SniffTLS lets one port speak both HTTP and HTTPS: connections that open
 // with a TLS handshake get TLS, everything else stays plain (incl. h2c).
-func SniffTLS(ln net.Listener, cfg *tls.Config) net.Listener {
-	s := &sniffer{Listener: ln, cfg: cfg, conns: make(chan net.Conn), done: make(chan struct{}), errs: make(chan error, 1)}
+func SniffTLS(ln net.Listener, cfg *tls.Config) net.Listener { return (*Hub)(nil).Sniff(ln, cfg) }
+
+// Sniff is SniffTLS for pogi's own port: a connection whose first byte is 0x00 is a PostgreSQL client (an
+// SSLRequest or a StartupMessage; HTTP and TLS never open so) and goes to h.PG. A nil cfg keeps TLS off.
+func (h *Hub) Sniff(ln net.Listener, cfg *tls.Config) net.Listener {
+	s := &sniffer{Listener: ln, cfg: cfg, hub: h, conns: make(chan net.Conn), done: make(chan struct{}), errs: make(chan error, 1)}
 	Go("core.loop", func() { s.loop() })
 	return s
 }
@@ -139,6 +143,7 @@ func SniffTLS(ln net.Listener, cfg *tls.Config) net.Listener {
 type sniffer struct {
 	net.Listener
 	cfg   *tls.Config
+	hub   *Hub // nil: no PostgreSQL clients
 	conns chan net.Conn
 	done  chan struct{}
 	errs  chan error
@@ -161,7 +166,15 @@ func (s *sniffer) loop() {
 				return
 			}
 			var out net.Conn = &peeked{Conn: c, r: br}
-			if first[0] == 0x16 { // TLS handshake record
+			if first[0] == 0 && s.hub != nil { // a PostgreSQL client; the handler owns the connection
+				if s.hub.PG == nil {
+					c.Close()
+					return
+				}
+				s.hub.PG(out)
+				return
+			}
+			if first[0] == 0x16 && s.cfg != nil { // TLS handshake record
 				out = tls.Server(out, s.cfg)
 			}
 			select {

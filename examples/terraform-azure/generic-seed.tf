@@ -1,5 +1,5 @@
-# Services of pogi's generic Azure engine: DNS, Policy and Logic Apps. Nothing runs behind them: a zone
-# answers no queries, a policy denies nothing, a workflow never fires. They are stored and read back.
+# Services of pogi's generic Azure engine: DNS, Policy and Logic Apps. Nothing runs behind a zone or a workflow:
+# a zone answers no queries and a workflow never fires. The policy is evaluated: it only audits, so it denies nothing.
 resource "azurerm_dns_zone" "generic" {
   name                = "generic.example.test"
   resource_group_name = azurerm_resource_group.rg.name

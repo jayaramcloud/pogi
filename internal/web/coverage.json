@@ -15,11 +15,11 @@
  "counts": {
   "aws": {
    "total": 144,
-   "thin": 56
+   "thin": 54
   },
   "azure": {
    "total": 103,
-   "thin": 74
+   "thin": 73
   },
   "gcp": {
    "total": 108,
@@ -33,8 +33,8 @@
    "category": "Security \u0026 identity",
    "depth": "Core",
    "docker": false,
-   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
-   "not_yet": "no findings, no request filtering"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "accesscontextmanager": {
    "title": "VPC Service Controls",
@@ -51,8 +51,8 @@
    "category": "Management \u0026 governance",
    "depth": "Core",
    "docker": false,
-   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
-   "not_yet": "no findings, no request filtering"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "acm": {
    "title": "ACM, Route 53, EC2 network, Tagging",
@@ -60,8 +60,8 @@
    "category": "Security \u0026 identity",
    "depth": "Thin",
    "docker": false,
-   "covered": "certificates, hosted zones and records, VPCs/subnets/security groups with a default VPC, route tables and routes, internet and egress-only gateways, Elastic IPs, NAT gateways (with their Elastic IP and network interface), network interfaces (instances show theirs), VPC endpoints (gateway routes, interface addresses), AWS and managed prefix lists, network ACLs and entries, tagging across services (queues, log groups, rules, API keys, functions, tables and more)",
-   "not_yet": "ACM certificates are issued at once, also with EMAIL validation (no approval step); network ACL and route rules do not filter traffic; DescribeVpcEndpointServices, peering connections as resources"
+   "covered": "certificates, hosted zones and records (a private zone answers DNS for the containers pogi starts in its VPC: EC2 instances, ECS tasks, Lambda functions with a VpcConfig and Batch jobs resolve its A, AAAA, CNAME, TXT, MX, SRV, PTR, NS and SOA records, wildcards and aliases, and Cloud Map names, while every other name goes to the host's resolver), VPCs/subnets/security groups with a default VPC, route tables and routes, internet and egress-only gateways, Elastic IPs, NAT gateways (with their Elastic IP and network interface), network interfaces (instances show theirs), VPC endpoints (gateway routes, interface addresses), AWS and managed prefix lists, network ACLs and entries, tagging across services (queues, log groups, rules, API keys, functions, tables and more)",
+   "not_yet": "ACM certificates are issued at once, also with EMAIL validation (no approval step); network ACL and route rules do not filter traffic; private-zone names resolve only inside containers started in the zone's VPC, not on the host, not in containers outside a VPC, and not where a Linux engine without a VM puts containers on the host's network; routing policies (weighted, failover, latency, geolocation) are not evaluated, the first record set of a name answers; where the host has no /etc/resolv.conf (Windows) names outside private zones fail with SERVFAIL; DescribeVpcEndpointServices, peering connections as resources"
   },
   "acm-pca": {
    "title": "Private CA",
@@ -195,7 +195,7 @@
    "category": "Integration \u0026 workflow",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "application-autoscaling": {
@@ -231,8 +231,8 @@
    "category": "Management \u0026 governance",
    "depth": "Core",
    "docker": false,
-   "covered": "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, asynchronous operations, deployments as metadata, generic resources); Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups",
-   "not_yet": "templates are not run (a deployment whose template holds an unknown resource type ends Failed), a PUT of a resource type pogi does not know is refused (`InvalidResourceType`, or `NoRegisteredProviderFound` for an unknown namespace), Graph covers what `azuread` and `az ad` use"
+   "covered": "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, asynchronous operations, generic resources); ARM template deployments that run (`az deployment group create` and `az deployment sub create`, Bicep files too, as `az` compiles them): at resource group or subscription scope, the resources are made in `dependsOn` order through pogi's own handlers, so policies and every service apply, with parameters (types, defaults, allowed values, lengths and ranges), variables, `copy` loops of resources, properties, variables and outputs, conditions, nested resources, extension resources with `scope`, nested deployments (Bicep modules, into other groups too), languageVersion 2.0 symbolic names and `existing` resources, outputs, and the common template functions (`resourceId` and its kin, `reference`, `list*` such as `listKeys`, `copyIndex`, `uniqueString`, `guid`, `format`, `concat`, `if`, `union` and the other string, array, object, comparison, logical and number functions); a deployment ends Succeeded, or Failed with the error of the resource that failed, with an operation per resource, and `validate` checks a template without making anything; Resource Graph queries (`az graph query`) over the `Resources` and `ResourceContainers` tables with Azure Monitor's KQL subset, paged with `$top`, `$skip` and `$skipToken`, as objects or a table; Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups",
+   "not_yet": "a deployment runs inside its PUT, one resource at a time, and nothing is rolled back when one fails (Azure doesn't either, unless asked); what-if always reports no changes; not supported in templates: linked templates and template specs, Complete mode, user-defined and lambda functions (`filter`, `map`, `reduce`, `sort`, `toObject`), `dateTimeAdd` and the `uri` functions, Key Vault references in parameters, management group and tenant scope; `uniqueString` and `guid` give stable values, but not the ones Azure computes. A PUT of a resource type pogi does not know is refused (`InvalidResourceType`, or `NoRegisteredProviderFound` for an unknown namespace), Graph covers what `azuread` and `az ad` use. Resource Graph needs the `azmonitor` service on, has no other tables (such as `PolicyResources`), no `join` or `mv-expand`, and child resources such as subnets are not rows of their own"
   },
   "artifactregistry": {
    "title": "Artifact Registry",
@@ -877,10 +877,10 @@
    "title": "Policy",
    "cloud": "azure",
    "category": "Management \u0026 governance",
-   "depth": "Thin",
+   "depth": "Core",
    "docker": false,
-   "covered": "ARM `Microsoft.Authorization/policyDefinitions` at subscription scope and `policyAssignments` at subscription, resource group, resource and management group scope, from Microsoft's API spec: create, read, update, delete and lists, the spec's name rules, a definition's `policyType` and `mode` and an assignment's `scope` and `enforcementMode`; `azurerm_policy_definition` and `azurerm_resource_group_policy_assignment` apply, plan without drift and destroy",
-   "not_yet": "nothing is evaluated: no resource is ever denied, audited or reported non-compliant, and there are no remediation tasks, exemptions, initiatives or built-in definitions"
+   "covered": "ARM `Microsoft.Authorization/policyDefinitions` at subscription scope and `policyAssignments` at subscription, resource group, resource and management group scope, from Microsoft's API spec: create, read, update, delete and lists, the spec's name rules, a definition's `policyType` and `mode` and an assignment's `scope` and `enforcementMode`; `azurerm_policy_definition` and `azurerm_resource_group_policy_assignment` apply, plan without drift and destroy. Rules are evaluated (`if`/`then`, `field`, `value`, `allOf`, `anyOf`, `not`, every operator, parameters and the template functions in them, `notScopes`, modes All and Indexed): a create or update through ARM that a `deny` assignment of its subscription or resource group matches is refused with `RequestDisallowedByPolicy` and the policy's name (not with `DoNotEnforce`), and `az policy state list` and `summarize` (`Microsoft.PolicyInsights` policy states) report each resource against each `deny` and `audit` assignment in scope, worked out when asked. A rule with an unknown operator, and an assignment that leaves out or adds a parameter, are refused",
+   "not_yet": "an alias is read from its name (`\u003ctype\u003e/\u003cpath\u003e` is `properties.\u003cpath\u003e`, or `sku`, `kind`, `identity` and the like at the top), not from Azure's alias table, so the few aliases that point elsewhere read nothing. Not evaluated: `count` conditions, the other effects (append, modify, deployIfNotExists, auditIfNotExists), initiatives, exemptions, assignments at management group or resource scope, built-in definitions (pogi has none), and child resources in policy states. No remediation tasks"
   },
   "azpowerbiembedded": {
    "title": "Power BI Embedded",
@@ -1212,8 +1212,8 @@
    "category": "Analytics \u0026 AI",
    "depth": "Core",
    "docker": true,
-   "covered": "datasets, tables with nested and repeated schemas, partitioning and clustering (stored), views, streaming inserts, `tabledata.list`, jobs (query, load from Cloud Storage as CSV, JSON lines and Parquet, extract, copy); SQL on DuckDB in a container (GoogleSQL translated: backtick names, `SAFE_CAST`, `STRUCT`/`ARRAY`, `UNNEST`, common functions, DML, DDL, scripts)",
-   "not_yet": "needs Docker for queries; no `WITH OFFSET`, wildcard tables, `INFORMATION_SCHEMA`, ML, Storage API, partition pseudo-columns"
+   "covered": "datasets, tables with nested and repeated schemas, partitioning and clustering (stored), views, streaming inserts, `tabledata.list`, jobs (query, load from Cloud Storage as CSV, JSON lines and Parquet, extract, copy); SQL on DuckDB in a container (GoogleSQL translated: backtick names, `SAFE_CAST`, `STRUCT`/`ARRAY`, `UNNEST`, common functions, DML, DDL, scripts); the Storage Read API over gRPC (`google.cloud.bigquery.storage.v1.BigQueryRead`, which `to_dataframe` and the Go client's `EnableStorageReadClient` use): read sessions on a table with selected fields (nested ones too), a row restriction, one or more streams and Arrow record batches, LZ4 or ZSTD compressed if asked, and reads from an offset",
+   "not_yet": "needs Docker for queries and for a Storage Read row restriction (a plain read works without it); no `WITH OFFSET`, wildcard tables, `INFORMATION_SCHEMA`, ML, partition pseudo-columns; the Storage Write API; Storage Read in Avro, reads of views, sampling, time travel (a snapshot time reads the table as it is now) and stream splits (`SplitReadStream` answers that a stream cannot be split); read sessions are not kept over a restart; a query job names no destination table, so clients read query results over REST"
   },
   "bigquerydatatransfer": {
    "title": "BigQuery Data Transfer",
@@ -1323,6 +1323,15 @@
    "covered": "v1 REST at `/cloudasset/v1/` (`google.golang.org/api/cloudasset/v1`, Terraform `google_cloud_asset_project_feed`): feeds of a project, folder or organization (create with `feedId` and a `feedOutputConfig`, get, list, patch with `updateMask`, delete) and saved queries",
    "not_yet": "no asset is tracked and no message is published to the feed's topic; asset lists are empty, and history, search, export and analysis calls answer UNIMPLEMENTED"
   },
+  "cloudbilling": {
+   "title": "Cloud Billing accounts",
+   "cloud": "gcp",
+   "category": "Management \u0026 governance",
+   "depth": "Thin",
+   "docker": false,
+   "covered": "v1 REST at `/cloudbilling/v1/` (`google.golang.org/api/cloudbilling/v1`, `gcloud billing`, Terraform's `google_billing_account` data source and `google_project.billing_account`): one open billing account, `billingAccounts/000000-000000-000000` (\"My Billing Account\"), with list, get and patch; each project's billing info, read, linked and unlinked; the projects linked to an account; `testIamPermissions` grants what is asked. A project starts with no billing account, as a new Google Cloud project does",
+   "not_yet": "no other billing account can be created (no subaccounts), no IAM policies on accounts, no moves, the service and SKU catalog is empty, and deleting a project leaves its link"
+  },
   "cloudbuild": {
    "title": "Cloud Build",
    "cloud": "gcp",
@@ -1383,8 +1392,8 @@
    "category": "Security \u0026 identity",
    "depth": "Core",
    "docker": false,
-   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
-   "not_yet": "no findings, no request filtering"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "cloudidentity": {
    "title": "Cloud Identity",
@@ -1464,7 +1473,7 @@
    "category": "Developer tools",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "codebuild": {
@@ -1491,8 +1500,8 @@
    "category": "Developer tools",
    "depth": "Core",
    "docker": false,
-   "covered": "Lambda deployments with linear/canary traffic shifting, hooks and rollback; pipelines with S3 sources (a source with `PollForSourceChanges` set to `true` starts a run when the object changes), CodeBuild, CloudFormation, Lambda and approvals",
-   "not_yet": "change-set modes, ECS blue/green"
+   "covered": "Lambda deployments with linear/canary traffic shifting, hooks and rollback; ECS blue/green deployments (a replacement task set behind the group's second target group, test traffic, then the production listener's weights move per the config, the original task set ends after its wait; a failed hook, an alarm or a stop with rollback puts traffic back); pipelines with S3 sources (a source with `PollForSourceChanges` set to `true` starts a run when the object changes), CodeBuild, CloudFormation, Lambda and approvals",
+   "not_yet": "change-set modes, holding an ECS deployment for ContinueDeployment (deploymentReadyOption waits are accepted but not held)"
   },
   "codepipeline": {
    "title": "CodeDeploy + CodePipeline",
@@ -1500,8 +1509,8 @@
    "category": "Developer tools",
    "depth": "Core",
    "docker": false,
-   "covered": "Lambda deployments with linear/canary traffic shifting, hooks and rollback; pipelines with S3 sources (a source with `PollForSourceChanges` set to `true` starts a run when the object changes), CodeBuild, CloudFormation, Lambda and approvals",
-   "not_yet": "change-set modes, ECS blue/green"
+   "covered": "Lambda deployments with linear/canary traffic shifting, hooks and rollback; ECS blue/green deployments (a replacement task set behind the group's second target group, test traffic, then the production listener's weights move per the config, the original task set ends after its wait; a failed hook, an alarm or a stop with rollback puts traffic back); pipelines with S3 sources (a source with `PollForSourceChanges` set to `true` starts a run when the object changes), CodeBuild, CloudFormation, Lambda and approvals",
+   "not_yet": "change-set modes, holding an ECS deployment for ContinueDeployment (deploymentReadyOption waits are accepted but not held)"
   },
   "codestar-connections": {
    "title": "CodeStar Connections",
@@ -1617,7 +1626,7 @@
    "category": "Management \u0026 governance",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "controltower": {
@@ -1626,8 +1635,8 @@
    "category": "Management \u0026 governance",
    "depth": "Core",
    "docker": false,
-   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
-   "not_yet": "no findings, no request filtering"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "cosmos": {
    "title": "Cosmos DB (NoSQL)",
@@ -1770,8 +1779,8 @@
    "category": "Security \u0026 identity",
    "depth": "Core",
    "docker": false,
-   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
-   "not_yet": "no findings, no request filtering"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "developerconnect": {
    "title": "Developer Connect",
@@ -1806,7 +1815,7 @@
    "category": "Storage",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "dlp": {
@@ -1867,10 +1876,10 @@
    "title": "Aurora DSQL",
    "cloud": "aws",
    "category": "Databases",
-   "depth": "Thin",
+   "depth": "Core",
    "docker": false,
-   "covered": "clusters (ACTIVE at once, with an endpoint name, AWS-owned or your KMS key, and tags), cluster policies, and the VPC endpoint service name; `aws_dsql_cluster` applies, plans without drift and destroys",
-   "not_yet": "no SQL endpoint answers: you cannot connect or generate an auth token; multi-Region clusters are stored without a peer"
+   "covered": "clusters (ACTIVE at once, with an endpoint name, AWS-owned or your KMS key, and tags), cluster policies, and the VPC endpoint service name; `aws_dsql_cluster` applies, plans without drift and destroys. With Docker, each cluster is a real PostgreSQL 16 on pogi's own port: `aws dsql generate-db-connect-admin-auth-token` makes the password, and `psql` (TLS required) connects as `admin` to the `postgres` database. Wrong, expired or badly signed tokens are refused, and the data stays across a `--persist` restart. The server is removed with the cluster",
+   "not_yet": "plain PostgreSQL, not DSQL's engine: its limits (no foreign keys, sequences or extensions, optimistic concurrency) are not enforced; custom roles log in with a `DbConnect` token only if the role exists, and `AWS IAM GRANT` is not served; without Docker the cluster is made and a client gets an error saying the SQL endpoint needs Docker; with the `rds` service turned off the connection is closed; multi-Region clusters are stored without a peer"
   },
   "dynamodb": {
    "title": "DynamoDB + Streams",
@@ -1878,8 +1887,8 @@
    "category": "Databases",
    "depth": "Deep",
    "docker": false,
-   "covered": "every expression type, global and local secondary indexes (global index keys with up to four HASH and four RANGE attributes), Query/Scan with paging, transactions, batches, TTL, streams with Lambda triggers, exact numbers, on-demand backups and restore (also to a point in time, from the current items), global table replicas that copy writes between regions",
-   "not_yet": "PartiQL, import/export; redundant parentheses in an expression are accepted (AWS refuses some)"
+   "covered": "every expression type, global and local secondary indexes (global index keys with up to four HASH and four RANGE attributes), Query/Scan with paging, PartiQL (`ExecuteStatement`, `BatchExecuteStatement`, `ExecuteTransaction`: SELECT, INSERT, UPDATE, DELETE, parameters, `NextToken` paging, `RETURNING`), transactions, batches, TTL, streams with Lambda triggers, exact numbers, on-demand backups and restore (also to a point in time, from the current items), global table replicas that copy writes between regions",
+   "not_yet": "import/export; PartiQL has no aggregate functions, joins or aliases, and `IS NULL` also matches a missing attribute (as in the PartiQL standard); redundant parentheses in an expression are accepted (AWS refuses some)"
   },
   "ec2": {
    "title": "EC2 transit gateways, flow logs, hosts and images",
@@ -1905,8 +1914,8 @@
    "category": "Compute \u0026 containers",
    "depth": "Deep",
    "docker": true,
-   "covered": "clusters, capacity providers, task definitions, tasks as containers (awsvpc via a shared network namespace, secrets from SSM/Secrets Manager, task-role credentials and metadata endpoints, awslogs to CloudWatch Logs, task volumes: host paths, shared Docker volumes and volumesFrom), services that keep their desired count, rolling deployments with `aws.ecs` events on the default bus, the deployment circuit breaker (a deployment whose tasks keep failing to start FAILS, with optional rollback), ALB registration",
-   "not_yet": "CPU shares, task sets, ECS Exec, EFS and FSx volumes"
+   "covered": "clusters, capacity providers, task definitions, tasks as containers (awsvpc via a shared network namespace, secrets from SSM/Secrets Manager, task-role credentials and metadata endpoints, awslogs to CloudWatch Logs, task volumes: host paths, shared Docker volumes and volumesFrom), services that keep their desired count, rolling deployments with `aws.ecs` events on the default bus, task sets for services on the CODE_DEPLOY controller (a PRIMARY one from the start; create, describe, scale, switch the primary, delete), the deployment circuit breaker (a deployment whose tasks keep failing to start FAILS, with optional rollback), ALB registration",
+   "not_yet": "CPU shares, task sets for the EXTERNAL controller, ECS Exec, EFS and FSx volumes"
   },
   "edgecontainer": {
    "title": "Google Distributed Cloud",
@@ -1923,7 +1932,7 @@
    "category": "Storage",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "eks": {
@@ -1959,7 +1968,7 @@
    "category": "Networking",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "elbv2": {
@@ -1995,8 +2004,8 @@
    "category": "Security \u0026 identity",
    "depth": "Core",
    "docker": false,
-   "covered": "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, asynchronous operations, deployments as metadata, generic resources); Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups",
-   "not_yet": "templates are not run (a deployment whose template holds an unknown resource type ends Failed), a PUT of a resource type pogi does not know is refused (`InvalidResourceType`, or `NoRegisteredProviderFound` for an unknown namespace), Graph covers what `azuread` and `az ad` use"
+   "covered": "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, asynchronous operations, generic resources); ARM template deployments that run (`az deployment group create` and `az deployment sub create`, Bicep files too, as `az` compiles them): at resource group or subscription scope, the resources are made in `dependsOn` order through pogi's own handlers, so policies and every service apply, with parameters (types, defaults, allowed values, lengths and ranges), variables, `copy` loops of resources, properties, variables and outputs, conditions, nested resources, extension resources with `scope`, nested deployments (Bicep modules, into other groups too), languageVersion 2.0 symbolic names and `existing` resources, outputs, and the common template functions (`resourceId` and its kin, `reference`, `list*` such as `listKeys`, `copyIndex`, `uniqueString`, `guid`, `format`, `concat`, `if`, `union` and the other string, array, object, comparison, logical and number functions); a deployment ends Succeeded, or Failed with the error of the resource that failed, with an operation per resource, and `validate` checks a template without making anything; Resource Graph queries (`az graph query`) over the `Resources` and `ResourceContainers` tables with Azure Monitor's KQL subset, paged with `$top`, `$skip` and `$skipToken`, as objects or a table; Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups",
+   "not_yet": "a deployment runs inside its PUT, one resource at a time, and nothing is rolled back when one fails (Azure doesn't either, unless asked); what-if always reports no changes; not supported in templates: linked templates and template specs, Complete mode, user-defined and lambda functions (`filter`, `map`, `reduce`, `sort`, `toObject`), `dateTimeAdd` and the `uri` functions, Key Vault references in parameters, management group and tenant scope; `uniqueString` and `guid` give stable values, but not the ones Azure computes. A PUT of a resource type pogi does not know is refused (`InvalidResourceType`, or `NoRegisteredProviderFound` for an unknown namespace), Graph covers what `azuread` and `az ad` use. Resource Graph needs the `azmonitor` service on, has no other tables (such as `PolicyResources`), no `join` or `mv-expand`, and child resources such as subnets are not rows of their own"
   },
   "essentialcontacts": {
    "title": "Essential Contacts",
@@ -2211,7 +2220,7 @@
    "category": "Networking",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "glue": {
@@ -2238,8 +2247,8 @@
    "category": "Security \u0026 identity",
    "depth": "Core",
    "docker": false,
-   "covered": "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, asynchronous operations, deployments as metadata, generic resources); Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups",
-   "not_yet": "templates are not run (a deployment whose template holds an unknown resource type ends Failed), a PUT of a resource type pogi does not know is refused (`InvalidResourceType`, or `NoRegisteredProviderFound` for an unknown namespace), Graph covers what `azuread` and `az ad` use"
+   "covered": "the ARM control plane (metadata endpoint, subscriptions, resource groups, providers, asynchronous operations, generic resources); ARM template deployments that run (`az deployment group create` and `az deployment sub create`, Bicep files too, as `az` compiles them): at resource group or subscription scope, the resources are made in `dependsOn` order through pogi's own handlers, so policies and every service apply, with parameters (types, defaults, allowed values, lengths and ranges), variables, `copy` loops of resources, properties, variables and outputs, conditions, nested resources, extension resources with `scope`, nested deployments (Bicep modules, into other groups too), languageVersion 2.0 symbolic names and `existing` resources, outputs, and the common template functions (`resourceId` and its kin, `reference`, `list*` such as `listKeys`, `copyIndex`, `uniqueString`, `guid`, `format`, `concat`, `if`, `union` and the other string, array, object, comparison, logical and number functions); a deployment ends Succeeded, or Failed with the error of the resource that failed, with an operation per resource, and `validate` checks a template without making anything; Resource Graph queries (`az graph query`) over the `Resources` and `ResourceContainers` tables with Azure Monitor's KQL subset, paged with `$top`, `$skip` and `$skipToken`, as objects or a table; Entra tokens for client secrets and assertions, passwords, refresh and device code with JWKS; IMDS and App Service managed identity; Graph applications, service principals, users and groups",
+   "not_yet": "a deployment runs inside its PUT, one resource at a time, and nothing is rolled back when one fails (Azure doesn't either, unless asked); what-if always reports no changes; not supported in templates: linked templates and template specs, Complete mode, user-defined and lambda functions (`filter`, `map`, `reduce`, `sort`, `toObject`), `dateTimeAdd` and the `uri` functions, Key Vault references in parameters, management group and tenant scope; `uniqueString` and `guid` give stable values, but not the ones Azure computes. A PUT of a resource type pogi does not know is refused (`InvalidResourceType`, or `NoRegisteredProviderFound` for an unknown namespace), Graph covers what `azuread` and `az ad` use. Resource Graph needs the `azmonitor` service on, has no other tables (such as `PolicyResources`), no `join` or `mv-expand`, and child resources such as subnets are not rows of their own"
   },
   "guardduty": {
    "title": "Amazon GuardDuty",
@@ -2247,7 +2256,7 @@
    "category": "Security \u0026 identity",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "healthcare": {
@@ -2328,8 +2337,8 @@
    "category": "Security \u0026 identity",
    "depth": "Core",
    "docker": false,
-   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
-   "not_yet": "no findings, no request filtering"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "integrations": {
    "title": "Application Integration",
@@ -2454,7 +2463,7 @@
    "category": "Compute \u0026 containers",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "license-manager": {
@@ -2535,8 +2544,8 @@
    "category": "Security \u0026 identity",
    "depth": "Core",
    "docker": false,
-   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
-   "not_yet": "no findings, no request filtering"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "managedidentities": {
    "title": "Managed Microsoft AD",
@@ -2562,7 +2571,7 @@
    "category": "Management \u0026 governance",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "marketplace-entitlement": {
@@ -2571,7 +2580,7 @@
    "category": "Management \u0026 governance",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "mediaconvert": {
@@ -2697,8 +2706,8 @@
    "category": "Networking",
    "depth": "Core",
    "docker": false,
-   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
-   "not_yet": "no findings, no request filtering"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "networkconnectivity": {
    "title": "Network Connectivity Center",
@@ -2940,8 +2949,8 @@
    "category": "Management \u0026 governance",
    "depth": "Core",
    "docker": false,
-   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
-   "not_yet": "no findings, no request filtering"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "rds": {
    "title": "RDS / ElastiCache",
@@ -3048,8 +3057,8 @@
    "category": "Management \u0026 governance",
    "depth": "Thin",
    "docker": false,
-   "covered": "certificates, hosted zones and records, VPCs/subnets/security groups with a default VPC, route tables and routes, internet and egress-only gateways, Elastic IPs, NAT gateways (with their Elastic IP and network interface), network interfaces (instances show theirs), VPC endpoints (gateway routes, interface addresses), AWS and managed prefix lists, network ACLs and entries, tagging across services (queues, log groups, rules, API keys, functions, tables and more)",
-   "not_yet": "ACM certificates are issued at once, also with EMAIL validation (no approval step); network ACL and route rules do not filter traffic; DescribeVpcEndpointServices, peering connections as resources"
+   "covered": "certificates, hosted zones and records (a private zone answers DNS for the containers pogi starts in its VPC: EC2 instances, ECS tasks, Lambda functions with a VpcConfig and Batch jobs resolve its A, AAAA, CNAME, TXT, MX, SRV, PTR, NS and SOA records, wildcards and aliases, and Cloud Map names, while every other name goes to the host's resolver), VPCs/subnets/security groups with a default VPC, route tables and routes, internet and egress-only gateways, Elastic IPs, NAT gateways (with their Elastic IP and network interface), network interfaces (instances show theirs), VPC endpoints (gateway routes, interface addresses), AWS and managed prefix lists, network ACLs and entries, tagging across services (queues, log groups, rules, API keys, functions, tables and more)",
+   "not_yet": "ACM certificates are issued at once, also with EMAIL validation (no approval step); network ACL and route rules do not filter traffic; private-zone names resolve only inside containers started in the zone's VPC, not on the host, not in containers outside a VPC, and not where a Linux engine without a VM puts containers on the host's network; routing policies (weighted, failover, latency, geolocation) are not evaluated, the first record set of a name answers; where the host has no /etc/resolv.conf (Windows) names outside private zones fail with SERVFAIL; DescribeVpcEndpointServices, peering connections as resources"
   },
   "resourcemanager": {
    "title": "Resource Manager, Service Usage",
@@ -3066,8 +3075,8 @@
    "category": "Networking",
    "depth": "Thin",
    "docker": false,
-   "covered": "certificates, hosted zones and records, VPCs/subnets/security groups with a default VPC, route tables and routes, internet and egress-only gateways, Elastic IPs, NAT gateways (with their Elastic IP and network interface), network interfaces (instances show theirs), VPC endpoints (gateway routes, interface addresses), AWS and managed prefix lists, network ACLs and entries, tagging across services (queues, log groups, rules, API keys, functions, tables and more)",
-   "not_yet": "ACM certificates are issued at once, also with EMAIL validation (no approval step); network ACL and route rules do not filter traffic; DescribeVpcEndpointServices, peering connections as resources"
+   "covered": "certificates, hosted zones and records (a private zone answers DNS for the containers pogi starts in its VPC: EC2 instances, ECS tasks, Lambda functions with a VpcConfig and Batch jobs resolve its A, AAAA, CNAME, TXT, MX, SRV, PTR, NS and SOA records, wildcards and aliases, and Cloud Map names, while every other name goes to the host's resolver), VPCs/subnets/security groups with a default VPC, route tables and routes, internet and egress-only gateways, Elastic IPs, NAT gateways (with their Elastic IP and network interface), network interfaces (instances show theirs), VPC endpoints (gateway routes, interface addresses), AWS and managed prefix lists, network ACLs and entries, tagging across services (queues, log groups, rules, API keys, functions, tables and more)",
+   "not_yet": "ACM certificates are issued at once, also with EMAIL validation (no approval step); network ACL and route rules do not filter traffic; private-zone names resolve only inside containers started in the zone's VPC, not on the host, not in containers outside a VPC, and not where a Linux engine without a VM puts containers on the host's network; routing policies (weighted, failover, latency, geolocation) are not evaluated, the first record set of a name answers; where the host has no /etc/resolv.conf (Windows) names outside private zones fail with SERVFAIL; DescribeVpcEndpointServices, peering connections as resources"
   },
   "route53-recovery-control-config": {
    "title": "Application Recovery Controller",
@@ -3084,7 +3093,7 @@
    "category": "Networking",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "rum": {
@@ -3201,8 +3210,8 @@
    "category": "Security \u0026 identity",
    "depth": "Core",
    "docker": false,
-   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
-   "not_yet": "no findings, no request filtering"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "securitylake": {
    "title": "Security Lake",
@@ -3223,13 +3232,13 @@
    "not_yet": "there are no public AWS applications to deploy: only the ones you create; templates are not checked until a stack uses them, and parameter definitions, required capabilities, nested applications and sharing are not worked out"
   },
   "service-quotas": {
-   "title": "Service Quotas",
+   "title": "Security services",
    "cloud": "aws",
    "category": "Management \u0026 governance",
-   "depth": "Thin",
+   "depth": "Core",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
-   "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "servicebus": {
    "title": "Service Bus",
@@ -3246,7 +3255,7 @@
    "category": "Management \u0026 governance",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "servicedirectory": {
@@ -3435,7 +3444,7 @@
    "category": "Integration \u0026 workflow",
    "depth": "Thin",
    "docker": false,
-   "covered": "15 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
+   "covered": "14 more services, beyond the rows above, emulated from their botocore models by one engine: create, describe, list, update, tags, paging, required-member checks and the models' own errors. [AWS long-tail services](aws-long-tail.md) walks every service built this way through create, get, list and delete, including some that also have a row above",
    "not_yet": "per-service behavior beyond the services named in the other rows is bookkeeping"
   },
   "textract": {
@@ -3534,8 +3543,8 @@
    "category": "Security \u0026 identity",
    "depth": "Core",
    "docker": false,
-   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account",
-   "not_yet": "no findings, no request filtering"
+   "covered": "RAM sharing with auto-accept in an organization, WAF v2 with lock tokens and capacity, Security Hub, Detective, Inspector, Macie, Access Analyzer, Network Firewall, CloudHSM, Control Tower, Account, Service Quotas (default and applied quotas for API Gateway, CloudFormation, DynamoDB, EC2, ECR, ECS, EventBridge, IAM, Lambda, CloudWatch Logs, RDS, S3 and Step Functions, each from an AWS documentation page, with paging; increase requests stay PENDING)",
+   "not_yet": "no findings, no request filtering; Service Quotas lists no quotas yet for other services (SQS, SNS, Kinesis, Secrets Manager and more; their AWS pages show no quota code or the value differs by Region), and an applied quota is always the default"
   },
   "workflows": {
    "title": "Workflows",

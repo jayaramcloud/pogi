@@ -148,7 +148,7 @@ func (s *Service) metadata(w http.ResponseWriter, r *http.Request, key string) {
 		}
 	}
 	q := r.URL.Query()
-	asJSON := q.Get("alt") == "json" || q.Get("recursive") == "true"
+	asJSON := q.Get("alt") == "json" || gapi.Bool(q.Get("recursive"))
 	var body []byte
 	switch v := node.(type) {
 	case map[string]any:

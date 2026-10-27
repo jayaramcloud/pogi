@@ -175,8 +175,11 @@ func New(hub *core.Hub) *Service {
 		"DeregisterContainerInstance": core.H(s.deregisterContainerInstance),
 		"DescribeContainerInstances":  core.H(s.describeContainerInstances),
 		"ListContainerInstances":      core.H(s.listContainerInstances),
-		"UpdateServicePrimaryTaskSet": core.H(s.taskSets),
-		"CreateTaskSet":               core.H(s.taskSets),
+		"UpdateServicePrimaryTaskSet": core.H(s.updateServicePrimaryTaskSet),
+		"CreateTaskSet":               core.H(s.createTaskSet),
+		"DescribeTaskSets":            core.H(s.describeTaskSets),
+		"UpdateTaskSet":               core.H(s.updateTaskSet),
+		"DeleteTaskSet":               core.H(s.deleteTaskSet),
 		"ExecuteCommand":              core.H(s.executeCommand),
 	}}
 	if hub != nil {
@@ -1240,10 +1243,6 @@ func (s *Service) listContainerInstances(c *core.Ctx, in *struct {
 }
 
 // ---- unsupported ----
-
-func (s *Service) taskSets(c *core.Ctx, _ *struct{}) (any, error) {
-	return nil, invalid("pogi does not support task sets (EXTERNAL and CODE_DEPLOY task set operations); services deploy with the ECS rolling controller.")
-}
 
 func (s *Service) executeCommand(c *core.Ctx, _ *struct{}) (any, error) {
 	return nil, clientErr("pogi does not support ECS Exec. Run `docker exec -it <container> sh` instead: task containers are named pogi-ecs-<task id>-<container name>.")

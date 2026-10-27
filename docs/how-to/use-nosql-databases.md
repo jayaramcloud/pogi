@@ -86,6 +86,15 @@ You'll make a table, put an item, get it by key, and query it.
    ]
    ```
 
+5. Or ask in PartiQL, DynamoDB's SQL-like language (`?` is filled from `--parameters`):
+
+   ```bash
+   aws dynamodb execute-statement --statement "SELECT * FROM orders WHERE id = ?" \
+     --parameters '[{"S":"o-1"}]' --query Items
+   ```
+
+   The output is the same as in step 4. `INSERT`, `UPDATE`, `DELETE`, `batch-execute-statement` and `execute-transaction` work too.
+
 ## Google Cloud: Firestore
 
 pogi serves Firestore over gRPC, which is what the Google Cloud client libraries use. They find pogi through `FIRESTORE_EMULATOR_HOST`, which `pogi env` sets, so your code needs no change. pogi does not answer Firestore's REST calls for documents, so `curl` and `gcloud` can't write documents: use a client library. See [Connect your tools](connect-your-tools.md#google-cloud). After your code writes a document, `pogi ls firestore` lists its collections and documents.
@@ -146,7 +155,7 @@ pogi serves Cosmos DB over HTTPS on the main port, and it works through the Cosm
 
 ## Limits
 
-- DynamoDB: PartiQL and import and export are not supported yet.
+- DynamoDB: import and export are not supported yet. PartiQL has no aggregate functions, joins or aliases.
 - Firestore: vector search and security rules are not supported yet. pogi answers Firestore over gRPC only.
 - Table Storage: `$filter` functions and Atom payloads are not supported yet.
 - Cosmos DB: stored procedures run nothing. .NET binary batches and spatial and vector functions are not supported yet.

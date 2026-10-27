@@ -50,7 +50,7 @@ pogi covers AWS, Google Cloud and Azure in one program, and needs no account. Se
 
 ## Which services does it cover?
 
-<!-- count:total -->355 services: 144 AWS (88 with real behavior, 56 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (29 with real behavior, 74 Thin)<!-- /count -->. A Thin service keeps your resources and reads them back, but nothing runs behind them. The [coverage page](../reference/coverage.md) lists them all.
+<!-- count:total -->355 services: 144 AWS (90 with real behavior, 54 Thin), 108 Google Cloud (25 with real behavior, 83 Thin) and 103 Azure (30 with real behavior, 73 Thin)<!-- /count -->. A Thin service keeps your resources and reads them back, but nothing runs behind them. The [coverage page](../reference/coverage.md) lists them all.
 
 ## Does it work with Terraform and the CDK?
 

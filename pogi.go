@@ -374,6 +374,11 @@ func New(cfg Config, log *slog.Logger) *Server {
 		home, _ := os.UserHomeDir()
 		cfg.DataDir = filepath.Join(home, ".pogi")
 	}
+	// Absolute once, here: native Lambda runtimes run with their working
+	// directory inside the data dir, so a relative path would point nowhere.
+	if abs, err := filepath.Abs(cfg.DataDir); err == nil {
+		cfg.DataDir = abs
+	}
 	if cfg.Lambda == "" {
 		cfg.Lambda = "auto"
 	}
@@ -494,10 +499,8 @@ func (s *Server) Run(ctx context.Context, ready func(url string)) error {
 				lns = append(lns, ln6)
 			}
 		}
-		if tc != nil {
-			for i := range lns {
-				lns[i] = core.SniffTLS(lns[i], tc)
-			}
+		for i := range lns { // TLS when there is a certificate; PostgreSQL clients go to their service
+			lns[i] = h.Sniff(lns[i], tc)
 		}
 		return lns, nil
 	}

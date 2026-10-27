@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -496,9 +497,13 @@ func TestBadRequests(t *testing.T) {
 	if st, out, _ := e.do(t, "GET", g+"Microsoft.Widgets/widgets?api-version=1", ""); st != 200 || len(out["value"].([]any)) != 0 {
 		t.Errorf("list after bad PUTs: %d %v", st, out)
 	}
-	// a deployment that holds an unknown type fails, a known one succeeds
+	// a deployment that holds an unknown type fails, a known one succeeds, and one with no apiVersion is refused
+	if st, out, _ := e.do(t, "PUT", g+"Microsoft.Resources/deployments/d?api-version=1", `{"properties":{"mode":"Incremental","template":{"resources":[{"type":"Microsoft.Widgets/widgets","name":"x"}]}}}`); st != 400 || out["error"].(map[string]any)["code"] != "InvalidTemplate" {
+		t.Errorf("no apiVersion: %d %v", st, out)
+	}
 	dep := func(typ string) string {
-		_, out, _ := e.do(t, "PUT", g+"Microsoft.Resources/deployments/d?api-version=1", `{"properties":{"mode":"Incremental","template":{"resources":[{"type":"`+typ+`","name":"x"}]}}}`)
+		e.do(t, "PUT", g+"Microsoft.Resources/deployments/d?api-version=1", `{"properties":{"mode":"Incremental","template":{"resources":[{"type":"`+typ+`","apiVersion":"2023-01-01","name":"x"}]}}}`)
+		_, out, _ := e.do(t, "GET", g+"Microsoft.Resources/deployments/d?api-version=1", "")
 		props, _ := out["properties"].(map[string]any)
 		return fmt.Sprint(props["provisioningState"])
 	}
@@ -507,5 +512,46 @@ func TestBadRequests(t *testing.T) {
 	}
 	if got := dep("Microsoft.Made/ups"); got != "Failed" {
 		t.Errorf("unknown type: %s", got)
+	}
+}
+
+// az resource list -g, az resource list --tag and az group list --tag send a $filter; a filter pogi cannot read is a 400.
+func TestListFilters(t *testing.T) {
+	e := start(t)
+	f := e.factory(sub)
+	for g, tags := range map[string]string{"g1": "dev", "g2": "prod"} {
+		must(f.NewResourceGroupsClient().CreateOrUpdate(ctx, g, armresources.ResourceGroup{Location: to.Ptr("eastus"), Tags: map[string]*string{"env": to.Ptr(tags)}}, nil))
+		must(must(f.NewClient().BeginCreateOrUpdate(ctx, g, "Microsoft.Widgets", "", "widgets", "w-"+g, "2023-01-01",
+			armresources.GenericResource{Location: to.Ptr("eastus"), Tags: map[string]*string{"env": to.Ptr(tags)}}, nil)).PollUntilDone(ctx, &azruntimePoll))
+	}
+	names := func(path string) string {
+		t.Helper()
+		st, out, _ := e.do(t, "GET", path, "")
+		if st != 200 {
+			t.Fatalf("%s: %d %v", path, st, out)
+		}
+		var n []string
+		for _, it := range out["value"].([]any) {
+			n = append(n, it.(map[string]any)["name"].(string))
+		}
+		return strings.Join(n, ",")
+	}
+	base := "/subscriptions/" + sub
+	for path, want := range map[string]string{
+		base + "/resources?api-version=2021-04-01&$filter=" + url.QueryEscape("resourceGroup eq 'G1'"):                                                 "w-g1",
+		base + "/resources?api-version=2021-04-01&$filter=" + url.QueryEscape("resourceGroup eq 'g1' and resourceType eq 'Microsoft.Widgets/widgets'"): "w-g1",
+		base + "/resources?api-version=2021-04-01&$filter=" + url.QueryEscape("tagName eq 'env' and tagValue eq 'prod'"):                               "w-g2",
+		base + "/resourcegroups?api-version=2021-04-01&$filter=" + url.QueryEscape("tagname eq 'env' and tagvalue eq 'dev'"):                           "g1",
+		base + "/resourcegroups?api-version=2021-04-01&$filter=" + url.QueryEscape("tagname eq 'nope'"):                                                "",
+	} {
+		if got := names(path); got != want {
+			t.Errorf("%s: got %q, want %q", path, got, want)
+		}
+	}
+	for _, p := range []string{"/resources", "/resourcegroups", "/resourceGroups/g1/resources"} {
+		st, out, _ := e.do(t, "GET", base+p+"?api-version=2021-04-01&$filter="+url.QueryEscape("name like 'a'"), "")
+		if st != 400 || out["error"].(map[string]any)["code"] != "InvalidFilter" {
+			t.Errorf("%s: bad filter gave %d %v", p, st, out)
+		}
 	}
 }

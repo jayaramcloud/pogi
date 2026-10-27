@@ -44,6 +44,9 @@ func (s *Service) target(c *core.Ctx, ref, qualifier string) (*target, error) {
 		handler: cfg.Handler, packageType: cfg.PackageType, image: cfg.ImageURI, imageConfig: cfg.ImageConfig, code: cfg.Code, codeDir: cfg.CodeDir,
 		codeSha: cfg.CodeSha256, env: cfg.Env, timeout: time.Duration(cfg.Timeout) * time.Second, memory: cfg.MemorySize,
 		role: cfg.Role}
+	var vc struct{ SubnetIds []string }
+	json.Unmarshal(cfg.Vpc, &vc) // none or malformed: no VPC
+	sp.vpcSubnets = vc.SubnetIds
 	if q != "" && q != "$LATEST" {
 		sp.arn += ":" + q
 	}

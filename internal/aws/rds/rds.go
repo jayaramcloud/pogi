@@ -41,11 +41,12 @@ type state struct {
 	Snapshots map[string]*DBSnapshot    `json:"snapshots"`
 
 	ClusterSnapshots map[string]*DBClusterSnapshot `json:"clusterSnapshots"`
+	SQL              map[string]*Server            `json:"dsqlServers"` // Aurora DSQL clusters' servers: account/region/id (dsql.go)
 }
 
 func newState() state {
 	return state{Instances: map[string]*DBInstance{}, Clusters: map[string]*DBCluster{}, Subnets: map[string]*DBSubnetGroup{},
-		Params: map[string]*ParamGroup{}, Snapshots: map[string]*DBSnapshot{}, ClusterSnapshots: map[string]*DBClusterSnapshot{}}
+		Params: map[string]*ParamGroup{}, Snapshots: map[string]*DBSnapshot{}, ClusterSnapshots: map[string]*DBClusterSnapshot{}, SQL: map[string]*Server{}}
 }
 
 // containers names the containers of the state.
@@ -59,6 +60,11 @@ func (st *state) containers() map[string]bool {
 	for _, c := range st.Clusters {
 		if c.Pogi.Container != "" {
 			out[c.Pogi.Container] = true
+		}
+	}
+	for _, srv := range st.SQL {
+		if srv.Container != "" {
+			out[srv.Container] = true
 		}
 	}
 	return out
@@ -100,6 +106,9 @@ var items = map[string]string{
 func New(hub *core.Hub) *Service {
 	s := &Service{hub: hub, st: newState()}
 	s.box = NewBox(hub, "rds", "failed", &s.mu, s.owns)
+	if hub != nil {
+		hub.PG = s.servePG
+	}
 	s.h = Lists(&core.RPC{XMLNS: "http://rds.amazonaws.com/doc/2014-10-31/", Ops: map[string]core.Handler{
 		"CreateDBInstance":                   core.H(s.createDBInstance),
 		"DescribeDBInstances":                core.H(s.describeDBInstances),
@@ -587,6 +596,11 @@ func (s *Service) owns(srv *Server) bool {
 	}
 	for _, c := range s.st.Clusters {
 		if &c.Pogi == srv {
+			return true
+		}
+	}
+	for _, q := range s.st.SQL {
+		if q == srv {
 			return true
 		}
 	}
@@ -1863,6 +1877,9 @@ func (s *Service) Load(b []byte) error {
 	}
 	for _, cl := range st.Clusters {
 		s.box.Resume(&cl.Pogi, cl.spec(), docker)
+	}
+	for _, q := range st.SQL {
+		s.box.Resume(q, sqlSpec(q), docker)
 	}
 	s.reload(old)
 	keep := st.containers()

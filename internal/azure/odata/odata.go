@@ -1,17 +1,14 @@
-package graph
+// Package odata reads an OData $filter and applies it to a JSON object. Microsoft Graph and Azure Resource
+// Manager both use it, so a filter means the same in each.
+package odata
 
 import (
-	"encoding/base64"
 	"fmt"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 )
-
-func decodeB64(s string) ([]byte, error) {
-	return base64.RawURLEncoding.DecodeString(strings.TrimRight(s, "="))
-}
 
 var (
 	fnRe    = regexp.MustCompile(`(?is)^(startswith|endswith|contains)\(\s*([\w/]+)\s*,\s*'((?:[^']|'')*)'\s*\)$`)
@@ -21,9 +18,9 @@ var (
 	valueRe = regexp.MustCompile(`'((?:[^']|'')*)'`)
 )
 
-// parseFilter reads a $filter: eq and ne, startswith, endswith, contains, in,
-// any(), and, or and parentheses.
-func parseFilter(f string) (func(map[string]any) bool, error) {
+// Parse reads a $filter: eq and ne, startswith, endswith, contains, in, any(), and, or and parentheses. It
+// returns the test the filter describes, or an error for an expression it cannot read.
+func Parse(f string) (func(map[string]any) bool, error) {
 	f = strings.TrimSpace(f)
 	if f == "" {
 		return func(map[string]any) bool { return true }, nil
@@ -35,22 +32,22 @@ func parseFilter(f string) (func(map[string]any) bool, error) {
 		return combine(parts, true)
 	}
 	if strings.HasPrefix(f, "(") && strings.HasSuffix(f, ")") && splitParen(f) {
-		return parseFilter(f[1 : len(f)-1])
+		return Parse(f[1 : len(f)-1])
 	}
 	if m := fnRe.FindStringSubmatch(f); m != nil {
 		want, fn := unquote(m[3]), map[string]func(a, b string) bool{"startswith": strings.HasPrefix, "endswith": strings.HasSuffix, "contains": strings.Contains}[strings.ToLower(m[1])]
 		return func(o map[string]any) bool {
-			v, ok := lookup(o, m[2]).(string)
+			v, ok := Lookup(o, m[2]).(string)
 			return ok && fn(strings.ToLower(v), strings.ToLower(want))
 		}, nil
 	}
 	if m := anyRe.FindStringSubmatch(f); m != nil {
-		inner, err := parseFilter(strings.ReplaceAll(m[3], m[2]+" ", "_ ")) // "c eq 'x'" -> "_ eq 'x'"
+		inner, err := Parse(strings.ReplaceAll(m[3], m[2]+" ", "_ ")) // "c eq 'x'" -> "_ eq 'x'"
 		if err != nil {
 			return nil, err
 		}
 		return func(o map[string]any) bool {
-			items, _ := lookup(o, m[1]).([]any)
+			items, _ := Lookup(o, m[1]).([]any)
 			return slices.ContainsFunc(items, func(it any) bool { return inner(map[string]any{"_": it}) })
 		}, nil
 	}
@@ -60,14 +57,14 @@ func parseFilter(f string) (func(map[string]any) bool, error) {
 			set = append(set, unquote(v[1]))
 		}
 		return func(o map[string]any) bool {
-			v, _ := lookup(o, m[1]).(string)
+			v, _ := Lookup(o, m[1]).(string)
 			return slices.ContainsFunc(set, func(s string) bool { return strings.EqualFold(s, v) })
 		}, nil
 	}
 	if m := cmpRe.FindStringSubmatch(f); m != nil {
 		lit := strings.TrimSpace(m[3])
 		eq := strings.EqualFold(m[2], "eq")
-		return func(o map[string]any) bool { return equal(lookup(o, m[1]), lit) == eq }, nil
+		return func(o map[string]any) bool { return equal(Lookup(o, m[1]), lit) == eq }, nil
 	}
 	return nil, fmt.Errorf("unsupported expression %q", f)
 }
@@ -91,8 +88,8 @@ func equal(v any, lit string) bool {
 	return err == nil && ok && f == n
 }
 
-// lookup reads a property by a "/"- or "."-separated path, ignoring case.
-func lookup(o map[string]any, path string) any {
+// Lookup reads a property by a "/"- or "."-separated path, ignoring case.
+func Lookup(o map[string]any, path string) any {
 	var cur any = o
 	for _, p := range strings.FieldsFunc(path, func(r rune) bool { return r == '/' }) {
 		m, ok := cur.(map[string]any)
@@ -113,7 +110,7 @@ func lookup(o map[string]any, path string) any {
 func combine(parts []string, and bool) (func(map[string]any) bool, error) {
 	var fs []func(map[string]any) bool
 	for _, p := range parts {
-		f, err := parseFilter(p)
+		f, err := Parse(p)
 		if err != nil {
 			return nil, err
 		}
@@ -172,22 +169,4 @@ func splitParen(f string) bool {
 		}
 	}
 	return false
-}
-
-// sortBy orders ids by $orderby ("field", "field desc"); the default is creation order.
-func sortBy(ids []string, objs map[string]map[string]any, orderby string) {
-	field, desc := "createdDateTime", false
-	if f := strings.Fields(orderby); len(f) > 0 {
-		field, desc = f[0], len(f) > 1 && strings.EqualFold(f[1], "desc")
-	}
-	slices.SortFunc(ids, func(a, b string) int {
-		c := strings.Compare(strings.ToLower(fmt.Sprint(lookup(objs[a], field))), strings.ToLower(fmt.Sprint(lookup(objs[b], field))))
-		if c == 0 {
-			c = strings.Compare(a, b)
-		}
-		if desc {
-			return -c
-		}
-		return c
-	})
 }

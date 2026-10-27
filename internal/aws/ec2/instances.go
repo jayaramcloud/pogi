@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nrndev/pogi/internal/aws/route53"
 	"github.com/nrndev/pogi/internal/core"
 	"github.com/nrndev/pogi/internal/docker"
 )
@@ -849,9 +850,12 @@ func (s *Service) boot(r *region, i *Instance, verb string) {
 		i.State = stateOf("pending")
 	}
 	ct, id := s.container(r, i), i.InstanceId
-	port := s.imdsPort(id, ct)
+	port, account, region, vpcID := s.imdsPort(id, ct), r.Account, r.Name, i.VpcId
 	s.serial(id, func() {
 		d, ctx := s.hub.Docker(), context.Background()
+		if ct.Network != "host" { // the DNS server of the VPC's private zones; not under the lock, it may start a container
+			ct.Dns = route53.ContainerDNS(s.hub, account, region, vpcID)
+		}
 		var err error
 		switch {
 		case verb == "start" && d.Start(ctx, ct.Name) == nil, verb == "restart" && d.Restart(ctx, ct.Name) == nil:

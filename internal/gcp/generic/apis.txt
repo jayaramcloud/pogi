@@ -50,6 +50,7 @@ developerconnect v1 developer_connect Developer Connect
 securesourcemanager v1 secure_source_manager Secure Source Manager
 parametermanager v1 parameter_manager Parameter Manager
 billingbudgets v1 billing_budgets Cloud Billing budgets
+cloudbilling v1 cloud_billing Cloud Billing
 migrationcenter v1 migration_center Migration Center
 blockchainnodeengine v1 blockchain_node_engine Blockchain Node Engine
 firebaseappcheck v1 firebase_app_check Firebase App Check

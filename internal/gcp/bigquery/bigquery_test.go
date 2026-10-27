@@ -2,11 +2,13 @@ package bigquery_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -159,6 +161,23 @@ func TestBadPaging(t *testing.T) {
 		if resp.StatusCode != 400 {
 			t.Errorf("%s = %d, want 400", q, resp.StatusCode)
 		}
+	}
+}
+
+// The Python client asks for whole-microsecond timestamps with useInt64Timestamp=True, capital T.
+func TestInt64TimestampTrueSpelling(t *testing.T) {
+	e := setup(t)
+	e.loaded(t)
+	resp := must(http.Get(e.url + "/bigquery/v2/projects/proj/datasets/ds/tables/events/data?maxResults=1&formatOptions.useInt64Timestamp=True"))
+	defer resp.Body.Close()
+	var out struct {
+		Rows []struct{ F []struct{ V any } }
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil || len(out.Rows) != 1 {
+		t.Fatalf("decode: %v, %d rows", err, len(out.Rows))
+	}
+	if got, want := out.Rows[0].F[4].V, strconv.FormatInt(t0.UnixMicro(), 10); got != want {
+		t.Fatalf("TS = %v, want %s", got, want)
 	}
 }
 

@@ -369,7 +369,7 @@ func (b *Box) up(sp Spec, verb, seed, resource string) (port int, note string, e
 			port, err = b.port(sp)
 			return port, note, err
 		}
-		if sp.Host == 0 {
+		if sp.Host == 0 && !portTaken(err) { // any port would do: try another only when another process took this one
 			break
 		}
 	}
@@ -454,6 +454,12 @@ func (b *Box) wait(srv *Server, port int, hello string, exit <-chan string) erro
 		}
 	}
 	return fmt.Errorf("nothing answered on %s within 5 minutes (docker logs tells why)", addr)
+}
+
+// portTaken says the engine could not publish a port because something else took it after freePort
+// found it free (other containers and processes start at the same time).
+func portTaken(err error) bool {
+	return err != nil && (strings.Contains(err.Error(), "port is already allocated") || strings.Contains(err.Error(), "address already in use"))
 }
 
 // freePort returns want when it is free on 127.0.0.1, else any free port.

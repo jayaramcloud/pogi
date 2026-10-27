@@ -2,8 +2,9 @@
 // deployment groups, deployment configs and deployments. Lambda deployments
 // run their BeforeAllowTraffic and AfterAllowTraffic hooks and shift an
 // alias' traffic in canary or linear steps, rolling back to the current
-// version on a failed hook, an alarm in ALARM or StopDeployment; Server and
-// ECS deployments are metadata.
+// version on a failed hook, an alarm in ALARM or StopDeployment. ECS
+// blue/green deployments use the same engine (see ecs.go); Server
+// deployments are metadata.
 package codedeploy
 
 import (
@@ -15,6 +16,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -163,7 +165,7 @@ type Deployment struct {
 	DeploymentStyle          any             `json:"deploymentStyle,omitempty"`
 	ComputePlatform          string          `json:"computePlatform"`
 	DeploymentStatusMessages []string        `json:"deploymentStatusMessages"`
-	Lambda                   *Shift          `json:"lambda,omitempty"`
+	Lambda                   *Shift          `json:"lambda,omitempty"` // the progress of a Lambda or ECS deployment
 }
 
 // ErrorInfo says why a deployment failed.
@@ -177,9 +179,10 @@ type RollbackInfo struct {
 	RollbackMessage string `json:"rollbackMessage"`
 }
 
-// Shift is a Lambda deployment's progress: its AppSpec, lifecycle events and
-// how much traffic the target version has.
+// Shift is a Lambda or ECS deployment's progress: its AppSpec, lifecycle
+// events and how much traffic the target version has.
 type Shift struct {
+	ECS                              *ECSDeploy // set for an ECS deployment; Function and Alias are not used
 	Function, Alias, Current, Target string
 	Hooks                            map[string]string // lifecycle event → hook function
 	Routing                          *Routing
@@ -484,6 +487,12 @@ func (s *Service) createGroup(c *core.Ctx, in *map[string]any) (any, error) {
 			return nil, err
 		}
 	}
+	defaults(g, a.ComputePlatform)
+	if a.ComputePlatform == "ECS" {
+		if err := s.checkECSGroup(c, g); err != nil {
+			return nil, err
+		}
+	}
 	if tags, ok := g["tags"].([]any); ok && len(tags) > 0 {
 		var list []Tag
 		b, _ := json.Marshal(tags)
@@ -560,11 +569,18 @@ func (s *Service) updateGroup(c *core.Ctx, in *map[string]any) (any, error) {
 	if next != "" && next != current && s.st.Groups[key(c, app, next)] != nil {
 		return nil, invalid("DeploymentGroupAlreadyExistsException", "A deployment group with the name %s already exists for application %s.", next, app)
 	}
+	merged := maps.Clone(g)
 	for k, v := range u {
 		if k != "currentDeploymentGroupName" && k != "newDeploymentGroupName" {
-			g[k] = v
+			merged[k] = v
 		}
 	}
+	if a.ComputePlatform == "ECS" {
+		if err := s.checkECSGroup(c, merged); err != nil {
+			return nil, err
+		}
+	}
+	maps.Copy(g, merged)
 	if next != "" && next != current {
 		delete(s.st.Groups, key(c, app, current))
 		g["deploymentGroupName"] = next
@@ -678,9 +694,9 @@ type appSpec struct {
 	Hooks []map[string]string `yaml:"Hooks"`
 }
 
-// appSpecOf reads a revision's AppSpec: inline (AppSpecContent, String) or
+// appSpecText reads a revision's AppSpec: inline (AppSpecContent, String) or
 // an S3 object, a zip holding appspec.yaml or the YAML or JSON file itself.
-func (s *Service) appSpecOf(c *core.Ctx, raw json.RawMessage) (*appSpec, error) {
+func (s *Service) appSpecText(c *core.Ctx, raw json.RawMessage) (string, error) {
 	var rev struct {
 		RevisionType   string
 		AppSpecContent struct{ Content string }
@@ -692,7 +708,7 @@ func (s *Service) appSpecOf(c *core.Ctx, raw json.RawMessage) (*appSpec, error) 
 	if loc := rev.S3Location; rev.RevisionType == "S3" {
 		status, _, body := s.hub.Do(c.Account, c.Region, "s3", http.MethodGet, (&url.URL{Path: "/" + loc.Bucket + "/" + loc.Key}).EscapedPath(), nil, nil)
 		if status != http.StatusOK {
-			return nil, invalid("RevisionDoesNotExistException", "No revision found at s3://%s/%s", loc.Bucket, loc.Key)
+			return "", invalid("RevisionDoesNotExistException", "No revision found at s3://%s/%s", loc.Bucket, loc.Key)
 		}
 		text = string(body)
 		if z, err := zip.NewReader(bytes.NewReader(body), int64(len(body))); err == nil {
@@ -706,6 +722,14 @@ func (s *Service) appSpecOf(c *core.Ctx, raw json.RawMessage) (*appSpec, error) 
 			}
 		}
 	}
+	return text, nil
+}
+
+func (s *Service) appSpecOf(c *core.Ctx, raw json.RawMessage) (*appSpec, error) {
+	text, err := s.appSpecText(c, raw)
+	if err != nil {
+		return nil, err
+	}
 	var spec appSpec
 	if err := yaml.Unmarshal([]byte(text), &spec); err != nil || len(spec.Resources) != 1 {
 		return nil, invalid("InvalidRevisionException", "The AppSpec must name one AWS::Lambda::Function resource (%v)", err)
@@ -718,6 +742,7 @@ func (s *Service) createDeployment(c *core.Ctx, in *createDeploymentInput) (any,
 	g, a, err := s.group(c, in.ApplicationName, in.DeploymentGroupName)
 	var cfg *Config
 	if err == nil {
+		g = maps.Clone(g) // the clock and updates change the stored group
 		cfg, err = s.config(c, cmp.Or(in.DeploymentConfigName, str(g, "deploymentConfigName")))
 	}
 	s.mu.Unlock()
@@ -731,7 +756,8 @@ func (s *Service) createDeployment(c *core.Ctx, in *createDeploymentInput) (any,
 		DeploymentID: "d-" + core.RandString(9, core.UpperNum), Revision: in.Revision, Status: "Created", CreateTime: core.Time(time.Now()),
 		Description: in.Description, Creator: "user", DeploymentStyle: g["deploymentStyle"], ComputePlatform: a.ComputePlatform,
 		DeploymentStatusMessages: []string{}}
-	if a.ComputePlatform == "Lambda" {
+	switch a.ComputePlatform {
+	case "Lambda":
 		spec, err := s.appSpecOf(c, in.Revision)
 		if err != nil {
 			return nil, err
@@ -751,6 +777,12 @@ func (s *Service) createDeployment(c *core.Ctx, in *createDeploymentInput) (any,
 		for _, name := range []string{"BeforeAllowTraffic", "AllowTraffic", "AfterAllowTraffic"} {
 			d.Lambda.Events = append(d.Lambda.Events, &Event{LifecycleEventName: name, Status: "Pending"})
 		}
+	case "ECS":
+		if d.Lambda, err = s.ecsShift(c, g, in.Revision, cfg.TrafficRoutingConfig); err != nil {
+			return nil, err
+		}
+	}
+	if d.Lambda != nil {
 		var alarms alarmConfig
 		b, _ := json.Marshal(g["alarmConfiguration"])
 		json.Unmarshal(b, &alarms)
@@ -764,8 +796,15 @@ func (s *Service) createDeployment(c *core.Ctx, in *createDeploymentInput) (any,
 		}
 	}
 	s.mu.Lock()
+	defer s.mu.Unlock()
+	if a.ComputePlatform == "ECS" { // two replacement task sets at once would fight over the listener
+		for k, o := range s.st.Deployments {
+			if strings.HasPrefix(k, key(c)) && !o.done() && o.ApplicationName == d.ApplicationName && o.DeploymentGroupName == d.DeploymentGroupName {
+				return nil, invalid("DeploymentLimitExceededException", "The deployment group already has a deployment in progress (%s).", o.DeploymentID)
+			}
+		}
+	}
 	s.st.Deployments[key(c, d.DeploymentID)] = d
-	s.mu.Unlock()
 	return map[string]string{"deploymentId": d.DeploymentID}, nil
 }
 
@@ -863,7 +902,12 @@ func (s *Service) continueDeployment(c *core.Ctx, in *struct{ DeploymentId strin
 
 // ---- deployment targets ----
 
-func (d *Deployment) targetID() string { return d.Lambda.Function + ":" + d.Lambda.Alias }
+func (d *Deployment) targetID() string {
+	if e := d.Lambda.ECS; e != nil {
+		return e.Cluster + ":" + e.Service
+	}
+	return d.Lambda.Function + ":" + d.Lambda.Alias
+}
 
 func (d *Deployment) targetStatus() string {
 	switch d.Status {
@@ -916,6 +960,10 @@ func (s *Service) targets(c *core.Ctx, id string, ids []string) ([]map[string]an
 	for _, t := range ids {
 		if d.Lambda == nil || t != d.targetID() {
 			return nil, invalid("DeploymentTargetDoesNotExistException", "The target %s does not exist in deployment %s.", t, d.DeploymentID)
+		}
+		if d.Lambda.ECS != nil {
+			list = append(list, map[string]any{"deploymentTargetType": "ECSTarget", "ecsTarget": snap(s.ecsTarget(c, d))})
+			continue
 		}
 		list = append(list, map[string]any{"deploymentTargetType": "LambdaTarget", "lambdaTarget": snap(d.target(c))})
 	}
@@ -1027,7 +1075,7 @@ func (d *Deployment) done() bool {
 	return d.Status == "Succeeded" || d.Status == "Failed" || d.Status == "Stopped"
 }
 
-// Tick moves deployments along: Server and ECS ones succeed, Lambda ones
+// Tick moves deployments along: Server ones succeed, Lambda and ECS ones
 // run their hooks and shift traffic one step per interval.
 func (s *Service) Tick(now time.Time) {
 	s.mu.Lock()
@@ -1042,7 +1090,7 @@ func (s *Service) Tick(now time.Time) {
 		if d.Status == "Created" {
 			d.Status, d.StartTime = "InProgress", ptr(core.Time(now))
 		}
-		if d.Lambda == nil { // ponytail: Server and ECS deployments deploy nothing
+		if d.Lambda == nil { // ponytail: Server deployments deploy nothing
 			d.Status, d.CompleteTime = "Succeeded", ptr(core.Time(now))
 			continue
 		}
@@ -1050,7 +1098,7 @@ func (s *Service) Tick(now time.Time) {
 	}
 }
 
-// step advances a Lambda deployment until it waits for a hook or an
+// step advances a Lambda or ECS deployment until it waits for a hook or an
 // interval; lock held. Lambda never calls back into CodeDeploy while its
 // alias changes, and hooks run on their own goroutines.
 func (s *Service) step(account, region string, d *Deployment, now time.Time) {
@@ -1062,7 +1110,7 @@ func (s *Service) step(account, region string, d *Deployment, now time.Time) {
 	for ; l.Phase < len(l.Events); l.Phase++ {
 		ev := l.Events[l.Phase]
 		fn := l.Hooks[ev.LifecycleEventName]
-		if fn == "" && ev.LifecycleEventName != "AllowTraffic" {
+		if fn == "" && !l.own(ev.LifecycleEventName) {
 			ev.Status = "Skipped"
 			continue
 		}
@@ -1075,10 +1123,19 @@ func (s *Service) step(account, region string, d *Deployment, now time.Time) {
 				return
 			}
 			if err := s.route(account, region, l, w); err != nil {
-				s.fail(account, region, d, now, "Failed", "INVALID_LAMBDA_CONFIGURATION", err.Error(), true)
+				s.fail(account, region, d, now, "Failed", cmp.Or(map[bool]string{true: "ECS_UPDATE_ERROR"}[l.ECS != nil], "INVALID_LAMBDA_CONFIGURATION"), err.Error(), true)
 				return
 			}
 			if l.Weight, l.Shifted, l.Updated = w, now, now; w < 100 {
+				return
+			}
+		} else if l.own(ev.LifecycleEventName) { // ECS Install and AllowTestTraffic
+			ok, err := s.ecsWork(account, region, d, ev, now)
+			if err != nil {
+				s.fail(account, region, d, now, "Failed", "ECS_UPDATE_ERROR", err.Error(), true)
+				return
+			}
+			if !ok {
 				return
 			}
 		} else {
@@ -1099,7 +1156,28 @@ func (s *Service) step(account, region string, d *Deployment, now time.Time) {
 		}
 		ev.Status, ev.EndTime, l.Updated = "Succeeded", ptr(core.Time(now)), now
 	}
+	if l.ECS != nil { // the original task set ends after its wait
+		if l.ECS.End.IsZero() {
+			l.ECS.End = now.Add(l.ECS.Wait)
+		}
+		if now.Before(l.ECS.End) {
+			return
+		}
+		if err := s.ecsTerminate(account, region, l.ECS); err != nil {
+			s.fail(account, region, d, now, "Failed", "ECS_UPDATE_ERROR", err.Error(), false)
+			return
+		}
+	}
 	d.Status, d.CompleteTime = "Succeeded", ptr(core.Time(now))
+}
+
+// own says whether pogi does the work of a lifecycle event itself, where
+// the others only run their hook.
+func (l *Shift) own(name string) bool {
+	if e := l.ECS; e != nil {
+		return name == "Install" || name == "AllowTraffic" || name == "AllowTestTraffic" && e.TestListener != ""
+	}
+	return name == "AllowTraffic"
 }
 
 // fail ends a deployment; with rollback the alias goes back to the current
@@ -1123,6 +1201,9 @@ func (s *Service) fail(account, region string, d *Deployment, now time.Time, sta
 	if rollback {
 		l.Weight = 0
 		info := &RollbackInfo{RollbackMessage: "The alias " + l.Alias + " was rolled back to version " + l.Current + "."}
+		if l.ECS != nil {
+			info.RollbackMessage = "Traffic went back to the original task set and the replacement task set was removed."
+		}
 		if err := s.route(account, region, l, 0); err != nil {
 			info.RollbackMessage = "The rollback failed: " + err.Error()
 		}
@@ -1133,6 +1214,9 @@ func (s *Service) fail(account, region string, d *Deployment, now time.Time, sta
 // route points an alias at the current version with weight percent of
 // traffic on the target version, or at the target version at 100.
 func (s *Service) route(account, region string, l *Shift, weight int) error {
+	if l.ECS != nil {
+		return s.routeECS(account, region, l.ECS, weight)
+	}
 	body := map[string]any{"FunctionVersion": l.Current, "RoutingConfig": map[string]any{"AdditionalVersionWeights": map[string]float64{}}}
 	switch {
 	case weight >= 100:

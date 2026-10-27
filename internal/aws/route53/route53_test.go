@@ -133,3 +133,46 @@ func TestHostedZonesAndRecords(t *testing.T) {
 		t.Fatalf("want NoSuchHealthCheck, got %v", err)
 	}
 }
+
+func TestAssociateVPC(t *testing.T) {
+	hub, url := core.ServeTest(t, func(h *core.Hub) core.Service { return r53svc.New(h) })
+	_ = hub
+	c := route53.NewFromConfig(awstest.Config(t, url))
+	v := func(id string) *types.VPC {
+		return &types.VPC{VPCId: aws.String(id), VPCRegion: types.VPCRegionUsEast1}
+	}
+	priv := must(c.CreateHostedZone(ctx, &route53.CreateHostedZoneInput{Name: aws.String("p.test"), CallerReference: aws.String("p"), VPC: v("vpc-a")})).HostedZone
+	pub := must(c.CreateHostedZone(ctx, &route53.CreateHostedZoneInput{Name: aws.String("pub.test"), CallerReference: aws.String("q")})).HostedZone
+
+	out := must(c.AssociateVPCWithHostedZone(ctx, &route53.AssociateVPCWithHostedZoneInput{HostedZoneId: priv.Id, VPC: v("vpc-b")}))
+	if out.ChangeInfo == nil || out.ChangeInfo.Status != types.ChangeStatusInsync {
+		t.Fatalf("change info: %+v", out.ChangeInfo)
+	}
+	if l := must(c.ListHostedZonesByVPC(ctx, &route53.ListHostedZonesByVPCInput{VPCId: aws.String("vpc-b"), VPCRegion: types.VPCRegionUsEast1})); len(l.HostedZoneSummaries) != 1 || *l.HostedZoneSummaries[0].Name != "p.test." {
+		t.Fatalf("by VPC: %+v", l.HostedZoneSummaries)
+	}
+	if z := must(c.GetHostedZone(ctx, &route53.GetHostedZoneInput{Id: priv.Id})); len(z.VPCs) != 2 {
+		t.Fatalf("VPCs: %+v", z.VPCs)
+	}
+	var dup *types.ConflictingDomainExists
+	if _, err := c.AssociateVPCWithHostedZone(ctx, &route53.AssociateVPCWithHostedZoneInput{HostedZoneId: priv.Id, VPC: v("vpc-b")}); !errors.As(err, &dup) {
+		t.Fatalf("duplicate: %v", err)
+	}
+	var notPrivate *types.PublicZoneVPCAssociation
+	if _, err := c.AssociateVPCWithHostedZone(ctx, &route53.AssociateVPCWithHostedZoneInput{HostedZoneId: pub.Id, VPC: v("vpc-b")}); !errors.As(err, &notPrivate) {
+		t.Fatalf("public zone: %v", err)
+	}
+	var none *types.NoSuchHostedZone
+	if _, err := c.AssociateVPCWithHostedZone(ctx, &route53.AssociateVPCWithHostedZoneInput{HostedZoneId: aws.String("ZNOPE"), VPC: v("vpc-b")}); !errors.As(err, &none) {
+		t.Fatalf("unknown zone: %v", err)
+	}
+	var absent *types.VPCAssociationNotFound
+	if _, err := c.DisassociateVPCFromHostedZone(ctx, &route53.DisassociateVPCFromHostedZoneInput{HostedZoneId: priv.Id, VPC: v("vpc-z")}); !errors.As(err, &absent) {
+		t.Fatalf("not associated: %v", err)
+	}
+	must(c.DisassociateVPCFromHostedZone(ctx, &route53.DisassociateVPCFromHostedZoneInput{HostedZoneId: priv.Id, VPC: v("vpc-a")}))
+	var last *types.LastVPCAssociation
+	if _, err := c.DisassociateVPCFromHostedZone(ctx, &route53.DisassociateVPCFromHostedZoneInput{HostedZoneId: priv.Id, VPC: v("vpc-b")}); !errors.As(err, &last) {
+		t.Fatalf("last VPC: %v", err)
+	}
+}

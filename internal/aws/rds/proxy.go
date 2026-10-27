@@ -230,7 +230,12 @@ func (s *Service) proxy(srv *Server, c net.Conn) {
 	case !t.iam:
 		b, err = net.Dial("tcp", addr)
 	case wire(t.engine) == "postgres":
-		b, err = s.pgLogin(&c, t, addr)
+		b, err = s.pgLogin(&c, pgAuth{cancel: addr, pick: func(user, pw string) (target, bool, error) {
+			if !isToken(pw) {
+				return t, false, nil
+			}
+			return t, true, s.checkToken(pw, user)
+		}})
 	default:
 		b, err = s.myLogin(c, t, addr)
 	}
@@ -238,6 +243,11 @@ func (s *Service) proxy(srv *Server, c net.Conn) {
 		s.hub.Log.Debug("rds proxy", "addr", addr, "err", err)
 		return
 	}
+	splice(c, b)
+}
+
+// splice copies bytes both ways until either side ends, then closes both.
+func splice(c, b net.Conn) {
 	defer b.Close()
 	done := make(chan struct{})
 	go func() { io.Copy(b, c); b.Close(); close(done) }()
@@ -290,12 +300,22 @@ func (s *Service) serverTLS() *tls.Config {
 	return cfg
 }
 
+// pgAuth says where a Postgres login goes and how it is checked.
+type pgAuth struct {
+	cancel     string // where a cancel request is relayed; "" drops it
+	requireTLS bool   // refuse a client that did not start TLS (Aurora DSQL)
+	// pick runs once the password is known. It returns the server to log in to and whether the password is an
+	// IAM auth token (pogi checked it: the login is as the server's user, then switched to the token's user).
+	// An error is told to the client: a *pgconn.PgError as it is, any other as a failed password.
+	pick func(user, password string) (t target, token bool, err error)
+}
+
 // pgLogin logs a Postgres client in: SSL is offered (see serverTLS), the
 // password comes in clear text and the server checks it, unless it is an IAM auth token: pogi
 // checks that and logs in as the master user, switching to the token's user
 // (the login is refused when that role does not exist). The server's greeting is relayed.
 // After TLS starts, *cp is the TLS connection, for the bytes that follow.
-func (s *Service) pgLogin(cp *net.Conn, t target, addr string) (net.Conn, error) {
+func (s *Service) pgLogin(cp *net.Conn, a pgAuth) (net.Conn, error) {
 	c := *cp
 	fe := pgproto3.NewBackend(c, c) // pogi is the client's backend
 	var start *pgproto3.StartupMessage
@@ -308,7 +328,7 @@ func (s *Service) pgLogin(cp *net.Conn, t target, addr string) (net.Conn, error)
 		case *pgproto3.StartupMessage:
 			start = m
 		case *pgproto3.CancelRequest: // the server knows the key it handed out
-			if b, err := net.Dial("tcp", addr); err == nil {
+			if b, err := net.Dial("tcp", a.cancel); a.cancel != "" && err == nil {
 				buf, _ := m.Encode(nil)
 				b.Write(buf)
 				b.Close()
@@ -337,6 +357,9 @@ func (s *Service) pgLogin(cp *net.Conn, t target, addr string) (net.Conn, error)
 			}
 		}
 	}
+	if _, secure := c.(*tls.Conn); a.requireTLS && !secure {
+		return nil, pgFail(fe, &pgconn.PgError{Severity: "FATAL", Code: "28000", Message: "SSL/TLS connection is required"}, errors.New("no TLS"))
+	}
 	user := start.Parameters["user"]
 	fe.Send(&pgproto3.AuthenticationCleartextPassword{})
 	if err := fe.Flush(); err != nil {
@@ -351,6 +374,12 @@ func (s *Service) pgLogin(cp *net.Conn, t target, addr string) (net.Conn, error)
 	if !ok {
 		return nil, fmt.Errorf("expected a password, got %T", m)
 	}
+	t, token, err := a.pick(user, pw.Password)
+	if err != nil {
+		pe := &pgconn.PgError{Severity: "FATAL", Code: "28P01", Message: fmt.Sprintf("PAM authentication failed for user %q", user)}
+		errors.As(err, &pe)
+		return nil, pgFail(fe, pe, err)
+	}
 	cfg, err := pgconn.ParseConfig("sslmode=disable")
 	if err != nil {
 		return nil, err
@@ -363,11 +392,7 @@ func (s *Service) pgLogin(cp *net.Conn, t target, addr string) (net.Conn, error)
 			cfg.RuntimeParams[k] = v
 		}
 	}
-	token := isToken(pw.Password)
 	if token {
-		if err := s.checkToken(pw.Password, user); err != nil {
-			return nil, pgFail(fe, &pgconn.PgError{Severity: "FATAL", Code: "28P01", Message: fmt.Sprintf("PAM authentication failed for user %q", user)}, err)
-		}
 		cfg.User, cfg.Password = t.user, t.password
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

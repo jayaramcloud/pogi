@@ -87,6 +87,7 @@ type hooks struct {
 	ownOrg   bool                                               // organizations/<id> is a resource of this API (Apigee), so a missing one is a 404
 	noEtag   []string                                           // schemas that have an etag field but get none (Terraform would see drift)
 	implicit func(name string) bool                             // parents that exist without a create call of their own (Chronicle's instance, IAP's tunnel location)
+	seed     map[string]map[string]any                          // resources every state starts with, by name (Cloud Billing's default account)
 }
 
 // method is a discovery method ready to match requests.
@@ -763,7 +764,17 @@ func (c *call) page(items []map[string]any) (any, error) {
 func (a *api) Reset() {
 	a.mu.Lock()
 	a.objs, a.seq = map[string]map[string]any{}, 0
+	a.addSeed()
 	a.mu.Unlock()
+}
+
+// addSeed puts back the resources every state starts with, unless the state has them already.
+func (a *api) addSeed() {
+	for k, v := range a.hooks.seed {
+		if a.objs[k] == nil {
+			a.objs[k] = clone(v)
+		}
+	}
 }
 
 type saved struct {
@@ -789,6 +800,7 @@ func (a *api) Load(b []byte) error {
 	}
 	a.mu.Lock()
 	a.objs, a.seq = in.Objs, in.Seq
+	a.addSeed()
 	a.mu.Unlock()
 	return nil
 }

@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nrndev/pogi/internal/aws/route53"
 	"github.com/nrndev/pogi/internal/core"
 	"github.com/nrndev/pogi/internal/docker"
 )
@@ -478,6 +479,9 @@ func (s *Service) stopTask(t *Task, code, reason string) {
 			if dep := sv.deployment(t.StartedBy); dep != nil {
 				dep.FailedTasks++
 				dep.failedAt = time.Now()
+			} else if ts := sv.taskSet(t.StartedBy); ts != nil {
+				ts.failed++
+				ts.failedAt = time.Now()
 			}
 		}
 	}
@@ -605,6 +609,7 @@ func (s *Service) launch(t *Task) string {
 	// links are moot and two containers of a task cannot share a port.
 	pause := &docker.Container{Name: docker.Name("ecs", sp.id), Image: "alpine:3", Service: "ecs", Resource: sp.id, Ports: map[int]int{},
 		Cmd: []string{"sh", "-c", "nc -lk -s 127.0.0.1 -p " + agentPort + " -e nc " + s.hostAddr() + " " + s.port() + " & exec sleep infinity"}}
+	pause.Dns = route53.SubnetDNS(s.hub, sp.account, sp.region, sp.subnets)
 	honoured := false
 	for _, cd := range sp.containers {
 		for _, pm := range cd.PortMappings {

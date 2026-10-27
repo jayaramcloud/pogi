@@ -107,6 +107,8 @@ func New(h *core.Hub) *Service {
 		}
 		arm.Register(h, p)
 	}
+	arm.Register(h, arm.Provider{Type: "Microsoft.ResourceGraph", Actions: map[string]func(*core.Ctx, arm.ID, map[string]any) (any, error){
+		"resources": s.graphQuery}})
 	return s
 }
 

@@ -492,6 +492,7 @@ type Container struct {
 	ExtraHosts []string    // name:ip
 	Network    string      // default: the pogi network; "host" shares the host's
 	Aliases    []string    // more DNS names on the network
+	Dns        []string    // DNS servers, asked for names the network does not know
 	Memory     int64       // bytes; 0: no limit
 	CPUs       float64     // 0: no limit
 
@@ -561,7 +562,7 @@ func (c *Client) Create(ctx context.Context, ct *Container) (string, error) {
 	}
 	body := map[string]any{"Image": image, "Env": ct.Env, "Cmd": ct.Cmd, "Entrypoint": ct.Entrypoint, "WorkingDir": ct.WorkDir,
 		"Labels": labels, "ExposedPorts": exposed,
-		"HostConfig": map[string]any{"PortBindings": bindings, "Binds": binds, "Mounts": mounts, "ExtraHosts": hosts, "NetworkMode": network,
+		"HostConfig": map[string]any{"PortBindings": bindings, "Binds": binds, "Mounts": mounts, "ExtraHosts": hosts, "Dns": ct.Dns, "NetworkMode": network,
 			"Memory": ct.Memory, "NanoCpus": int64(ct.CPUs * 1e9), "Privileged": ct.Privileged, "CapAdd": ct.CapAdd, "Tmpfs": ct.Tmpfs}}
 	if network != "host" && !strings.HasPrefix(network, "container:") {
 		body["NetworkingConfig"] = map[string]any{"EndpointsConfig": map[string]any{network: map[string]any{"Aliases": ct.Aliases}}}

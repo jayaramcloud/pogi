@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -82,6 +83,10 @@ type Hub struct {
 	Init      *InitHooks
 	URL       string // base URL once listening, e.g. http://localhost:7644
 	GRPC      *grpc.Server
+
+	// PG serves a connection that opens like a PostgreSQL client's (Aurora DSQL); a service sets it once at start.
+	// Nil: such a connection is closed.
+	PG func(net.Conn)
 
 	// Ready is set once serving, just before "Ready." is printed (pogi wait).
 	Ready atomic.Bool

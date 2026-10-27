@@ -1,6 +1,7 @@
 package rds
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
@@ -24,5 +25,21 @@ func TestResourceKeyIsIdentifier(t *testing.T) {
 	}
 	if got := b.resource(&Server{}, "pogi-rds-old"); got != "old" { // state saved before Server.ID
 		t.Errorf("fallback = %q", got)
+	}
+}
+
+// The engine's words for a published port someone else took, which make the box try another free port.
+func TestPortTaken(t *testing.T) {
+	for msg, want := range map[string]bool{
+		"docker: failed to set up container networking: driver failed programming external connectivity on endpoint x: Bind for 127.0.0.1:55056 failed: port is already allocated": true,
+		"docker: listen tcp 127.0.0.1:5432: bind: address already in use": true,
+		"docker: pull access denied for postgres":                         false,
+	} {
+		if got := portTaken(errors.New(msg)); got != want {
+			t.Errorf("portTaken(%q) = %v", msg, got)
+		}
+	}
+	if portTaken(nil) {
+		t.Error("portTaken(nil)")
 	}
 }

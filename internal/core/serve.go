@@ -298,7 +298,7 @@ func ListenTLS(tb TB, hub *Hub, h http.Handler) (string, *x509.CertPool) {
 		tb.Fatalf("listen: %v", err)
 	}
 	srv := &http.Server{Handler: h, Protocols: Protocols()}
-	go srv.Serve(SniffTLS(ln, cfg))
+	go srv.Serve(hub.Sniff(ln, cfg))
 	tb.Cleanup(func() { srv.Close() })
 	caPath, _, _ := hub.CertPaths()
 	pool := x509.NewCertPool()

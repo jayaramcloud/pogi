@@ -34,6 +34,7 @@ type Svc struct {
 	DeploymentConfiguration       map[string]any  `json:"deploymentConfiguration"`
 	DeploymentController          json.RawMessage `json:"deploymentController,omitempty"`
 	Deployments                   []*Deployment   `json:"deployments"`
+	TaskSets                      []*TaskSet      `json:"taskSets,omitempty"` // CODE_DEPLOY services
 	Events                        []Event         `json:"events"`
 	PlacementConstraints          json.RawMessage `json:"placementConstraints,omitempty"`
 	PlacementStrategy             json.RawMessage `json:"placementStrategy,omitempty"`
@@ -201,8 +202,14 @@ func (s *Service) createService(c *core.Ctx, in *serviceInput) (any, error) {
 	if launch == "FARGATE" {
 		sv.PlatformVersion, sv.PlatformFamily = cmp.Or(sv.PlatformVersion, "LATEST"), "Linux"
 	}
-	sv.deploy(now, in.ServiceConnectConfiguration)
-	s.emitDeploying(sv, now)
+	if codeDeploy(sv) { // CodeDeploy runs the deployments: the service starts with one PRIMARY task set
+		addSet(sv, &TaskSet{Status: "PRIMARY", TaskDefinition: d.Arn, LaunchType: launch, CapacityProviderStrategy: sv.CapacityProviderStrategy,
+			PlatformVersion: sv.PlatformVersion, PlatformFamily: sv.PlatformFamily, NetworkConfiguration: sv.NetworkConfiguration,
+			LoadBalancers: sv.LoadBalancers, ServiceRegistries: sv.ServiceRegistries, Scale: Scale{100, "PERCENT"}}, now)
+	} else {
+		sv.deploy(now, in.ServiceConnectConfiguration)
+		s.emitDeploying(sv, now)
+	}
 	s.st.Services[k] = sv
 	s.reconcile(sv, now)
 	return snap(map[string]any{"service": sv}), nil
@@ -232,6 +239,15 @@ func (s *Service) updateService(c *core.Ctx, in *serviceInput) (any, error) {
 	}
 	if sv.Status != "ACTIVE" {
 		return nil, errActive
+	}
+	if codeDeploy(sv) {
+		for what, set := range map[string]bool{"task definition": in.TaskDefinition != "", "load balancers": in.LoadBalancers != nil,
+			"network parameters": in.NetworkConfiguration != nil, "platform version": in.PlatformVersion != "",
+			"capacity providers": in.CapacityProviderStrategy != nil, "deployments": in.ForceNewDeployment} {
+			if set {
+				return nil, invalid("Unable to update %s on services with a CODE_DEPLOY deployment controller. Use AWS CodeDeploy to trigger a new deployment.", what)
+			}
+		}
 	}
 	changed := func(a, b any) bool { return string(snap(a)) != string(snap(b)) }
 	deploy := in.ForceNewDeployment
@@ -541,7 +557,14 @@ func (s *Service) tasksOf(sv *Svc) []*Task {
 // ponytail: no placement or load balancer health gating; tasks count as
 // healthy once RUNNING.
 func (s *Service) reconcile(sv *Svc, now time.Time) {
-	if s.closed || sv.Status == "INACTIVE" || len(sv.Deployments) == 0 {
+	if s.closed || sv.Status == "INACTIVE" {
+		return
+	}
+	if codeDeploy(sv) {
+		s.reconcileSets(sv, now)
+		return
+	}
+	if len(sv.Deployments) == 0 {
 		return
 	}
 	account, region := where(sv.ServiceArn)
