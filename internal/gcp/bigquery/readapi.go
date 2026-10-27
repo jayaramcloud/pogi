@@ -210,7 +210,7 @@ func (a *readAPI) ReadRows(req *storagepb.ReadRowsRequest, srv storagepb.BigQuer
 			return grpcErr(err)
 		}
 		resp := &storagepb.ReadRowsResponse{RowCount: int64(end - start),
-			Rows:  &storagepb.ReadRowsResponse_ArrowRecordBatch{ArrowRecordBatch: &storagepb.ArrowRecordBatch{SerializedRecordBatch: b, RowCount: int64(end - start)}},
+			Rows:  &storagepb.ReadRowsResponse_ArrowRecordBatch{ArrowRecordBatch: &storagepb.ArrowRecordBatch{SerializedRecordBatch: b}},
 			Stats: &storagepb.StreamStats{Progress: &storagepb.StreamStats_Progress{AtResponseStart: float64(start) / float64(len(rows)), AtResponseEnd: float64(end) / float64(len(rows))}}}
 		if start == int(req.Offset) {
 			resp.Schema = &storagepb.ReadRowsResponse_ArrowSchema{ArrowSchema: &storagepb.ArrowSchema{SerializedSchema: sess.schema}}

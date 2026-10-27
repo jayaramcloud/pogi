@@ -60,7 +60,6 @@ type tmplRes struct {
 	ctx       *evalCtx
 	deps      []*tmplRes
 	existing  bool // languageVersion 2.0: a resource that is only referred to
-	skipped   bool // its condition was false
 }
 
 // evalCtx is what copyIndex() reads: the copy loops being worked on.
